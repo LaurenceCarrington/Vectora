@@ -1484,6 +1484,11 @@
       ]
     },
     {
+      "file": "src/assets/vectora-icon.svg",
+      "sha256": "0c6ffab2b4ec1f531ecde12781cfd3c0395e3f8405163dcaf410a8084838c3e3",
+      "imports": []
+    },
+    {
       "file": "src/cam/ToolpathSimulator.ts",
       "sha256": "34e1c44627dc3a78989bb23636b8ab083d11c5f5fc1c6871443f19dac299f4ac",
       "imports": [
@@ -2458,7 +2463,7 @@
   "bundleInputs": [
     {
       "file": "index.html",
-      "sha256": "7cdea10c270bfb5a96eab52ac7e6e0c87c40e15f88bfa99e356b7db29b6caeb1"
+      "sha256": "bf6300be24731f4e7b246eb86c056c3f6658768a9e6c4850224541407463d518"
     },
     {
       "file": "node_modules/@fontsource-variable/inter/files/inter-cyrillic-ext-wght-normal.woff2",
@@ -3967,6 +3972,10 @@
     {
       "file": "src/3d/threeEngine.ts",
       "sha256": "6fce026f9f44a783eefff4d0230eed8d2485ce7d87943a5fcfdab80c22c89e7f"
+    },
+    {
+      "file": "src/assets/vectora-icon.svg",
+      "sha256": "0c6ffab2b4ec1f531ecde12781cfd3c0395e3f8405163dcaf410a8084838c3e3"
     },
     {
       "file": "src/cam/ToolpathSimulator.ts",
@@ -7237,6 +7246,13 @@
       "file": "assets/roboto-mono-latin-400-B79Aj-gv.woff",
       "originalFileNames": [
         "node_modules/typeface-roboto-mono/files/roboto-mono-latin-400.woff"
+      ]
+    },
+    {
+      "scope": "main",
+      "file": "assets/vectora-icon-DVDM7kmF.svg",
+      "originalFileNames": [
+        "src/assets/vectora-icon.svg"
       ]
     },
     {

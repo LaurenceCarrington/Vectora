@@ -17,11 +17,12 @@ function collect(directory, prefix = "") {
 }
 collect(join(root, "dist"));
 assert(files.has("index.html"), "Run npm run build first.");
+assert.match(files.get("index.html").toString("utf8"), /<link\b[^>]*rel="icon"[^>]*type="image\/svg\+xml"[^>]*href="[^"]+"/, "The Vectora favicon must be declared in the built page.");
 assert.deepEqual(files.get("LEGAL_ATTRIBUTIONS.md"), readFileSync(join(root, "LEGAL_ATTRIBUTIONS.md")), "The complete third-party notices must ship unchanged.");
 
 const contentTypes = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
-  ".woff": "font/woff", ".woff2": "font/woff2", ".md": "text/plain",
+  ".woff": "font/woff", ".woff2": "font/woff2", ".md": "text/plain", ".svg": "image/svg+xml",
 };
 let mount = "/";
 const server = createServer((request, response) => {
