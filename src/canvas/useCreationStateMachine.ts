@@ -41,6 +41,7 @@ import {
   type TransformHandle,
 } from "../renderer/TransformOverlay";
 import { useVectorStore, type ToolId } from "../store/useVectorStore";
+import { simplifyOpen } from "../vectorizer/autoTracer";
 import type { NodeEditRenderState } from "./useNodeEditStateMachine";
 import type { MeasureRenderState } from "./useMeasureTool";
 import type { SegmentErasePreview } from "./useEraserStateMachine";
@@ -87,6 +88,18 @@ type PolylineOperation = {
   layerId: string;
   points: Point2D[];
   hover: Point2D;
+};
+
+type FreehandOperation = {
+  kind: "freehand";
+  entityId: string;
+  layerId: string;
+  pointerId: number;
+  canvas: HTMLCanvasElement;
+  startScreen: Point2D;
+  points: Point2D[];
+  zoom: number;
+  dragged: boolean;
 };
 
 type DimensionOperation = {
@@ -136,7 +149,7 @@ type TransformOperation = {
   changed: boolean;
 };
 
-type PointerOperation = CreationOperation | PolylineOperation | DimensionOperation | LeaderOperation | MarqueeOperation | TransformOperation;
+type PointerOperation = CreationOperation | PolylineOperation | FreehandOperation | DimensionOperation | LeaderOperation | MarqueeOperation | TransformOperation;
 
 interface CreationStateMachineOptions {
   readonly screenToWorld: (clientX: number, clientY: number) => Point2D;
@@ -441,7 +454,11 @@ export function useCreationStateMachine({
   const activeTool = useVectorStore((state) => state.activeTool);
 
   const resetInteraction = useCallback((_restoreTransform: boolean) => {
+    const previous = operation.current;
     operation.current = null;
+    if (previous?.kind === "freehand" && previous.canvas.hasPointerCapture(previous.pointerId)) {
+      previous.canvas.releasePointerCapture(previous.pointerId);
+    }
     renderStateRef.current.previewEntity = null;
     renderStateRef.current.transformPreview = null;
     renderStateRef.current.marquee = null;
@@ -462,14 +479,32 @@ export function useCreationStateMachine({
     if (!current) return;
     if (current.kind === "creation" && current.tool !== activeTool) resetInteraction(false);
     else if (current.kind === "polyline" && activeTool !== "pen") finishPolyline();
+    else if (current.kind === "freehand" && activeTool !== "freehand") resetInteraction(false);
     else if (current.kind === "dimension" && activeTool !== "dimension" && activeTool !== "linear-dimension") resetInteraction(false);
     else if (current.kind === "leader" && activeTool !== "leader") resetInteraction(false);
     else if (
-      current.kind !== "creation" && current.kind !== "polyline" &&
+      current.kind !== "creation" && current.kind !== "polyline" && current.kind !== "freehand" &&
       current.kind !== "dimension" && current.kind !== "leader" &&
       activeTool !== "select"
     ) resetInteraction(true);
   }, [activeTool, finishPolyline, resetInteraction]);
+
+  useEffect(() => {
+    // A view change or interrupted pointer must never connect two unrelated parts of a stroke.
+    const cancelFreehand = () => {
+      if (operation.current?.kind === "freehand") resetInteraction(false);
+    };
+    const unsubscribe = useVectorStore.subscribe((state, previous) => {
+      if (state.activeTool !== "freehand" || state.temporaryPanActive || state.canvasPanning ||
+          state.viewport.x !== previous.viewport.x || state.viewport.y !== previous.viewport.y ||
+          state.viewport.zoom !== previous.viewport.zoom) cancelFreehand();
+    });
+    window.addEventListener("blur", cancelFreehand);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("blur", cancelFreehand);
+    };
+  }, [resetInteraction]);
 
   useEffect(() => documentModel.subscribe((_document, change) => {
     if (change.type === "document-replaced") resetInteraction(false);
@@ -629,6 +664,28 @@ export function useCreationStateMachine({
         };
         renderStateRef.current.previewEntity = null;
       }
+      requestRender();
+      event.preventDefault();
+      return true;
+    }
+
+    if (tool === "freehand") {
+      if (current?.kind === "freehand" || !event.isPrimary) return true;
+      const layer = activeDrawingLayer();
+      if (!layer) return true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      operation.current = {
+        kind: "freehand",
+        entityId: createEntityId(),
+        layerId: layer.id,
+        pointerId: event.pointerId,
+        canvas: event.currentTarget,
+        startScreen: { x: event.clientX, y: event.clientY },
+        points: [rawWorld],
+        zoom: vectorState.viewport.zoom,
+        dragged: false,
+      };
+      renderStateRef.current.previewEntity = null;
       requestRender();
       event.preventDefault();
       return true;
@@ -799,6 +856,27 @@ export function useCreationStateMachine({
     if (useVectorStore.getState().temporaryPanActive) return false;
     const current = operation.current;
     if (!current) return false;
+    if (current.kind === "freehand") {
+      if (current.pointerId !== event.pointerId) return true;
+      // Use raw, unsnapped samples, including pen samples coalesced by the browser.
+      const samples = event.nativeEvent.getCoalescedEvents?.() ?? [];
+      for (const sample of [...samples, event]) {
+        const point = screenToWorld(sample.clientX, sample.clientY);
+        const last = current.points.at(-1)!;
+        if (Math.hypot(point.x - last.x, point.y - last.y) * current.zoom >= 1) {
+          current.points.push(point);
+        }
+        if (Math.hypot(sample.clientX - current.startScreen.x, sample.clientY - current.startScreen.y) >= DRAG_THRESHOLD_PX) {
+          current.dragged = true;
+        }
+      }
+      renderStateRef.current.activeSnap = null;
+      renderStateRef.current.previewEntity = current.dragged
+        ? createPolylineEntity(current.entityId, current.points, undefined, current.layerId)
+        : null;
+      requestRender();
+      return true;
+    }
     const rawWorld = screenToWorld(event.clientX, event.clientY);
     const snapMoveToGrid = current.kind === "move"
       && isGridSnapEnabled();
@@ -941,6 +1019,21 @@ export function useCreationStateMachine({
   const onPointerUp = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     const current = operation.current;
     if (!current) return false;
+
+    if (current.kind === "freehand") {
+      if (current.pointerId !== event.pointerId) return true;
+      const end = screenToWorld(event.clientX, event.clientY);
+      const last = current.points.at(-1)!;
+      if (Math.hypot(end.x - last.x, end.y - last.y) > Number.EPSILON) current.points.push(end);
+      if (current.dragged || screenDistance(current.startScreen, event) >= DRAG_THRESHOLD_PX) {
+        // Keep the original endpoints and bends while removing sub-pixel sampling noise.
+        const points = simplifyOpen(current.points, 0.75 / current.zoom);
+        const entity = createPolylineEntity(current.entityId, points, undefined, current.layerId);
+        if (entity) executeCommand(new AddEntityCommand({ ...entity, name: "Freehand" }));
+      }
+      resetInteraction(false);
+      return true;
+    }
 
     if (current.kind === "polyline") return true;
     if (current.kind === "dimension" || current.kind === "leader") return true;

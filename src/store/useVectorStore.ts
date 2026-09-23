@@ -6,6 +6,7 @@ export type ToolId =
   | "node-edit"
   | "line"
   | "pen"
+  | "freehand"
   | "erase"
   | "fill"
   | "rectangle"

@@ -19,6 +19,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test:deployment": "node scripts/deployment-smoke.mjs",
+    "test:freehand:browser": "node scripts/freehand-browser-smoke.mjs",
     "test:canvas": "node scripts/canvas-smoke.mjs",
     "test:primitives": "vite build --config scripts/vite-smoke.config.ts --ssr scripts/primitives-smoke.ts --outDir /tmp/vectora-primitives-smoke --emptyOutDir && node /tmp/vectora-primitives-smoke/primitives-smoke.js",
     "test:phase1": "vite build --config scripts/vite-smoke.config.ts --ssr scripts/phase1-smoke.ts --outDir /tmp/vectora-phase1-smoke --emptyOutDir && node /tmp/vectora-phase1-smoke/phase1-smoke.js",

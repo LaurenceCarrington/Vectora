@@ -6,7 +6,7 @@ Vectora is a browser-based 2D CAD and manufacturing workspace for drawing, editi
 
 ## Features
 
-- Precision drawing with shapes, paths, text, grids, snapping, and measurements.
+- Precision drawing with shapes, paths, freehand strokes, text, grids, snapping, and measurements.
 - Layers and object properties, including line and fill colours.
 - Parametric generators for gears, flat-pack boxes, living hinges, and mounting plates.
 - Image tracing with outline, centreline, and filled-vector modes.

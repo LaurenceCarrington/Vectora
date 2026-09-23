@@ -949,6 +949,7 @@ function drawInteractionOverlays(
       const previewEntity = interaction.previewEntity;
       context.fillStyle = vectoraRenderColors.ui.selectionFill;
       context.strokeStyle = vectoraRenderColors.ui.selection;
+      if (activeTool === "freehand") context.setLineDash([]);
       traceEntity(context, previewEntity);
       if (
         previewEntity.type === "rectangle" || previewEntity.type === "circle" ||
@@ -960,6 +961,7 @@ function drawInteractionOverlays(
       ) context.fill("evenodd");
       if (previewEntity.type === "dimension" || previewEntity.type === "leader") context.fill();
       context.stroke();
+      if (activeTool === "freehand") setDashPair(context, 6 / viewport.zoom, 4 / viewport.zoom);
     }
     for (const previewEntity of interaction.generatorPreview) {
       const path = pathCache.peek(previewEntity);
@@ -1616,7 +1618,7 @@ export function useCanvasEngine() {
     const drafting = state.preferences.drafting;
     const { snapToGrid } = drafting;
     const gridSize = getWorldGridSpacing();
-    const telemetry = snapToGrid ? snapWorldPointToGrid(point, gridSize, drafting.gridStyle) : point;
+    const telemetry = snapToGrid && state.activeTool !== "freehand" ? snapWorldPointToGrid(point, gridSize, drafting.gridStyle) : point;
     const telemetryX = telemetry.x;
     const telemetryY = telemetry.y;
 
@@ -1753,6 +1755,9 @@ export function useCanvasEngine() {
       onPointerDown,
       onPointerUp,
       onPointerCancel,
+      onLostPointerCapture: (event: React.PointerEvent<HTMLCanvasElement>) => {
+        if (useVectorStore.getState().activeTool === "freehand") interactionHandlers.onPointerCancel(event);
+      },
       onDoubleClick,
       onWheel,
     },

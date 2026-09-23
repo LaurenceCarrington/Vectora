@@ -102,7 +102,7 @@ function perpendicularDistance(candidate: Point2D, start: Point2D, end: Point2D)
   return Math.hypot(candidate.x - (start.x + deltaX * amount), candidate.y - (start.y + deltaY * amount));
 }
 
-function simplifyOpen(points: readonly Point2D[], tolerance: number): readonly Point2D[] {
+export function simplifyOpen(points: readonly Point2D[], tolerance: number): readonly Point2D[] {
   if (points.length <= 2 || tolerance <= 0) return points;
   const keep = new Uint8Array(points.length);
   keep[0] = 1;

@@ -36,6 +36,7 @@ import {
   Minus,
   MousePointer2,
   PaintBucket,
+  Pencil,
   Pentagon,
   Plus,
   RotateCcw,
@@ -132,6 +133,7 @@ const TOOL_LABELS: Record<ToolId, string> = {
   "node-edit": "Node edit",
   line: "Line",
   pen: "Polyline",
+  freehand: "Freehand",
   erase: "Segment erase",
   fill: "Fill bucket",
   rectangle: "Rectangle",
@@ -153,6 +155,7 @@ const TOOL_ICONS: Record<ToolId, IconType> = {
   "node-edit": NodeEditIcon,
   line: ArrowUpRight,
   pen: PenLineIcon,
+  freehand: Pencil,
   erase: Eraser,
   fill: PaintBucket,
   rectangle: Square,
@@ -174,6 +177,7 @@ const TOOL_SHORTCUTS: Record<ToolId, string> = {
   "node-edit": "N",
   line: "L",
   pen: "P",
+  freehand: "B",
   erase: "X",
   fill: "G",
   rectangle: "R",
@@ -205,6 +209,7 @@ const COMMANDS: CommandItem[] = [
   { id: "node-edit", label: "Node edit", description: "Edit shape, line, and polyline anchors or Bézier handles", key: "N", icon: NodeEditIcon, tool: "node-edit" },
   { id: "line", label: "Line", description: "Draw a straight precision line", key: "L", icon: ArrowUpRight, tool: "line" },
   { id: "pen", label: "Polyline", description: "Draw connected line segments", key: "P", icon: PenLineIcon, tool: "pen" },
+  { id: "freehand", label: "Freehand", description: "Drag to draw a freehand path; release to finish", key: "B", icon: Pencil, tool: "freehand" },
   { id: "erase", label: "Segment erase", description: "Erase one hovered line or curve segment", key: "X", icon: Eraser, tool: "erase" },
   { id: "fill", label: "Fill bucket", description: "Apply the selected colour inside a closed shape", key: "G", icon: PaintBucket, tool: "fill" },
   { id: "rectangle", label: "Rectangle", description: "Draw a parametric rectangle", key: "R", icon: Square, tool: "rectangle" },
@@ -714,7 +719,7 @@ function ToolDock({
   const [dimensionMenuOpen, setDimensionMenuOpen] = useState(false);
   const activeIsShape = SHAPE_TOOLS.some((shape) => shape.id === activeTool);
   const activeIsSelection = activeTool === "select" || activeTool === "node-edit";
-  const activeIsLine = activeTool === "line" || activeTool === "pen";
+  const activeIsLine = activeTool === "line" || activeTool === "pen" || activeTool === "freehand";
   const activeIsDimension = DIMENSION_TOOLS.some((tool) => tool.id === activeTool);
 
   return (
@@ -809,6 +814,17 @@ function ToolDock({
                   <PenLineIcon size={19} />
                   <span>{displayToolLabel("Polyline", "pen")}</span>
                   <kbd>P</kbd>
+                </button>
+                <button
+                  className={`shape-row ${activeTool === "freehand" ? "is-selected" : ""}`}
+                  onClick={() => {
+                    setActiveTool("freehand");
+                    setLineMenuOpen(false);
+                  }}
+                >
+                  <Pencil size={19} />
+                  <span>Freehand</span>
+                  <kbd>B</kbd>
                 </button>
               </motion.div>
             )}
@@ -2047,6 +2063,7 @@ function HelpModal({ open, onClose }: { readonly open: boolean; readonly onClose
             <div className="help-list">
               <div><kbd>L</kbd><span>Draw a line by dragging or two clicks</span></div>
               <div><kbd>P</kbd><span>Click polyline vertices; Enter, Escape or double-click to finish</span></div>
+              <div><kbd>B</kbd><span>Drag a freehand path without snapping; release to finish, Escape to cancel</span></div>
               <div><kbd>X</kbd><span>Hover an edge in red, then click to erase that segment</span></div>
               <div><kbd>G</kbd><span>Apply the selected fill color inside a closed shape</span></div>
               <div><kbd>D</kbd><span>Pick two snap points, then place an aligned dimension</span></div>
@@ -2354,7 +2371,7 @@ export function VectoraWorkspace() {
         return;
       }
       const shortcutMap: Record<string, ToolId> = {
-        v: "select", n: "node-edit", l: "line", p: "pen", x: "erase", r: "rectangle",
+        v: "select", n: "node-edit", l: "line", p: "pen", b: "freehand", x: "erase", r: "rectangle",
         c: "circle", e: "ellipse", y: "polygon", a: "arc", f: "text", d: "dimension", g: "fill",
       };
       const tool = shortcutMap[event.key.toLowerCase()];
