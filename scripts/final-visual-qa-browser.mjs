@@ -369,7 +369,7 @@ try {
   assert(propertyTypography.field <= 10 && propertyTypography.select <= 10 && propertyTypography.label <= 9,
     `Property controls still use oversized text: ${JSON.stringify(propertyTypography)}.`);
   await evaluate(`['Geometry', 'Layer', 'Operation'].forEach(title => {
-    [...document.querySelectorAll('.property-section-toggle')].find(button => button.textContent.trim() === title)?.click();
+    [...document.querySelectorAll('.property-section-toggle')].find(button => button.textContent.trim() === title && button.getAttribute('aria-expanded') === 'true')?.click();
   })`);
   await wait(180);
   const collapsedPropertySections = await evaluate(`(() => [...document.querySelectorAll('.property-section-toggle')]

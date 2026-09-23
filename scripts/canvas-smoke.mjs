@@ -130,7 +130,8 @@ try {
     for (const id of [...documentModel.getDocument().entities.keys()]) documentModel.removeEntity(id);
     const { history } = await import('/src/document/History.ts');
     history.clear();
-    const { useVectorStore } = await import('/src/store/useVectorStore.ts');
+    const { useVectorStore, DEFAULT_PROPERTY_SECTIONS } = await import('/src/store/useVectorStore.ts');
+    useVectorStore.setState({ propertySections: DEFAULT_PROPERTY_SECTIONS });
     useVectorStore.getState().setActiveTool('select');
     useVectorStore.getState().resetViewport();
     useVectorStore.getState().togglePanel('properties', true);
@@ -198,6 +199,45 @@ try {
     return [...documentModel.getDocument().entities.values()].map(({ id, type, bbox }) => ({ id, type, bbox }));
   `);
   assert(created.length === 4, `Expected four created entities, received ${created.length}.`);
+  const propertyStates = () => evaluate(`return [...document.querySelectorAll('.property-section-toggle')].map(button => ({
+    title: button.textContent.trim(), expanded: button.getAttribute('aria-expanded'),
+    hidden: document.getElementById(button.getAttribute('aria-controls')).hidden,
+  }));`);
+  let sections = await propertyStates();
+  assert(sections.length === 4 && sections.every(section => section.expanded === 'false' && section.hidden),
+    "All Properties sections must start collapsed for a selected shape.");
+  await evaluate(`document.querySelector('[aria-controls="property-section-geometry"]').click();`);
+  const reopenProperties = async () => {
+    await evaluate(`document.querySelector('.property-inspector [aria-label="Close panel"]').click();`);
+    for (let attempt = 0; attempt < 30 && await evaluate(`return Boolean(document.querySelector('.property-inspector'));`); attempt++) await wait(50);
+    assert(await evaluate(`return !document.querySelector('.property-inspector');`), "Properties did not close.");
+    await evaluate(`document.querySelector('.right-dock-wrap [aria-label="Properties"]').click();`);
+    await wait(300);
+  };
+  await reopenProperties();
+  sections = await propertyStates();
+  assert(sections.every(section => section.expanded === (section.title === 'Geometry' ? 'true' : 'false')),
+    "Reopening Properties must retain expanded Geometry and the other collapsed sections.");
+  await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    documentModel.clearSelection();
+  `);
+  await wait();
+  await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    documentModel.selectEntities(['${created.find(entity => entity.type === 'rectangle').id}']);
+  `);
+  await wait();
+  sections = await propertyStates();
+  assert(sections.every(section => section.expanded === (section.title === 'Geometry' ? 'true' : 'false')),
+    "Changing selection must not reset section state.");
+  await evaluate(`document.querySelector('[aria-controls="property-section-geometry"]').click();`);
+  await reopenProperties();
+  sections = await propertyStates();
+  assert(sections.every(section => section.expanded === 'false' && section.hidden),
+    "User-collapsed sections must remain collapsed on reopen.");
+  // Remaining canvas tests edit geometry fields deliberately.
+  await evaluate(`document.querySelector('[aria-controls="property-section-geometry"]').click();`);
   assert(
     ["line", "rectangle", "circle", "arc"].every((type) => created.some((entity) => entity.type === type)),
     "Not all drawing tools created their expected entity type.",

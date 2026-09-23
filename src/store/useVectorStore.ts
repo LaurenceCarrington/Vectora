@@ -71,6 +71,34 @@ export interface VectorPreferences {
 }
 
 export const VECTORA_PREFERENCES_STORAGE_KEY = "vectora_preferences";
+export const PROPERTY_SECTIONS_STORAGE_KEY = "vectora_property_sections";
+export const DEFAULT_PROPERTY_SECTIONS = Object.freeze({
+  geometry: false,
+  appearance: false,
+  layer: false,
+  operation: false,
+});
+export type PropertySectionId = keyof typeof DEFAULT_PROPERTY_SECTIONS;
+export type PropertySections = Readonly<Record<PropertySectionId, boolean>>;
+
+export function normalizePropertySections(value: unknown): PropertySections {
+  const saved = typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+  return Object.freeze({
+    geometry: saved.geometry === true,
+    appearance: saved.appearance === true,
+    layer: saved.layer === true,
+    operation: saved.operation === true,
+  });
+}
+
+function loadPropertySections(): PropertySections {
+  try {
+    return normalizePropertySections(JSON.parse(localStorage.getItem(PROPERTY_SECTIONS_STORAGE_KEY) ?? "null"));
+  } catch {
+    // Keep the panel usable when storage is unavailable or contains invalid data.
+    return DEFAULT_PROPERTY_SECTIONS;
+  }
+}
 export const ALL_OSNAP_TYPES: readonly OsnapType[] = Object.freeze([
   "endpoint",
   "midpoint",
@@ -161,6 +189,8 @@ interface VectorState {
   preferencesOpen: boolean;
   layersOpen: boolean;
   propertiesOpen: boolean;
+  propertySections: PropertySections;
+  togglePropertySection: (section: PropertySectionId) => void;
   temporaryPanActive: boolean;
   canvasPanning: boolean;
   nodeEditSelection: NodeEditSelection | null;
@@ -310,6 +340,10 @@ export const useVectorStore = create<VectorState>((set) => ({
   preferencesOpen: false,
   layersOpen: false,
   propertiesOpen: false,
+  propertySections: loadPropertySections(),
+  togglePropertySection: (section) => set((state) => ({
+    propertySections: { ...state.propertySections, [section]: !state.propertySections[section] },
+  })),
   temporaryPanActive: false,
   canvasPanning: false,
   nodeEditSelection: null,
@@ -397,6 +431,13 @@ export const useVectorStore = create<VectorState>((set) => ({
 
 if (typeof window !== "undefined") {
   useVectorStore.subscribe((state, previous) => {
+    if (state.propertySections !== previous.propertySections) {
+      try {
+        localStorage.setItem(PROPERTY_SECTIONS_STORAGE_KEY, JSON.stringify(state.propertySections));
+      } catch {
+        // In-memory section state still survives closing and reopening the panel.
+      }
+    }
     if (state.preferences === previous.preferences) return;
     try {
       localStorage.setItem(VECTORA_PREFERENCES_STORAGE_KEY, JSON.stringify(state.preferences));

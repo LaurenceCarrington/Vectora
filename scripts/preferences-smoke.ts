@@ -47,7 +47,8 @@ Object.defineProperty(globalThis, "window", {
 });
 
 const [
-  { useVectorStore, DEFAULT_PREFERENCES, gridSizeInDocumentUnits, normalizePreferences },
+  { useVectorStore, DEFAULT_PREFERENCES, gridSizeInDocumentUnits, normalizePreferences,
+    DEFAULT_PROPERTY_SECTIONS, PROPERTY_SECTIONS_STORAGE_KEY, normalizePropertySections },
   {
     findObjectSnap,
     getWorldGridSpacing,
@@ -60,6 +61,26 @@ const [
   import("../src/store/useVectorStore"),
   import("../src/geometry/Snapping"),
 ]);
+
+assert(JSON.stringify(useVectorStore.getState().propertySections) === JSON.stringify(DEFAULT_PROPERTY_SECTIONS),
+  "Properties sections must initially be collapsed.");
+useVectorStore.getState().togglePropertySection("geometry");
+useVectorStore.getState().togglePropertySection("layer");
+useVectorStore.getState().togglePanel("properties", true);
+useVectorStore.getState().togglePanel("properties", false);
+useVectorStore.getState().togglePanel("properties", true);
+assert(useVectorStore.getState().propertySections.geometry && useVectorStore.getState().propertySections.layer
+  && !useVectorStore.getState().propertySections.appearance && !useVectorStore.getState().propertySections.operation,
+  "Closing and reopening Properties must retain each section independently.");
+assert(JSON.stringify(normalizePropertySections(JSON.parse(storage.getItem(PROPERTY_SECTIONS_STORAGE_KEY)!)))
+  === JSON.stringify(useVectorStore.getState().propertySections), "Section state must be saved for the next visit.");
+assert(JSON.stringify(normalizePropertySections({ geometry: "true", appearance: 1, layer: null }))
+  === JSON.stringify(DEFAULT_PROPERTY_SECTIONS), "Invalid stored section values must default to collapsed.");
+const originalWrite = storage.setItem.bind(storage);
+storage.setItem = () => { throw new Error("Storage unavailable"); };
+useVectorStore.getState().togglePropertySection("geometry");
+assert(!useVectorStore.getState().propertySections.geometry, "Section controls must work when storage is unavailable.");
+storage.setItem = originalWrite;
 
 let preferences = useVectorStore.getState().preferences;
 assert(preferences.canvas.themeMode === "dark-cad", "Stored theme did not hydrate.");

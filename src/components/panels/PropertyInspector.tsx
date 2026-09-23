@@ -280,15 +280,8 @@ export function PropertyInspector() {
   const fillBucketColor = useVectorStore((state) => state.fillBucketColor);
   const setFillBucketColor = useVectorStore((state) => state.setFillBucketColor);
   const dragControls = useDragControls();
-  const [expandedSections, setExpandedSections] = useState({
-    geometry: true,
-    appearance: true,
-    layer: true,
-    operation: true,
-  });
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((current) => ({ ...current, [section]: !current[section] }));
-  };
+  const expandedSections = useVectorStore((state) => state.propertySections);
+  const toggleSection = useVectorStore((state) => state.togglePropertySection);
   const document = useSyncExternalStore(
     (onStoreChange) => documentModel.subscribe(() => onStoreChange()),
     () => documentModel.getDocument(),

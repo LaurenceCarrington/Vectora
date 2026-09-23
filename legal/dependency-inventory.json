@@ -1889,7 +1889,7 @@
     },
     {
       "file": "src/components/panels/PropertyInspector.tsx",
-      "sha256": "0b6bfc73b72e0294f6172af9bc8ae01930d8fddeae831aba652cc6adf1217463",
+      "sha256": "43abb743f0ffdffc2ec65100f2383065095a1d9717b0485691e94ab4f4a3af4f",
       "imports": [
         "../../document/DocumentModel",
         "../../document/History",
@@ -2396,7 +2396,7 @@
     },
     {
       "file": "src/store/useVectorStore.ts",
-      "sha256": "69d331e88c420e42c84673789845afc971104b8ab6d1805ea85f7857f968fa4e",
+      "sha256": "9c738822f3fe106d78cf15edeaf4c2f953d98c4523dd3377dd62974cb7e67408",
       "imports": [
         "../document/types",
         "zustand"
@@ -4091,7 +4091,7 @@
     },
     {
       "file": "src/components/panels/PropertyInspector.tsx",
-      "sha256": "0b6bfc73b72e0294f6172af9bc8ae01930d8fddeae831aba652cc6adf1217463"
+      "sha256": "43abb743f0ffdffc2ec65100f2383065095a1d9717b0485691e94ab4f4a3af4f"
     },
     {
       "file": "src/components/panels/RasterPanel.tsx",
@@ -4295,7 +4295,7 @@
     },
     {
       "file": "src/store/useVectorStore.ts",
-      "sha256": "69d331e88c420e42c84673789845afc971104b8ab6d1805ea85f7857f968fa4e"
+      "sha256": "9c738822f3fe106d78cf15edeaf4c2f953d98c4523dd3377dd62974cb7e67408"
     },
     {
       "file": "src/vectorizer/autoTracer.ts",
@@ -4317,499 +4317,499 @@
   "modules": [
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "node_modules/zustand/esm/react.mjs",
       "renderedLength": 691
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "node_modules/zustand/esm/vanilla.mjs",
       "renderedLength": 1011
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/contourValidation.ts",
       "renderedLength": 2295
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/gcodeCompiler.ts",
       "renderedLength": 22744
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/holdingTabs.ts",
       "renderedLength": 7162
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/leadGeometry.ts",
       "renderedLength": 13833
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/optimizer.ts",
       "renderedLength": 6045
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/physicalUnits.ts",
       "renderedLength": 149
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/pocketingEngine.ts",
       "renderedLength": 8105
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/processModel.ts",
       "renderedLength": 15280
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/rasterCamEngine.ts",
       "renderedLength": 11201
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/ToolpathSimulator.ts",
       "renderedLength": 11372
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/toolStore.ts",
       "renderedLength": 7763
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/cam/webSerialController.ts",
       "renderedLength": 23327
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/canvas/useCreationStateMachine.ts",
       "renderedLength": 30156
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/canvas/useEraserStateMachine.ts",
       "renderedLength": 3193
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/canvas/useFillTool.ts",
       "renderedLength": 1244
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/canvas/useMeasureTool.ts",
       "renderedLength": 4171
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/canvas/useNodeEditStateMachine.ts",
       "renderedLength": 24633
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/modals/PreferencesModal.tsx",
       "renderedLength": 20910
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/modals/RecoveryDialog.tsx",
       "renderedLength": 7058
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/modals/VectorizerModal.tsx",
       "renderedLength": 19167
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/CamNumber.tsx",
       "renderedLength": 718
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/CamPanel.tsx",
       "renderedLength": 61710
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/LayersPanel.tsx",
       "renderedLength": 13571
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/MachineControlPanel.tsx",
       "renderedLength": 16371
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/PropertyInspector.tsx",
-      "renderedLength": 27537
+      "renderedLength": 27405
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/RasterPanel.tsx",
       "renderedLength": 11462
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/panels/ToolLibrary.tsx",
       "renderedLength": 10022
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/ui/NodeTypeMenu.tsx",
       "renderedLength": 3880
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/ui/terminology.ts",
       "renderedLength": 351
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/ui/Toast.tsx",
       "renderedLength": 3637
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/ui/Tooltip.tsx",
       "renderedLength": 6288
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/components/VectoraWorkspace.tsx",
       "renderedLength": 132327
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/design/vectoraRenderColors.ts",
       "renderedLength": 1593
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/document/DocumentModel.ts",
       "renderedLength": 44413
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/document/History.ts",
       "renderedLength": 14150
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/annotations.ts",
       "renderedLength": 10406
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/bezier.ts",
       "renderedLength": 9120
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/generators/boxBuilder.ts",
       "renderedLength": 8443
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/generators/common.ts",
       "renderedLength": 1650
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/generators/gearGenerator.ts",
       "renderedLength": 7433
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/generators/livingHinge.ts",
       "renderedLength": 4354
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/generators/mountingPlate.ts",
       "renderedLength": 3208
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/GridGeometry.ts",
       "renderedLength": 181
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/HitTest.ts",
       "renderedLength": 14435
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/booleans.ts",
       "renderedLength": 7452
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/closePath.ts",
       "renderedLength": 465
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/join.ts",
       "renderedLength": 5128
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/offset.ts",
       "renderedLength": 1591
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/operationSafety.ts",
       "renderedLength": 1263
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/pathConversion.ts",
       "renderedLength": 16307
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/operations/segmentErase.ts",
       "renderedLength": 3066
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/Snapping.ts",
       "renderedLength": 21597
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/SpatialIndex.ts",
       "renderedLength": 4769
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/geometry/topology.ts",
       "renderedLength": 7021
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/hooks/useCanvasEngine.ts",
       "renderedLength": 59745
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/hooks/useObjectClipboard.ts",
       "renderedLength": 2465
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/io/dxfGeometry.ts",
       "renderedLength": 3479
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/io/dxfSerializer.ts",
       "renderedLength": 45436
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/io/filePersistence.ts",
       "renderedLength": 24470
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/io/objectClipboard.ts",
       "renderedLength": 4160
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/io/rasterImport.ts",
       "renderedLength": 2034
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/io/svgParser.ts",
       "renderedLength": 40790
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/main.tsx",
       "renderedLength": 258
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/recovery/recoveryController.ts",
       "renderedLength": 7143
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/recovery/recoveryStore.ts",
       "renderedLength": 5545
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/renderer/IsometricGrid.ts",
       "renderedLength": 1928
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/renderer/LeadOverlay.ts",
       "renderedLength": 1186
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/renderer/PathCache.ts",
       "renderedLength": 6349
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/renderer/RasterOverlay.ts",
       "renderedLength": 1696
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/renderer/TransformOverlay.ts",
       "renderedLength": 12842
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/store/useCamCalibrationStore.ts",
       "renderedLength": 272
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/store/useLeadSettingsStore.ts",
       "renderedLength": 440
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/store/useMachineStore.ts",
       "renderedLength": 700
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/store/usePocketSettingsStore.ts",
       "renderedLength": 506
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/store/usePresetStore.ts",
       "renderedLength": 7247
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/store/useVectorStore.ts",
-      "renderedLength": 10813
+      "renderedLength": 11874
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/vectorizer/autoTracer.ts",
       "renderedLength": 5521
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/vectorizer/centerlineTracer.ts",
       "renderedLength": 1892
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "src/vectorizer/imagePreprocess.ts",
       "renderedLength": 910
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "\u0000vite/modulepreload-polyfill.js",
       "renderedLength": 1205
     },
     {
       "scope": "main",
-      "chunk": "assets/index-DIPrE9vR.js",
+      "chunk": "assets/index-DoctTWbe.js",
       "id": "\u0000vite/preload-helper.js",
       "renderedLength": 2176
     },
@@ -4821,55 +4821,55 @@
     },
     {
       "scope": "main",
-      "chunk": "assets/textToPath-C0CCxU4e.js",
+      "chunk": "assets/textToPath-Cm8vCWkG.js",
       "id": "node_modules/typeface-lora/files/lora-latin-400.woff?url",
       "renderedLength": 151
     },
     {
       "scope": "main",
-      "chunk": "assets/textToPath-C0CCxU4e.js",
+      "chunk": "assets/textToPath-Cm8vCWkG.js",
       "id": "node_modules/typeface-roboto-mono/files/roboto-mono-latin-400.woff?url",
       "renderedLength": 172
     },
     {
       "scope": "main",
-      "chunk": "assets/textToPath-C0CCxU4e.js",
+      "chunk": "assets/textToPath-Cm8vCWkG.js",
       "id": "node_modules/typeface-roboto/files/roboto-latin-400.woff?url",
       "renderedLength": 199
     },
     {
       "scope": "main",
-      "chunk": "assets/textToPath-C0CCxU4e.js",
+      "chunk": "assets/textToPath-Cm8vCWkG.js",
       "id": "src/geometry/operations/textToPath.ts",
       "renderedLength": 5251
     },
     {
       "scope": "main",
-      "chunk": "assets/ThreePreviewModal-9eD0HwcY.js",
+      "chunk": "assets/ThreePreviewModal-CnfV9Y4S.js",
       "id": "src/3d/boxFolder.ts",
       "renderedLength": 3112
     },
     {
       "scope": "main",
-      "chunk": "assets/ThreePreviewModal-9eD0HwcY.js",
+      "chunk": "assets/ThreePreviewModal-CnfV9Y4S.js",
       "id": "src/3d/pocketMesh.ts",
       "renderedLength": 3705
     },
     {
       "scope": "main",
-      "chunk": "assets/ThreePreviewModal-9eD0HwcY.js",
+      "chunk": "assets/ThreePreviewModal-CnfV9Y4S.js",
       "id": "src/3d/rasterSurface.ts",
       "renderedLength": 1761
     },
     {
       "scope": "main",
-      "chunk": "assets/ThreePreviewModal-9eD0HwcY.js",
+      "chunk": "assets/ThreePreviewModal-CnfV9Y4S.js",
       "id": "src/3d/threeEngine.ts",
       "renderedLength": 24439
     },
     {
       "scope": "main",
-      "chunk": "assets/ThreePreviewModal-9eD0HwcY.js",
+      "chunk": "assets/ThreePreviewModal-CnfV9Y4S.js",
       "id": "src/components/modals/ThreePreviewModal.tsx",
       "renderedLength": 14530
     },

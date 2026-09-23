@@ -87,6 +87,7 @@ try {
 
   await evaluate(`document.querySelector('[aria-label="Properties"]').click()`);
   await wait(180);
+  await evaluate(`document.querySelector('[aria-controls="property-section-appearance"][aria-expanded="false"]')?.click()`);
   assert(await evaluate(`document.querySelector('.property-color-control input[aria-label="Fill color"]')?.value === '#e11d48'`),
     "Properties did not expose the selected closed shape's fill color.");
   await evaluate(`(() => {
