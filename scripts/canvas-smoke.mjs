@@ -417,20 +417,48 @@ try {
     documentModel.selectEntities([entity.id]);
     return { id: entity.id, x: ${canvasOrigin.x} + entity.points[1].x, y: ${canvasOrigin.y} - entity.points[1].y };
   `);
+  const openNodeMenu = async () => {
+    const point = await evaluate(`
+      const rect = document.querySelector('.selection-actions .node-type-trigger')?.getBoundingClientRect();
+      return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
+    `);
+    assert(point, "Node type must be available when an asset is selected.");
+    await click(point);
+    assert(await evaluate(`return document.querySelector('.node-type-menu').matches(':popover-open');`),
+      "The Node type dropdown did not open.");
+  };
+  await openNodeMenu();
+  assert(await evaluate(`
+    return [...document.querySelectorAll('.node-type-menu [role="menuitemradio"]')]
+      .every(button => button.getAttribute('aria-disabled') === 'true');
+  `), "Without a selected node the dropdown must explain why its choices are unavailable.");
+  await key("Escape", "Escape");
   await key("n", "KeyN");
   await click(nodeTarget);
   assert(await evaluate(`
-    return document.querySelectorAll('.selection-actions .node-type-toggle button').length === 3
-      && !document.querySelector('.property-inspector .node-type-toggle');
+    return document.querySelectorAll('.selection-actions .node-type-menu [role="menuitemradio"]').length === 3
+      && !document.querySelector('.property-inspector .node-type-menu');
   `), "Node type controls must live in Selection actions, not Properties.");
   await evaluate(`
     const { useVectorStore } = await import('/src/store/useVectorStore.ts');
     useVectorStore.getState().togglePanel('properties', false);
   `);
   await wait(250);
+  await openNodeMenu();
+  await key("ArrowDown", "ArrowDown");
+  assert(await evaluate(`return document.activeElement.textContent.trim() === 'Smooth';`),
+    "Arrow keys must navigate the node type choices.");
+  await key("Escape", "Escape");
+  assert(await evaluate(`
+    const { useVectorStore } = await import('/src/store/useVectorStore.ts');
+    return !document.querySelector('.node-type-menu').matches(':popover-open')
+      && document.activeElement.matches('.node-type-trigger')
+      && useVectorStore.getState().nodeEditSelection?.vertexIndex === 1;
+  `), "Escape must dismiss only the dropdown, preserve node editing, and restore focus.");
   for (const nodeType of ["smooth", "symmetric", "corner"]) {
+    await openNodeMenu();
     const buttonPoint = await evaluate(`
-      const button = [...document.querySelectorAll('.selection-actions .node-type-toggle button')]
+      const button = [...document.querySelectorAll('.node-type-menu [role="menuitemradio"]')]
         .find(button => button.textContent.trim().toLowerCase() === '${nodeType}');
       const rect = button?.getBoundingClientRect();
       return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
@@ -440,19 +468,20 @@ try {
     assert(await evaluate(`
       const { documentModel } = await import('/src/document/DocumentModel.ts');
       const { useVectorStore } = await import('/src/store/useVectorStore.ts');
-      const active = document.querySelector('.selection-actions .node-type-toggle button[aria-pressed="true"]');
+      const active = document.querySelector('.node-type-menu button[aria-checked="true"]');
       return documentModel.getDocument().entities.get('${nodeTarget.id}')?.nodeTypes?.[1] === '${nodeType}'
         && useVectorStore.getState().nodeEditSelection?.nodeType === '${nodeType}'
+        && !document.querySelector('.node-type-menu').matches(':popover-open')
         && active?.textContent.trim().toLowerCase() === '${nodeType}';
     `), `${nodeType} did not update the selected node and active action.`);
   }
   await key("z", "KeyZ", 4);
   assert(await evaluate(`
-    return document.querySelector('.selection-actions .node-type-toggle button[aria-pressed="true"]')?.textContent.trim() === 'Symmetric';
+    return document.querySelector('.node-type-menu button[aria-checked="true"]')?.textContent.trim() === 'Symmetric';
   `), "Undo did not restore the previous node type in Selection actions.");
   await key("z", "KeyZ", 12);
   assert(await evaluate(`
-    return document.querySelector('.selection-actions .node-type-toggle button[aria-pressed="true"]')?.textContent.trim() === 'Corner';
+    return document.querySelector('.node-type-menu button[aria-checked="true"]')?.textContent.trim() === 'Corner';
   `), "Redo did not restore the changed node type in Selection actions.");
   await evaluate(`
     const { useVectorStore } = await import('/src/store/useVectorStore.ts');
@@ -525,8 +554,8 @@ try {
     const { useVectorStore } = await import('/src/store/useVectorStore.ts');
     return useVectorStore.getState().nodeEditSelection === null;
   `), "Escape outside a field did not finish Node Edit.");
-  assert(await evaluate(`return !document.querySelector('.selection-actions .node-type-toggle');`),
-    "Node type actions must disappear after finishing Node Edit.");
+  assert(await evaluate(`return Boolean(document.querySelector('.selection-actions .node-type-trigger'));`),
+    "Node type must remain available for the selected asset after finishing Node Edit.");
 
   console.log("Canvas active-tool creation, Text, Aligned Dimension, Polyline, Space pan, Erase, selection, transforms, history and Node Edit focus isolation checks passed.");
 } finally {

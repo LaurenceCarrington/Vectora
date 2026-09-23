@@ -63,6 +63,7 @@ import { MachineQuickStop } from "./panels/MachineControlPanel";
 import { LayersPanel } from "./panels/LayersPanel";
 import { ToastViewport, toast } from "./ui/Toast";
 import { Tooltip } from "./ui/Tooltip";
+import { NodeTypeMenu } from "./ui/NodeTypeMenu";
 import { useCanvasEngine } from "../hooks/useCanvasEngine";
 import { documentModel } from "../document/DocumentModel";
 import type { Entity } from "../document/types";
@@ -1447,6 +1448,11 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
   const selectedNode = selected.length === 1 && primary.type === "polyline" && nodeEditSelection?.entityId === primary.id
     ? nodeEditSelection
     : null;
+  const nodeTypeReason = lockReason ?? (selected.length !== 1
+    ? "Select a single path, then select a node with Node edit (N)."
+    : ["text", "image", "dimension", "leader"].includes(primary.type)
+      ? "Node types apply to vector paths. Select an editable path and a node."
+      : selectedNode ? null : "Select a node with Node edit (N) to change its type.");
   const selectedInZOrder = zOrder.filter((id) => document.selection.has(id));
   const primaryNumber = Math.max(1, selectedInZOrder.indexOf(primary.id) + 1);
   const openPolylines = selected.filter(
@@ -1598,27 +1604,12 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
           </Tooltip>
         )}
         <i />
-        {selectedNode && (
-          <>
-            <Tooltip content="Double-click a segment to add a node. Delete removes it. Shift constrains movement; Alt breaks paired handles." placement="top">
-              <span className="selection-node-label">Node type · {selectedNode.vertexIndex + 1}</span>
-            </Tooltip>
-            <div className="node-type-toggle" role="group" aria-label="Bézier node type">
-              {(["corner", "smooth", "symmetric"] as const).map((nodeType) => (
-                <button
-                  key={nodeType}
-                  type="button"
-                  aria-pressed={selectedNode.nodeType === nodeType}
-                  aria-disabled={Boolean(lockReason)}
-                  onClick={() => runOrExplain(lockReason, () => setNodeEditSelection({ ...selectedNode, nodeType }))}
-                >
-                  {nodeType[0]!.toUpperCase() + nodeType.slice(1)}
-                </button>
-              ))}
-            </div>
-            <i />
-          </>
-        )}
+        <NodeTypeMenu
+          selectedNode={selectedNode}
+          disabledReason={nodeTypeReason}
+          contextKey={`${selectionKey}:${selectedNode?.vertexIndex ?? "none"}:${nodeTypeReason ?? "editable"}`}
+          onChange={(nodeType) => { if (selectedNode) setNodeEditSelection({ ...selectedNode, nodeType }); }}
+        />
         {selected.length >= 2 && !closedReason && (
           <div className="boolean-actions-group" role="group" aria-label="Boolean operations">
             <Tooltip content={lockReason ?? "Weld selected profiles into their union"} placement="top"><button aria-disabled={Boolean(lockReason)} onClick={() => runOrExplain(lockReason, () => runBoolean("union"))}><WeldIcon size={13} /> Weld</button></Tooltip>
