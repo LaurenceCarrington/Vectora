@@ -21,6 +21,7 @@
     "test:deployment": "node scripts/deployment-smoke.mjs",
     "test:freehand:browser": "node scripts/freehand-browser-smoke.mjs",
     "test:canvas": "node scripts/canvas-smoke.mjs",
+    "test:clipboard": "vite build --config scripts/vite-smoke.config.ts --ssr scripts/clipboard-smoke.ts --outDir /tmp/vectora-clipboard-smoke --emptyOutDir && node /tmp/vectora-clipboard-smoke/clipboard-smoke.js",
     "test:primitives": "vite build --config scripts/vite-smoke.config.ts --ssr scripts/primitives-smoke.ts --outDir /tmp/vectora-primitives-smoke --emptyOutDir && node /tmp/vectora-primitives-smoke/primitives-smoke.js",
     "test:phase1": "vite build --config scripts/vite-smoke.config.ts --ssr scripts/phase1-smoke.ts --outDir /tmp/vectora-phase1-smoke --emptyOutDir && node /tmp/vectora-phase1-smoke/phase1-smoke.js",
     "test:phase2": "vite build --config scripts/vite-smoke.config.ts --ssr scripts/phase2-smoke.ts --outDir /tmp/vectora-phase2-smoke --emptyOutDir && node /tmp/vectora-phase2-smoke/phase2-smoke.js",

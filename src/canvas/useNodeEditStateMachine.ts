@@ -380,7 +380,8 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
       (change.type === "entity-updated" && change.entityId === session.entity.id) ||
       (change.type === "entities-updated" && change.entityIds.includes(session.entity.id)) ||
       (change.type === "entity-set-replaced" && (change.removedIds.includes(session.entity.id) || change.addedIds.includes(session.entity.id)));
-    if (change.type === "document-replaced" || !document.entities.has(session.entity.id)) finish(false);
+    if (change.type === "document-replaced" || !document.entities.has(session.entity.id)
+      || (change.type === "selection-changed" && !document.selection.has(session.entity.id))) finish(false);
     else if (entityChanged) {
       const updated = document.entities.get(session.entity.id);
       if (updated?.type !== "polyline") return finish(false);

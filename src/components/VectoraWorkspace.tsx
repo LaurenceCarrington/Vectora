@@ -65,6 +65,7 @@ import { ToastViewport, toast } from "./ui/Toast";
 import { Tooltip } from "./ui/Tooltip";
 import { NodeTypeMenu } from "./ui/NodeTypeMenu";
 import { useCanvasEngine } from "../hooks/useCanvasEngine";
+import { useObjectClipboard } from "../hooks/useObjectClipboard";
 import { documentModel } from "../document/DocumentModel";
 import type { Entity } from "../document/types";
 import {
@@ -2069,6 +2070,8 @@ function HelpModal({ open, onClose }: { readonly open: boolean; readonly onClose
             <div className="help-list">
               <div><kbd>V</kbd><span>Select, marquee, move, resize and rotate</span></div>
               <div><kbd>N</kbd><span>Edit shape, line and polyline nodes or Bézier handles</span></div>
+              <div><kbd>{primaryShortcut("C")}</kbd><span>Copy selected objects</span></div>
+              <div><kbd>{primaryShortcut("V")}</kbd><span>Paste copied objects with a small offset</span></div>
               <div><kbd>⇧</kbd><span>Constrain corner scale or snap rotation to {angleSnapDeg}°</span></div>
               <div><kbd>2×</kbd><span>Double-click a polyline to edit anchors and Bézier handles</span></div>
               <div><kbd>Space</kbd><span>Hold and drag to pan; middle-drag also pans</span></div>
@@ -2131,6 +2134,8 @@ export function VectoraWorkspace() {
   const [layerDialog, setLayerDialog] = useState<LayerDialogState | null>(null);
   const [pendingDocumentAction, setPendingDocumentAction] = useState<PendingDocumentAction | null>(null);
   const [savingBeforeAction, setSavingBeforeAction] = useState(false);
+  useObjectClipboard(Boolean(commandPaletteOpen || preferencesOpen || generatorsOpen || nestingOpen
+    || vectorizerFile || threePreviewOpen || helpOpen || layerDialog || pendingDocumentAction));
 
   useEffect(() => {
     if (!camOpen) return;

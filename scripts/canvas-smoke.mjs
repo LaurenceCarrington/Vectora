@@ -41,7 +41,9 @@ async function key(key, code, modifiers = 0) {
   // CDP needs explicit editing commands for native field actions on macOS.
   const commands = key === "Delete" ? ["deleteForward"]
     : key === "Backspace" ? ["deleteBackward"]
-    : key.toLowerCase() === "a" && (modifiers & 6) ? ["selectAll"] : [];
+    : key.toLowerCase() === "a" && (modifiers & 6) ? ["selectAll"]
+    : key.toLowerCase() === "c" && (modifiers & 6) ? ["copy"]
+    : key.toLowerCase() === "v" && (modifiers & 6) ? ["paste"] : [];
   await send("Input.dispatchKeyEvent", { type: "keyDown", key, code, modifiers, windowsVirtualKeyCode, commands });
   await send("Input.dispatchKeyEvent", { type: "keyUp", key, code, modifiers, windowsVirtualKeyCode });
   await wait();
@@ -557,7 +559,63 @@ try {
   assert(await evaluate(`return Boolean(document.querySelector('.selection-actions .node-type-trigger'));`),
     "Node type must remain available for the selected asset after finishing Node Edit.");
 
-  console.log("Canvas active-tool creation, Text, Aligned Dimension, Polyline, Space pan, Erase, selection, transforms, history and Node Edit focus isolation checks passed.");
+  // Exercise native clipboard keyboard commands, not just the cloning helper.
+  const clipboardBefore = await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    const entities = [...documentModel.getDocument().entities.values()].slice(0, 2);
+    documentModel.selectEntities(entities.map(entity => entity.id));
+    document.activeElement?.blur(); window.getSelection()?.removeAllRanges();
+    return { count: documentModel.getDocument().entities.size, originals: JSON.stringify(entities) };
+  `);
+  await key("c", "KeyC", 4);
+  await key("v", "KeyV", 4);
+  const pasted = await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    const doc = documentModel.getDocument();
+    return { count: doc.entities.size, selection: [...doc.selection].map(id => doc.entities.get(id)),
+      originals: JSON.stringify([...doc.entities.values()].slice(0, 2)) };
+  `);
+  assert(pasted.count === clipboardBefore.count + 2 && pasted.selection.length === 2, "Cmd+C/Cmd+V did not copy and paste the selected objects.");
+  assert(pasted.originals === clipboardBefore.originals, "Pasting changed the source objects.");
+  await key("v", "KeyV", 4);
+  assert(await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    return documentModel.getDocument().entities.size === ${clipboardBefore.count + 4};
+  `), "Repeated paste did not add independent copies.");
+  await key("z", "KeyZ", 4);
+  assert(await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    return documentModel.getDocument().entities.size === ${clipboardBefore.count + 2};
+  `), "A single undo must remove the complete pasted selection.");
+  await key("z", "KeyZ", 12);
+  assert(await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    return documentModel.getDocument().entities.size === ${clipboardBefore.count + 4};
+  `), "Redo did not restore the pasted objects.");
+
+  for (const tag of ["input", "textarea", "div"]) {
+    await evaluate(`
+      const field = document.createElement('${tag}'); field.id = 'clipboard-field';
+      if ('${tag}' === 'div') field.contentEditable = 'true';
+      document.querySelector('.property-inspector').append(field); field.focus();
+    `);
+    await send("Input.insertText", { text: "Normal text clipboard" });
+    await key("a", "KeyA", 4); await key("c", "KeyC", 4); await key("v", "KeyV", 4);
+    assert(await evaluate(`
+      const field = document.getElementById('clipboard-field');
+      const { documentModel } = await import('/src/document/DocumentModel.ts');
+      return (field.value ?? field.textContent) === 'Normal text clipboard'
+        && documentModel.getDocument().entities.size === ${clipboardBefore.count + 4};
+    `), `Copy/paste in ${tag} must edit text without duplicating canvas objects.`);
+    await evaluate(`document.getElementById('clipboard-field').remove();`);
+  }
+  await key("v", "KeyV", 4);
+  assert(await evaluate(`
+    const { documentModel } = await import('/src/document/DocumentModel.ts');
+    return documentModel.getDocument().entities.size === ${clipboardBefore.count + 4};
+  `), "Unrelated clipboard text must not paste stale objects.");
+
+  console.log("Canvas drawing, selection, transforms, Node Edit, native copy/paste, repeated paste, undo/redo and input focus isolation checks passed.");
 } finally {
   socket.close();
 }
