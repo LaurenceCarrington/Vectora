@@ -4028,6 +4028,17 @@ button.danger-subtle:hover:not(:disabled) {
 .machine-panel button:disabled, .machine-panel fieldset:disabled { opacity: 1; cursor: default; }
 .machine-panel button:focus-visible, .machine-panel input:focus-visible, .machine-panel select:focus-visible { outline: 2px solid var(--v-color-focus); outline-offset: 2px; }
 .machine-panel .machine-connect, .machine-panel button.primary { background: var(--v-color-action); color: var(--v-color-text-inverse); }
+.machine-safety p, .machine-safety li, .machine-risk-acknowledgement, .machine-safety-notice { font-size: 11px; line-height: 1.6; }
+.machine-safety p { margin: 8px 0; color: var(--muted); }
+.machine-safety summary { cursor: pointer; padding: 10px 0; font-weight: 600; }
+.machine-safety summary:focus-visible { outline: 2px solid var(--v-color-focus); outline-offset: 2px; }
+.machine-safety ul { padding-left: 18px; margin: 0 0 12px; }
+.machine-safety li + li { margin-top: 6px; }
+.machine-risk-acknowledgement { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; }
+.machine-risk-acknowledgement input { flex-shrink: 0; margin-top: 3px; accent-color: var(--v-color-action); }
+.machine-panel .machine-enable { font-weight: 600; border: 1px solid var(--line); }
+.machine-panel .machine-enable:disabled { color: var(--v-color-disabled-text); cursor: not-allowed; }
+.machine-safety-notice { padding: 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--v-color-surface-selected); }
 .machine-panel .machine-connect-btn.secondary { background: var(--v-color-surface-selected); color: var(--v-color-action-text); border: 1px solid color-mix(in srgb, var(--v-color-action) 30%, transparent); font-weight: 600; padding-inline: 12px; }
 .machine-panel .machine-connect-btn.secondary:hover { background: color-mix(in srgb, var(--v-color-surface-selected) 70%, var(--v-color-action)); }
 .machine-connection { align-items: flex-end; }

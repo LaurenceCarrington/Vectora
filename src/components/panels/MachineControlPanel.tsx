@@ -42,8 +42,8 @@ export function MachineQuickStop() {
   return <div className="machine-quick-stop">
     {dialect === "grbl" && <Tooltip content="Feed hold" placement="bottom"><button type="button" aria-label="Feed hold"
       onClick={() => execute(() => webSerialController.feedHold())}><Pause size={17} /></button></Tooltip>}
-    <Tooltip content="Emergency stop" placement="bottom"><button type="button" aria-label="Emergency stop"
-      onClick={() => execute(() => webSerialController.emergencyStop())}><OctagonX size={18} /></button></Tooltip>
+    <Tooltip content="Software stop · not a physical emergency stop" placement="bottom"><button type="button" aria-label="Stop job (software)"
+      onClick={() => execute(() => webSerialController.stopJob())}><OctagonX size={18} /></button></Tooltip>
   </div>;
 }
 
@@ -52,14 +52,19 @@ export function MachineControlPanel({ plan, profile, options, outputBlocked, est
   const [step, setStep] = useState(1);
   const [feed, setFeed] = useState(600);
   const [connectionBusy, setConnectionBusy] = useState(false);
+  const [riskAcknowledged, setRiskAcknowledged] = useState(false);
   const connected = machine.connectionStatus === "connected";
   const running = ["streaming", "paused", "draining"].includes(machine.jobStatus);
-  const manualEnabled = connected && machine.ready && machine.machineState === "Idle" && !running && machine.bufferLevel === 0;
+  const manualEnabled = machine.experimentalControlEnabled && connected && machine.ready && machine.machineState === "Idle" && !running && machine.bufferLevel === 0;
   const progress = machine.totalLines ? machine.acknowledgedLines / machine.totalLines : 0;
   const mismatch = connected && machine.dialect !== profile.dialect;
   const act = (action: () => void | Promise<void>) => {
     void Promise.resolve().then(action).catch((error: unknown) => toast.error(error instanceof Error ? error.message : "The machine command could not be sent."));
   };
+
+  useEffect(() => {
+    if (!machine.experimentalControlEnabled) setRiskAcknowledged(false);
+  }, [machine.experimentalControlEnabled]);
 
   useEffect(() => {
     if (view === "output") return;
@@ -88,6 +93,35 @@ export function MachineControlPanel({ plan, profile, options, outputBlocked, est
     useMachineStore.setState({ jobTransform: machineDocumentTransform(plan, profile, options.physicalScale, options) });
   };
 
+  if (!machine.experimentalControlEnabled && !connected) {
+    if (view === "output") return <p className="machine-panel machine-panel-output machine-note">USB control disabled · experimental</p>;
+    return <section className="machine-panel machine-safety" aria-label="Machine control">
+      <header className="machine-head">
+        <div><span className="eyebrow">USB machine control</span><strong>Experimental · disabled</strong></div>
+      </header>
+      <p>Direct control has not been validated on real machines or independently reviewed for safety. It is not approved for production or unattended operation.</p>
+      <p>Design and G-code export remain available. Check exported G-code before any machine use.</p>
+      {machine.lastError && <p className="machine-error" role="alert">{machine.lastError}</p>}
+      <details>
+        <summary>Review experimental USB control</summary>
+        <ul>
+          <li>Machine movement, cutters, and laser or spindle output can cause damage, serious injury, or fire.</li>
+          <li>Browser stop and feed hold are not physical emergency stops. A crash or USB disconnect may leave motion or tool output active.</li>
+          <li>Vectora does not verify actual travel limits, homing, work zero, clearance, power/RPM, or laser/spindle mode against your controller.</li>
+          <li>Follow the machine manufacturer’s safety procedures, use its physical emergency stop and interlocks, and remain present. Do not bypass safety devices.</li>
+        </ul>
+        <label className="machine-risk-acknowledgement">
+          <input type="checkbox" checked={riskAcknowledged} onChange={(event) => setRiskAcknowledged(event.target.checked)} />
+          <span>I understand the risks and the need for independent physical safety controls. Enabling this does not make machine operation safe.</span>
+        </label>
+        <button type="button" className="machine-enable" disabled={!riskAcknowledged || !webSerialController.supported || connectionBusy}
+          onClick={() => act(() => webSerialController.enableExperimentalControl())}>Enable experimental USB control</button>
+        <p className="machine-note">Access resets when you close Manufacture, disconnect USB, or reload. Enabling does not connect to a machine.</p>
+      </details>
+      {!webSerialController.supported && <p className="machine-note">USB control requires desktop Chrome or Edge over HTTPS or localhost. G-code export is still available.</p>}
+    </section>;
+  }
+
   if (view === "output") {
     return (
       <section className="machine-panel machine-panel-output machine-stream-compact" aria-label="Direct stream">
@@ -103,7 +137,7 @@ export function MachineControlPanel({ plan, profile, options, outputBlocked, est
             <button type="button" className="primary" disabled={!manualEnabled || outputBlocked || mismatch} onClick={() => act(run)}><Play size={14} /> Stream job</button>
             {machine.dialect === "grbl" && running && machine.jobStatus !== "paused" && <button type="button" onClick={() => act(() => webSerialController.feedHold())}><Pause size={14} /> Hold</button>}
             {machine.dialect === "grbl" && machine.jobStatus === "paused" && <button type="button" onClick={() => act(() => webSerialController.resume())}>Resume</button>}
-            <button type="button" className="machine-estop" onClick={() => act(() => webSerialController.emergencyStop())}><OctagonX size={15} /> Stop</button>
+            <button type="button" className="machine-estop" onClick={() => act(() => webSerialController.stopJob())}><OctagonX size={15} /> Stop job</button>
           </div>
         )}
         {running && <progress aria-label="Acknowledged job lines" value={machine.acknowledgedLines} max={machine.totalLines || 1} />}
@@ -115,12 +149,15 @@ export function MachineControlPanel({ plan, profile, options, outputBlocked, est
   return (
     <section className="machine-panel" aria-label="Machine control">
       <header className="machine-head">
-        <div><span className="eyebrow">USB machine control</span><strong>{profile.dialect.toUpperCase()}</strong></div>
+        <div><span className="eyebrow">Experimental USB control</span><strong>{profile.dialect.toUpperCase()}</strong></div>
         <button type="button" className="machine-connect" disabled={connectionBusy || machine.connectionStatus === "connecting"}
           onClick={() => connected ? act(() => webSerialController.disconnect()) : void connect()}>
           <Cable size={15} /> {connected ? "Disconnect" : connectionBusy ? "Connecting…" : "Connect machine"}
         </button>
       </header>
+      <p className="machine-safety-notice" role="note">Not hardware-validated. Software stop is not a physical emergency stop; motion or tool output may continue after a connection loss.</p>
+      {!connected && <button type="button" disabled={connectionBusy || machine.connectionStatus === "connecting"}
+        onClick={() => act(() => webSerialController.disconnect())}>Disable USB control</button>}
       <div className="machine-connection">
         <span className="machine-baud">{baudRate.toLocaleString()} baud</span>
         <span role="status" className={`machine-state is-${machine.connectionStatus}`}>
@@ -170,12 +207,12 @@ export function MachineControlPanel({ plan, profile, options, outputBlocked, est
           <button type="button" disabled={!connected || machine.dialect !== "grbl" || machine.rawMachineState !== "Hold:0" || !machine.ready} onClick={() => act(() => webSerialController.resume())}>Resume</button>
           <button type="button" disabled={!connected || machine.dialect !== "grbl"} onClick={() => act(() => webSerialController.softReset())}><RotateCcw size={14} /> Soft reset</button>
         </div>
-        <button type="button" className="machine-estop" disabled={!connected} onClick={() => act(() => webSerialController.emergencyStop())}><OctagonX size={17} /> Emergency stop</button>
+        <button type="button" className="machine-estop" disabled={!connected} onClick={() => act(() => webSerialController.stopJob())}><OctagonX size={17} /> Stop job (software)</button>
       </div>
       <label className="machine-marker-toggle"><input type="checkbox" checked={machine.showPositionMarker} onChange={(event) => useMachineStore.setState({ showPositionMarker: event.target.checked })} /> Show live head on drawing</label>
       <p className="machine-note">Feed override {machine.feedRateOverride}% · Spindle override {machine.spindleSpeedOverride}%</p>
-      <p className="machine-note">Acknowledgements report accepted commands, not exact execution. Time is a line-based estimate. Closing Manufacture stops the job and disconnects USB.</p>
-      <p className="machine-note">{machine.dialect === "marlin" ? "Marlin position is its reported logical position. M112 response depends on firmware emergency-parser support; reset hardware after a stop. " : "GRBL Stop sends Ctrl-X and cancels the job. "}A browser stop cannot replace the machine’s physical emergency stop.</p>
+      <p className="machine-note">Acknowledgements report accepted commands, not exact execution. Time is a line-based estimate. Closing Manufacture requests a software stop for an active job and disconnects USB; it cannot confirm a physical stop.</p>
+      <p className="machine-note">{machine.dialect === "marlin" ? "Marlin position is its reported logical position. Stop job sends M112; its response depends on firmware emergency-parser support. " : "Stop job sends Ctrl-X to request a GRBL reset. "}Feed hold does not guarantee tool output is off. Use the machine’s physical emergency stop in an emergency.</p>
       </>)}
       {machine.lastError && <p className="machine-error" role="alert">{machine.lastError}</p>}
     </section>

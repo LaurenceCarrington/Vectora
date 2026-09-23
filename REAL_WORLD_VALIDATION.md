@@ -2,6 +2,10 @@
 
 **Status: open — not approved for an unattended or production machine run.**
 
+USB control is experimental and disabled by default at both the UI and controller entry point. An explicit, non-persistent risk acknowledgement enables access until Manufacture closes, USB disconnects, or the page reloads. USB reconnection never automatically reopens the port or resumes a job. These gates reduce accidental access; they do not certify machine safety. “Stop job (software)” requests GRBL Ctrl-X or Marlin M112, not a physical emergency stop. Loss of the browser or connection can leave buffered motion or tool output active.
+
+Before considering a production release of direct control, obtain an independent safety review and machine-specific validation, including controller/profile agreement (travel limits, homing, power/RPM and laser/spindle mode), jogging boundaries, stop/interlock behavior, and connection-loss behavior. This work remains open. Design and export remain available; exported G-code also requires validation before use.
+
 The reproducible offline checks are `npm run dry-run:machine` and `npm run test:web-serial`. The former writes sample G-code and a machine-readable summary to `artifacts/machine-dry-run/`; the latter exercises a simulated serial port. Neither connects to hardware. A green result is **not** evidence that a controller, laser, spindle, interlock, work offset, tool, material, or finished part is safe or correct.
 
 ## Evidence needed to close this item

@@ -22,7 +22,9 @@ Save a `.vectora` project file to keep a portable copy of your work. Local recov
 
 ## Browser support
 
-Direct machine connection requires a browser with Web Serial support and a compatible device. G-code export remains available without a direct connection. The 3D preview requires WebGL.
+Direct USB machine control is experimental and disabled by default. It requires an explicit risk acknowledgement, Web Serial support, and a compatible device. Access resets when Manufacture closes, USB disconnects, or the page reloads; connections never resume automatically.
+
+Machine control has not been hardware-validated or independently reviewed for safety and is not approved for production or unattended use. A browser stop is not a physical emergency stop. G-code export remains available, but exported jobs still require validation before machine use. The 3D preview requires WebGL.
 
 ## Further information
 

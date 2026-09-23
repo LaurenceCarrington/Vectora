@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-// Run only against an isolated Chrome debugging profile (see WEB_SERIAL_VERIFICATION.md).
+// Run only against an isolated Chrome debugging profile. All USB I/O below is mocked.
 const debugOrigin = process.env.CHROME_DEBUG_ORIGIN ?? 'http://127.0.0.1:9338';
 const appOrigin = process.env.VECTORA_ORIGIN ?? 'http://127.0.0.1:4178/';
 const tabs = await fetch(`${debugOrigin}/json`).then(r=>r.json());
@@ -21,8 +21,8 @@ await evaluate(`(async()=>{const {useVectorStore}=await import('/src/store/useVe
 await wait(200);
 await evaluate(`document.querySelector('[aria-label="Manufacture"]').click()`);await wait(350);
 assert(await evaluate(`!!document.querySelector('[aria-label="Machine control"]')`),'Machine panel opens');
-await evaluate(`Object.defineProperty(navigator,'serial',{configurable:true,value:undefined}); document.querySelector('.machine-connect').click()`); await wait(100);
-assert(await evaluate(`document.body.innerText.includes('Web Serial is unavailable')`),'Unsupported browser toast');
+assert(await evaluate(`!document.querySelector('.machine-connect') && !document.querySelector('.machine-stream-actions')`),'No connection or streaming controls before opt-in');
+assert(await evaluate(`document.querySelector('.machine-enable').disabled && !document.querySelector('.machine-risk-acknowledgement input').checked`),'Risk acknowledgement defaults unchecked');
 await evaluate(`(async()=>{
 const {documentModel}=await import('/src/document/DocumentModel.ts');
 const doc=documentModel.getDocument();
@@ -43,13 +43,22 @@ class Port extends EventTarget {
   async close(){if(this.readable.locked||this.writable.locked)throw new Error('leaked lock');this.closeCount++;}
 }
 window.fakePort=new Port();
-class Serial extends EventTarget {async requestPort(){return window.fakePort;}async getPorts(){return [window.fakePort];}}
+class Serial extends EventTarget {requestCount=0;async requestPort(){this.requestCount++;return window.fakePort;}async getPorts(){return [window.fakePort];}}
 Object.defineProperty(navigator,'serial',{configurable:true,value:new Serial()});
 })();`);
+await wait(200);
+assert(await evaluate(`Array.from(document.querySelectorAll('.cam-actions button')).some(button=>button.textContent.includes('Export G-code') && !button.disabled)`),'G-code export remains enabled while USB control is disabled');
+await evaluate(`document.querySelector('.machine-safety summary').click();document.querySelector('.machine-risk-acknowledgement input').click()`);await wait(50);
+assert(await evaluate(`navigator.serial.requestCount===0 && window.fakePort.writes.length===0`),'Reviewing risks does not connect');
+await evaluate(`document.querySelector('.machine-enable').click()`);await wait(100);
+assert(await evaluate(`window.machineStore.getState().experimentalControlEnabled && navigator.serial.requestCount===0`),'Explicit opt-in alone never opens USB');
+await evaluate(`window.mockSerial=navigator.serial;Object.defineProperty(navigator,'serial',{configurable:true,value:undefined}); document.querySelector('.machine-connect').click()`); await wait(100);
+assert(await evaluate(`document.body.innerText.includes('Web Serial is unavailable')`),'Unsupported browser toast');
+await evaluate(`Object.defineProperty(navigator,'serial',{configurable:true,value:window.mockSerial})`);
 await evaluate(`document.querySelector('.machine-connect').click()`); await wait(2000);
 assert(await evaluate(`window.machineStore.getState().ready`),'Machine synchronized in browser');
 assert(await evaluate(`window.machineStore.getState().workPositionKnown && window.machineStore.getState().workPosition.x===10`),'Machine position updates');
-assert(await evaluate(`!!document.querySelector('[aria-label="Emergency stop"]')`),'Global emergency stop available');
+assert(await evaluate(`!!document.querySelector('[aria-label="Stop job (software)"]') && !document.querySelector('[aria-label="Emergency stop"]')`),'Global stop is labelled software, not emergency stop');
 const runDisabled=await evaluate(`document.querySelector('.machine-stream-actions .primary').disabled`);
 assert(!runDisabled,'Validated CAM plan can run');
 await evaluate(`document.querySelector('.machine-stream-actions .primary').click()`); await wait(500);
@@ -67,6 +76,15 @@ assert(await evaluate(`window.machineStore.getState().jobStatus==='paused'`),'Gl
 await evaluate(`document.querySelector('.cam-panel > .cam-head [aria-label="Close panel"]').click()`); await wait(500);
 assert(await evaluate(`window.fakePort.closeCount===1 && window.machineStore.getState().connectionStatus==='disconnected'`),'CAM unmount stops and releases USB');
 assert(await evaluate(`window.fakePort.writes.includes('\\x18')`),'Unmount requests controller stop');
+assert(await evaluate(`!window.machineStore.getState().experimentalControlEnabled`),'Closing Manufacture revokes experimental access');
+await evaluate(`document.querySelector('[aria-label="Manufacture"]').click()`);await wait(350);
+assert(await evaluate(`!document.querySelector('.machine-connect') && document.querySelector('.machine-enable').disabled && !document.querySelector('.machine-risk-acknowledgement input').checked`),'Reopening requires fresh acknowledgement');
+await evaluate(`document.querySelector('.machine-safety summary').click();document.querySelector('.machine-risk-acknowledgement input').click()`);await wait(50);
+await evaluate(`document.querySelector('.machine-enable').click()`);await wait(100);
+await send('Page.reload');await wait(1800);
+await evaluate(`Array.from(document.querySelectorAll('button')).find(button=>button.textContent==='Continue without recovering')?.click()`);await wait(100);
+await evaluate(`document.querySelector('[aria-label="Manufacture"]').click()`);await wait(350);
+assert(await evaluate(`!document.querySelector('.machine-connect') && document.querySelector('.machine-enable').disabled`),'Reload never restores opt-in');
 assert(errors.length===0,`Runtime errors: ${JSON.stringify(errors)}`);
-console.log('Browser PASS: CAM entry, unsupported toast, mock USB connection, machine position, compiled job streaming, live transform, global hold, and unmount cleanup. Screenshot: /tmp/vectora-machine-panel.png');
+console.log('Browser PASS: default-off UI, acknowledgement, export independent of USB, session reset on close/reload, software-stop labels, unsupported toast, mock USB connection, compiled streaming, global hold and cleanup. Screenshot: /tmp/vectora-machine-panel.png');
 } finally {ws.close();}

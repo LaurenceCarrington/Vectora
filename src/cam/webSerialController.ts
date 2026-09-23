@@ -80,7 +80,7 @@ function position(text: string | undefined, factor: number): MachinePosition | n
 
 export class WebSerialController {
   private port: MachineSerialPort | null = null;
-  private rememberedPort: MachineSerialPort | null = null;
+  private experimentalControlEnabled = false;
   private serial: MachineSerial | undefined;
   private writer: WritableStreamDefaultWriter<string> | null = null;
   private reader: ReadableStreamDefaultReader<string> | null = null;
@@ -106,7 +106,6 @@ export class WebSerialController {
   private nextNumber = 0;
   private paused = false;
   private failed = false;
-  private reconnect = false;
   private statusQuery: { at: number; draining: boolean } | null = null;
   private resendAwaitingOk = false;
   private manualAwaitingIdle = false;
@@ -114,7 +113,23 @@ export class WebSerialController {
   constructor(private readonly getSerial: () => MachineSerial | undefined = browserSerial, private readonly bootDelayMs = 1500) {}
   get supported(): boolean { return !!this.getSerial(); }
 
+  enableExperimentalControl(): void {
+    if (this.opening || this.closing || this.port) throw new Error("Wait for the current machine connection to close before enabling USB control again.");
+    this.experimentalControlEnabled = true;
+    patch({ experimentalControlEnabled: true });
+  }
+
+  private disableExperimentalControl(): void {
+    this.experimentalControlEnabled = false;
+    patch({ experimentalControlEnabled: false });
+  }
+
+  private assertExperimentalControl(): void {
+    if (!this.experimentalControlEnabled) throw new Error("USB machine control is disabled. Review the experimental control risks in Manufacture before enabling it.");
+  }
+
   async connect(baudRate = 115200, dialect: GcodeDialect = "grbl"): Promise<void> {
+    this.assertExperimentalControl();
     if (this.opening || this.closing || this.port) throw new Error("A machine connection is already active or closing.");
     if (!SERIAL_BAUD_RATES.some((rate) => rate === baudRate)) throw new Error("Unsupported baud rate.");
     const serial = this.getSerial();
@@ -126,17 +141,14 @@ export class WebSerialController {
     this.serial = serial;
     this.baudRate = baudRate;
     this.dialect = dialect;
-    this.reconnect = true;
-    serial.addEventListener("connect", this.onPortConnect);
     serial.addEventListener("disconnect", this.onPortDisconnect);
     const epoch = ++this.epoch;
-    patch({ ...initialMachineState, connectionStatus: "connecting", dialect });
+    patch({ ...initialMachineState, experimentalControlEnabled: true, connectionStatus: "connecting", dialect });
     // Invoke requestPort synchronously within the originating click's user activation.
     let request: Promise<MachineSerialPort>;
     try {
       request = serial.requestPort();
     } catch (error) {
-      this.reconnect = false;
       this.removeListeners();
       patch({ connectionStatus: "error", lastError: message(error) });
       throw error;
@@ -145,14 +157,12 @@ export class WebSerialController {
       try {
         const port = await request;
         if (epoch !== this.epoch) return;
-        this.rememberedPort = port;
         await this.openPort(port, epoch);
       } catch (error) {
         if (epoch !== this.epoch) return;
         const cancelled = error instanceof DOMException && error.name === "NotFoundError";
         if (this.port) await this.closePort("error");
         patch({ connectionStatus: cancelled ? "disconnected" : "error", lastError: cancelled ? null : message(error) });
-        this.reconnect = false;
         this.removeListeners();
         if (!cancelled) throw error;
       }
@@ -406,12 +416,13 @@ export class WebSerialController {
     if (this.failed) return;
     this.failed = true; this.paused = true; this.queue = [];
     patch({ ready: false, lastError: error, jobStatus: state().totalLines ? "aborted" : "idle" });
-    // GRBL hold prevents queued motion continuing after a parser failure.
+    // Request a hold after a parser failure; this cannot confirm a physical stop.
     if (stop && this.writer) void this.write(this.dialect === "grbl" ? "!" : "M112\n")
       .catch(() => {});
   }
 
   private assertIdle(): void {
+    this.assertExperimentalControl();
     if (!state().ready || !this.writer || this.failed) throw new Error("Wait for the machine connection to synchronise.");
     if (state().machineState !== "Idle" || this.paused || this.pending.some((item) => item.kind !== "poll") || this.queue.length || this.manualAwaitingIdle
       || ["streaming", "paused", "draining"].includes(state().jobStatus)) throw new Error("Wait until the machine and command queue are idle.");
@@ -451,7 +462,7 @@ export class WebSerialController {
   }
 
   async feedHold(): Promise<void> {
-    if (this.dialect !== "grbl") throw new Error("Marlin has no universal real-time feed hold. Use Emergency Stop to abort motion.");
+    if (this.dialect !== "grbl") throw new Error("Marlin has no universal real-time feed hold. Software stop depends on firmware support; use the physical emergency stop in an emergency.");
     // GRBL ignores a hold while idle; do not create an unresumable host-only pause.
     if (state().machineState === "Idle" && !["streaming", "draining", "paused"].includes(state().jobStatus)
       && !this.queue.length && !this.pending.length && !this.manualAwaitingIdle) {
@@ -464,6 +475,7 @@ export class WebSerialController {
   }
 
   async resume(): Promise<void> {
+    this.assertExperimentalControl();
     if (this.dialect !== "grbl" || this.failed || !state().ready || state().rawMachineState !== "Hold:0") {
       throw new Error("Resume requires a fully stopped GRBL hold (Hold:0).");
     }
@@ -481,10 +493,11 @@ export class WebSerialController {
     this.startHandshake();
   }
 
-  async emergencyStop(): Promise<void> {
+  /** Best-effort software command, never a substitute for a physical emergency stop. */
+  async stopJob(): Promise<void> {
     this.failed = true; this.paused = true; this.queue = []; this.pending = [];
     this.initialized = true;
-    patch({ ready: false, jobStatus: "aborted", bufferLevel: 0, lastError: "Job stopped. Inspect the machine and reset before continuing." });
+    patch({ ready: false, jobStatus: "aborted", bufferLevel: 0, lastError: "Software stop requested; physical stop is not confirmed. Inspect the machine before resetting. Use the physical emergency stop in an emergency." });
     await this.write(this.dialect === "grbl" ? "\x18" : "M112\n");
   }
 
@@ -494,45 +507,27 @@ export class WebSerialController {
 
   private onPortDisconnect = (event: Event): void => {
     const port = (event as Event & { port?: MachineSerialPort }).port ?? event.target;
-    if (port === this.port || port === this.rememberedPort) void this.connectionLost(new Error("Machine USB disconnected. The job was cancelled."));
+    if (port === this.port) void this.connectionLost(new Error("Machine USB disconnected."));
   };
-  private onPortConnect = (event: Event): void => {
-    const port = (event as Event & { port?: MachineSerialPort }).port ?? event.target;
-    if (!this.reconnect || port !== this.rememberedPort) return;
-    void this.reopen().catch((error: unknown) => patch({ connectionStatus: "error", lastError: message(error) }));
-  };
-  private async reopen(): Promise<void> {
-    if (this.closing) await this.closing;
-    if (!this.reconnect || !this.rememberedPort || this.port || this.opening) return;
-    const ports = await this.serial?.getPorts();
-    if (!this.reconnect || this.port || this.opening || !ports?.includes(this.rememberedPort)) return;
-    const epoch = ++this.epoch;
-    patch({ connectionStatus: "connecting", ready: false });
-    this.opening = this.openPort(this.rememberedPort, epoch);
-    try {
-      await this.opening;
-    } catch (error) {
-      if (epoch === this.epoch && this.port) await this.closePort("error");
-      throw error;
-    } finally { this.opening = null; }
-  }
   private removeListeners(): void {
-    this.serial?.removeEventListener("connect", this.onPortConnect);
     this.serial?.removeEventListener("disconnect", this.onPortDisconnect);
   }
   private async connectionLost(error: unknown): Promise<void> {
     if (this.closing) return;
-    patch({ lastError: message(error) });
+    this.disableExperimentalControl();
+    this.removeListeners();
+    patch({ lastError: `${message(error)} Machine motion or tool output may continue. Use the physical emergency stop in an emergency. Inspect the machine before enabling USB control again.` });
     await this.closePort("error");
   }
 
   async disconnect(): Promise<void> {
-    this.reconnect = false; this.rememberedPort = null; this.removeListeners();
+    this.disableExperimentalControl();
+    this.removeListeners();
     if (this.writer && (["streaming", "paused", "draining"].includes(state().jobStatus) || state().machineState === "Run")) {
       // Bound the best-effort stop: a stalled USB write must not prevent releasing the port.
       let timer: ReturnType<typeof setTimeout> | undefined;
       await Promise.race([
-        this.emergencyStop().catch(() => {}),
+        this.stopJob().catch(() => {}),
         new Promise<void>((resolve) => { timer = setTimeout(resolve, 250); }),
       ]);
       if (timer) clearTimeout(timer);

@@ -46,6 +46,7 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   useMachineStore.setState({ ...initialMachineState });
   const serial = new FakeSerial();
   const driver = new WebSerialController(() => serial, 0);
+  driver.enableExperimentalControl();
   await driver.connect(115200, dialect);
   if (dialect === "grbl") {
     await until(() => serial.port.writes.includes("$$\n"), "GRBL handshake");
@@ -61,6 +62,29 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   }
   await until(() => snapshot().ready, "controller ready");
   return { serial, port: serial.port, driver };
+}
+
+// Default-off is enforced before any browser USB access, not just by hiding buttons.
+{
+  useMachineStore.setState({ ...initialMachineState });
+  let serialAccesses = 0;
+  const driver = new WebSerialController(() => { serialAccesses++; return new FakeSerial(); });
+  assert(!snapshot().experimentalControlEnabled, "Experimental USB defaults off");
+  for (const dialect of ["grbl", "marlin"] as const) {
+    let rejected = false;
+    try { await driver.connect(115200, dialect); } catch (error) { rejected = String(error).includes("disabled"); }
+    assert(rejected && serialAccesses === 0, "Disabled control cannot request or open a serial port");
+  }
+  driver.enableExperimentalControl();
+  assert(snapshot().experimentalControlEnabled, "Explicit opt-in enables this session");
+  await driver.disconnect();
+  assert(!snapshot().experimentalControlEnabled, "Disconnect revokes opt-in");
+  for (const action of [() => driver.connect(), () => driver.runJob("G1 X1"), () => driver.jog("X", 1, 600), () => driver.zeroWorkOffset(), () => driver.resume()]) {
+    let rejected = false;
+    try { await action(); } catch (error) { rejected = String(error).includes("disabled"); }
+    assert(rejected, "Machine actions remain gated after opting out");
+  }
+  assert(serialAccesses === 0, "Opt-in and opt-out alone never access USB");
 }
 
 // Chunk boundaries, CRLF, and partial trailing acknowledgements.
@@ -153,10 +177,12 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   serial.event("disconnect"); await until(() => port.closeCount === 1, "Unplug cleanup");
   assert(snapshot().jobStatus === "aborted" && snapshot().connectionStatus === "error", "Unplug aborts job");
   serial.event("connect", new FakePort()); await sleep(); assert(port.openCount === 1, "Do not reconnect an unrelated port");
-  serial.event("connect"); await until(() => port.openCount === 2, "Authorized same-port reconnect");
+  serial.event("connect"); await sleep(100);
+  assert(port.openCount === 1 && !snapshot().experimentalControlEnabled, "Replug cannot reconnect and unplug revokes opt-in");
+  assert(snapshot().lastError?.includes("may continue"), "Connection loss warns physical stopping is not confirmed");
   await sleep(); assert(snapshot().jobStatus === "aborted" && snapshot().acknowledgedLines === 0, "Reconnect must not resume a job");
   await driver.disconnect();
-  serial.event("connect"); await sleep(); assert(port.openCount === 2, "Explicit disconnect disables reconnect");
+  serial.event("connect"); await sleep(); assert(port.openCount === 1, "Explicit disconnect disables reconnect");
 }
 {
   const { driver, port } = await fixture("marlin");
@@ -193,10 +219,15 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   let release!: () => void;
   serial.port.delayOpen = new Promise<void>((resolve) => { release = resolve; });
   const driver = new WebSerialController(() => serial, 0);
+  driver.enableExperimentalControl();
   const opening = driver.connect(); await sleep();
   const closing = driver.disconnect(); release();
+  let rejected = false;
+  try { driver.enableExperimentalControl(); } catch { rejected = true; }
+  assert(rejected, "Cannot re-enable USB while an earlier connection is opening or closing");
   await Promise.all([opening, closing]);
   assert(serial.port.closeCount === 1 && snapshot().connectionStatus === "disconnected", "Disconnect during async port.open closes the late port");
+  assert(!snapshot().experimentalControlEnabled, "A late port open does not restore experimental access");
 }
 {
   const { driver, port } = await fixture();
@@ -208,6 +239,7 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
 }
 {
   const driver = new WebSerialController(() => undefined);
+  driver.enableExperimentalControl();
   assert(!driver.supported, "Feature detection without navigator.serial");
   let rejected = false; try { await driver.connect(); } catch { rejected = true; }
   assert(rejected && snapshot().lastError?.includes("HTTPS"), "Unsupported browser explains export fallback");
@@ -237,10 +269,11 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
 }
 {
   const { driver, port } = await fixture();
-  await driver.emergencyStop();
+  await driver.stopJob();
   port.send("Grbl 1.1h ['$' for help]\n");
   port.send("<Idle|MPos:0,0,0>\n"); await sleep();
-  assert(!snapshot().ready && snapshot().jobStatus === "aborted", "Emergency stop stays latched after reset banner");
+  assert(!snapshot().ready && snapshot().jobStatus === "aborted", "Software stop stays latched after reset banner");
+  assert(snapshot().lastError?.includes("not confirmed") && port.writes.includes("\x18"), "Software reset is requested without claiming a physical stop");
   await driver.disconnect();
 }
 {
@@ -260,6 +293,7 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   const serial = new FakeSerial();
   serial.requestPort = async () => { throw new DOMException("Picker cancelled", "NotFoundError"); };
   const driver = new WebSerialController(() => serial);
+  driver.enableExperimentalControl();
   await driver.connect();
   assert(snapshot().connectionStatus === "disconnected" && snapshot().lastError === null, "Picker cancellation is not a machine error");
   await driver.disconnect();
@@ -270,6 +304,7 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   // Browser APIs may throw synchronously when invocation loses user activation.
   serial.requestPort = (() => { throw new Error("requestPort activation failed"); }) as FakeSerial["requestPort"];
   const driver = new WebSerialController(() => serial);
+  driver.enableExperimentalControl();
   let rejected = false;
   try { await driver.connect(); } catch { rejected = true; }
   assert(rejected, "A synchronous serial picker failure did not reject connect.");
@@ -277,4 +312,4 @@ async function fixture(dialect: "grbl" | "marlin" = "grbl", reportInches = false
   await driver.disconnect();
 }
 
-console.log("Web Serial smoke passed: framing, RX limits, flow control, status/units, jogging, error/hold/reset, Marlin resend/drain, reconnect and stream cleanup.");
+console.log("Web Serial smoke passed: default-off gate, session opt-in, no automatic reconnect, framing, RX limits, flow control, status/units, jogging, error/hold/reset, Marlin resend/drain and stream cleanup.");

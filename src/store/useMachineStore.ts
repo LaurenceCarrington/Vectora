@@ -6,6 +6,8 @@ export type MachineState = "Idle" | "Run" | "Hold" | "Alarm" | "Door";
 export type JobStatus = "idle" | "streaming" | "paused" | "draining" | "complete" | "aborted";
 
 export interface MachineSnapshot {
+  /** Explicit experimental opt-in, never persisted or restored with a document. */
+  experimentalControlEnabled: boolean;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   machineState: MachineState;
   rawMachineState: string;
@@ -35,6 +37,7 @@ export interface MachineSnapshot {
 }
 
 export const initialMachineState: MachineSnapshot = {
+  experimentalControlEnabled: false,
   connectionStatus: "disconnected", machineState: "Idle", rawMachineState: "Unknown",
   dialect: "grbl", ready: false,
   workPosition: { x: 0, y: 0, z: 0 }, machinePosition: { x: 0, y: 0, z: 0 },
