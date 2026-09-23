@@ -277,15 +277,12 @@ export function PropertyInspector() {
   const position = useVectorStore((state) => state.panelPositions.properties);
   const setPanelPosition = useVectorStore((state) => state.setPanelPosition);
   const togglePanel = useVectorStore((state) => state.togglePanel);
-  const nodeEditSelection = useVectorStore((state) => state.nodeEditSelection);
-  const setNodeEditSelection = useVectorStore((state) => state.setNodeEditSelection);
   const fillBucketColor = useVectorStore((state) => state.fillBucketColor);
   const setFillBucketColor = useVectorStore((state) => state.setFillBucketColor);
   const dragControls = useDragControls();
   const [expandedSections, setExpandedSections] = useState({
     geometry: true,
     appearance: true,
-    node: true,
     layer: true,
     operation: true,
   });
@@ -347,9 +344,6 @@ export function PropertyInspector() {
   const width = bounds.maxX - bounds.minX;
   const height = bounds.maxY - bounds.minY;
   const single = selected.length === 1 ? selected[0]! : null;
-  const selectedNode = single?.type === "polyline" && nodeEditSelection?.entityId === single.id
-    ? nodeEditSelection
-    : null;
   const radius = single ? entityRadius(single) : null;
   const angle = single ? entityAngle(single) : 0;
   const layerId = commonValue(selected, (entity) => entity.layerId);
@@ -545,28 +539,6 @@ export function PropertyInspector() {
               onClear={() => updateFillColor(null)}
             />
           )}
-        </CollapsiblePropertySection>
-      )}
-      {selectedNode && (
-        <CollapsiblePropertySection id="node" title={`Node type · ${selectedNode.vertexIndex + 1}`} expanded={expandedSections.node} onToggle={() => toggleSection("node")}>
-          <div className="node-type-toggle" role="group" aria-label="Bézier node type">
-            {(["corner", "smooth", "symmetric"] as const).map((nodeType) => (
-              <button
-                key={nodeType}
-                type="button"
-                className={selectedNode.nodeType === nodeType ? "is-active" : ""}
-                aria-pressed={selectedNode.nodeType === nodeType}
-                disabled={!editable}
-                onClick={() => setNodeEditSelection({ ...selectedNode, nodeType })}
-              >
-                {nodeType[0]!.toUpperCase() + nodeType.slice(1)}
-              </button>
-            ))}
-          </div>
-          <p className="node-edit-hint">
-            Double-click a segment to add a node · Delete removes it<br />
-            Shift constrains movement · Alt breaks paired handles
-          </p>
         </CollapsiblePropertySection>
       )}
       <CollapsiblePropertySection id="layer" title="Layer" expanded={expandedSections.layer} onToggle={() => toggleSection("layer")}>

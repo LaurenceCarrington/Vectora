@@ -419,6 +419,46 @@ try {
   `);
   await key("n", "KeyN");
   await click(nodeTarget);
+  assert(await evaluate(`
+    return document.querySelectorAll('.selection-actions .node-type-toggle button').length === 3
+      && !document.querySelector('.property-inspector .node-type-toggle');
+  `), "Node type controls must live in Selection actions, not Properties.");
+  await evaluate(`
+    const { useVectorStore } = await import('/src/store/useVectorStore.ts');
+    useVectorStore.getState().togglePanel('properties', false);
+  `);
+  await wait(250);
+  for (const nodeType of ["smooth", "symmetric", "corner"]) {
+    const buttonPoint = await evaluate(`
+      const button = [...document.querySelectorAll('.selection-actions .node-type-toggle button')]
+        .find(button => button.textContent.trim().toLowerCase() === '${nodeType}');
+      const rect = button?.getBoundingClientRect();
+      return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
+    `);
+    assert(buttonPoint, `No ${nodeType} action was available with Properties closed.`);
+    await click(buttonPoint);
+    assert(await evaluate(`
+      const { documentModel } = await import('/src/document/DocumentModel.ts');
+      const { useVectorStore } = await import('/src/store/useVectorStore.ts');
+      const active = document.querySelector('.selection-actions .node-type-toggle button[aria-pressed="true"]');
+      return documentModel.getDocument().entities.get('${nodeTarget.id}')?.nodeTypes?.[1] === '${nodeType}'
+        && useVectorStore.getState().nodeEditSelection?.nodeType === '${nodeType}'
+        && active?.textContent.trim().toLowerCase() === '${nodeType}';
+    `), `${nodeType} did not update the selected node and active action.`);
+  }
+  await key("z", "KeyZ", 4);
+  assert(await evaluate(`
+    return document.querySelector('.selection-actions .node-type-toggle button[aria-pressed="true"]')?.textContent.trim() === 'Symmetric';
+  `), "Undo did not restore the previous node type in Selection actions.");
+  await key("z", "KeyZ", 12);
+  assert(await evaluate(`
+    return document.querySelector('.selection-actions .node-type-toggle button[aria-pressed="true"]')?.textContent.trim() === 'Corner';
+  `), "Redo did not restore the changed node type in Selection actions.");
+  await evaluate(`
+    const { useVectorStore } = await import('/src/store/useVectorStore.ts');
+    useVectorStore.getState().togglePanel('properties', true);
+  `);
+  await wait(250);
   const nodeSnapshot = await evaluate(`
     const { documentModel } = await import('/src/document/DocumentModel.ts');
     const { useVectorStore } = await import('/src/store/useVectorStore.ts');
@@ -485,6 +525,8 @@ try {
     const { useVectorStore } = await import('/src/store/useVectorStore.ts');
     return useVectorStore.getState().nodeEditSelection === null;
   `), "Escape outside a field did not finish Node Edit.");
+  assert(await evaluate(`return !document.querySelector('.selection-actions .node-type-toggle');`),
+    "Node type actions must disappear after finishing Node Edit.");
 
   console.log("Canvas active-tool creation, Text, Aligned Dimension, Polyline, Space pan, Erase, selection, transforms, history and Node Edit focus isolation checks passed.");
 } finally {
