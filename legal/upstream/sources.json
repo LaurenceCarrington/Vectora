@@ -1,0 +1,70 @@
+[
+  {
+    "file": "earcut-3.0.2-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/mapbox/earcut/v3.0.2/LICENSE",
+    "sha256": "324139c19d87af03fda38afea1590e00ca354c4159bdb2ae9e9cec070cfa46a8"
+  },
+  {
+    "file": "tiny-inflate-1.0.3-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/foliojs/tiny-inflate/v1.0.3/LICENSE",
+    "sha256": "c0df7f551401f8f80197ff31bf69b8cd23727d127423403282514d242a3ab132"
+  },
+  {
+    "file": "Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "Unicode-LICENSE.txt",
+    "url": "https://www.unicode.org/license.txt",
+    "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+  },
+  {
+    "file": "tinf-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/jibsen/tinf/5f8f3f9acc4330cffb966c3b94705ee0fdf70e72/LICENSE",
+    "sha256": "f39b507b81b9ba1edce7fe742bbd68fda4b852063ce7299274ae97991d48814b"
+  },
+  {
+    "file": "paper-js-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/paperjs/paper.js/v0.12.18/LICENSE.txt",
+    "sha256": "f8833a38807922b4652421eb0cf29065400c55abd6f4832b9c3250dae87e1958"
+  },
+  {
+    "file": "gl-matrix-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/toji/gl-matrix/v2.8.1/LICENSE.md",
+    "sha256": "61ed58d1088e313710c4192cf02f97bda3cc0bb4b3b4d3f66e54ad1b666a3a52"
+  },
+  {
+    "file": "Lora-OFL.txt",
+    "url": "https://raw.githubusercontent.com/cyrealtype/Lora-Cyrillic/d3a539fcb557384979e1e71af8d53a74491588d2/OFL.txt",
+    "sha256": "1d9a970809ac804b582a6ce7f0ebc4e7fefcbfd7ff6299cad35ee656a21be716"
+  },
+  {
+    "file": "ltc-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/selfshadow/ltc_code/50e8988cc9628632f065ff5f486858f5d5814bc9/LICENSE",
+    "sha256": "692a54e97fcadd0f04b14027386e53809c1dcf96de3e15b15af15731b15c1e94",
+    "extraction": null
+  },
+  {
+    "file": "listsort-NOTICE.txt",
+    "url": "https://sources.debian.org/data/main/b/bogofilter/1.2.2-2%2Bsqueeze1/src/listsort.c",
+    "originUrl": "https://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.c",
+    "sha256": "e3c1ab5ab0d7f711535299aa2dc4045102073a5156dde18cc7e5bd9710b9b22e",
+    "sourceSha256": "6ce431ab9edbdce173a764fcdb6c088fcd29a3b7726e978b67305103e4cac82e",
+    "extraction": "comment"
+  },
+  {
+    "file": "splaytree-3.1.2-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/w8r/splay-tree/v3.1.2/Readme.md",
+    "sha256": "ee0abf2ef497474b599b4bda829e8bb52ef6a29feb2aff2d497fee9c110f44f6",
+    "sourceSha256": "0d50691c114e24b277aafbb860b29c68020faa23316582a1cd4d67b15321e12a",
+    "extraction": "license/notice only"
+  },
+  {
+    "file": "GeometricTools-NOTICE.txt",
+    "url": "https://raw.githubusercontent.com/pmjoniak/GeometricTools/55cd0526fa5587347f6a5fa8f34eb546ebee6224/GTEngine/Include/Mathematics/GteDistRaySegment.h",
+    "sha256": "33b0bc55a7218588bef0b5d8d387ee083b3c1eb6b56a6ececbf7be908b3f4f88",
+    "sourceSha256": "dbcd828fe9de30655100adfb8585c47f02dda065d94ef4a387053a6e28466ff4",
+    "extraction": "license/notice only"
+  }
+]

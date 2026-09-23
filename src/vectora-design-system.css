@@ -1,0 +1,125 @@
+/* Vectora UI contract.
+   Product components should consume these semantic tokens rather than local
+   colours. CAD/manufacturing colours intentionally remain separate from UI
+   interaction colours, even where two values currently match. */
+:root {
+  color-scheme: light;
+
+  --v-color-canvas: #f8fafc;
+  --v-color-surface: #ffffff;
+  --v-color-surface-subtle: #f4f6f9;
+  --v-color-surface-hover: #eef2f7;
+  --v-color-surface-selected: #e8f1ff;
+  --v-color-text: #172033;
+  --v-color-text-secondary: #526075;
+  --v-color-text-muted: #5f6e84;
+  --v-color-text-inverse: #ffffff;
+  --v-color-border: #dce3ed;
+  --v-color-border-control: #7c8ba1;
+  --v-color-grid-minor: #e8edf4;
+  --v-color-grid-major: #cfdae8;
+  --v-color-brand: #3b82f6;
+  --v-color-action: #2563eb;
+  --v-color-action-hover: #1d4ed8;
+  --v-color-action-pressed: #1e40af;
+  --v-color-action-text: #1d4ed8;
+  --v-color-focus: #1d4ed8;
+  --v-color-info: #2563eb;
+  --v-color-info-subtle: #e8f1ff;
+  --v-color-success: #137a3a;
+  --v-color-success-subtle: #eaf8ef;
+  --v-color-warning: #b45309;
+  --v-color-warning-subtle: #fff4e5;
+  --v-color-danger: #b42318;
+  --v-color-danger-hover: #912018;
+  --v-color-danger-subtle: #fff0ed;
+  --v-color-disabled-bg: #eef2f7;
+  --v-color-disabled-text: #5f6e84;
+  --v-color-overlay: rgb(23 32 51 / 22%);
+
+  --v-color-cut: #2563eb;
+  --v-color-engrave: #7c3aed;
+  --v-color-score: #0f766e;
+  --v-color-pocket: #0e7490;
+  --v-color-construction: #b45309;
+  --v-color-bitmap: #8b451d;
+  --v-color-selection: #1d4ed8;
+  --v-color-snap: #137a3a;
+  --v-color-toolpath-rapid: #64748b;
+  --v-color-toolpath-lead-in: #0f766e;
+  --v-color-toolpath-lead-out: #c2410c;
+  --v-color-toolpath-tab: #c2410c;
+  --v-color-machine-position: #c2410c;
+  --v-color-machine-boundary: #64748b;
+  --v-color-preview-background: #f3f6fa;
+  --v-color-preview-grid-major: #b8c5d5;
+  --v-color-preview-grid-minor: #dbe3ec;
+
+  --v-font-sans: "Inter Variable", Inter, ui-sans-serif, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --v-font-mono: "JetBrains Mono Variable", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace;
+  --v-font-caption: 0.75rem;
+  --v-font-helper: 0.8125rem;
+  --v-font-body: 0.875rem;
+  --v-font-reading: 1rem;
+  --v-font-section: 1.125rem;
+  --v-font-panel-title: 1.25rem;
+  --v-font-dialog-title: 1.75rem;
+  --v-weight-regular: 400;
+  --v-weight-medium: 500;
+  --v-weight-semibold: 600;
+  --v-weight-bold: 700;
+
+  --v-space-0: 0;
+  --v-space-1: 0.25rem;
+  --v-space-2: 0.5rem;
+  --v-space-3: 0.75rem;
+  --v-space-4: 1rem;
+  --v-space-5: 1.25rem;
+  --v-space-6: 1.5rem;
+  --v-space-8: 2rem;
+  --v-space-10: 2.5rem;
+  --v-space-12: 3rem;
+  --v-space-16: 4rem;
+
+  --v-radius-small: 0.375rem;
+  --v-radius-control: 0.625rem;
+  --v-radius-nested: 0.875rem;
+  --v-radius-window: 1.25rem;
+  --v-radius-pill: 999px;
+  --v-border-width: 1px;
+  --v-border-selected: 2px;
+  --v-shadow-control: 0 2px 6px rgb(23 32 51 / 6%);
+  --v-shadow-float: 0 12px 32px rgb(23 32 51 / 8%), 0 2px 8px rgb(23 32 51 / 4%);
+  --v-shadow-modal: 0 24px 72px rgb(23 32 51 / 18%), 0 4px 16px rgb(23 32 51 / 6%);
+  --v-focus-width: 2px;
+  --v-focus-offset: 3px;
+
+  --v-control-height: 2.75rem;
+  --v-control-height-compact: 2.25rem;
+  --v-target-touch: 2.75rem;
+  --v-tool-size: 3rem;
+  --v-icon-size: 1.25rem;
+  --v-icon-size-small: 1rem;
+  --v-icon-size-large: 1.5rem;
+  --v-icon-stroke: 1.75;
+
+  --v-duration-fast: 120ms;
+  --v-duration-normal: 180ms;
+  --v-duration-slow: 240ms;
+  --v-ease: cubic-bezier(0.2, 0, 0, 1);
+  --v-z-tooltip: 400;
+}
+
+@media (pointer: coarse) {
+  :root { --v-control-height-compact: var(--v-target-touch); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --v-duration-fast: 0ms;
+    --v-duration-normal: 0ms;
+    --v-duration-slow: 0ms;
+  }
+}

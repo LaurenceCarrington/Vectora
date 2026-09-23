@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 2,
+  "validationScope": "offline-only",
+  "releaseStatus": "hardware-validation-pending",
+  "hardwareConnection": "not attempted",
+  "controller": "strict offline GRBL subset parser",
+  "offlineChecks": "pass",
+  "hardwareChecks": "not run",
+  "laser": {
+    "profile": "Offline GRBL laser simulator",
+    "preflight": "pass",
+    "toolpaths": 3,
+    "sequence": [
+      "laser-raster",
+      "laser-vector-engrave",
+      "laser-vector-cut"
+    ],
+    "controller": {
+      "commands": 48,
+      "rapidMoves": 5,
+      "feedMoves": 20,
+      "poweredMoves": 12,
+      "toolStarts": 8,
+      "toolStops": 12,
+      "bounds": {
+        "minX": 0,
+        "minY": 0,
+        "maxX": 110,
+        "maxY": 80
+      },
+      "zRange": null,
+      "feeds": [
+        600,
+        1200,
+        3000
+      ],
+      "powers": [
+        0,
+        250,
+        600,
+        800
+      ],
+      "finalPosition": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "finalToolState": "off"
+    },
+    "simulator": {
+      "segments": 24,
+      "rapidSegments": 12,
+      "cutSegments": 12,
+      "rapidDistance": 162.02631168902826,
+      "cutDistance": 438,
+      "durationSeconds": 40.300263116890285,
+      "roleCounts": {
+        "raster-off": 4,
+        "raster-burn": 2,
+        "tab-gap": 4
+      }
+    }
+  },
+  "milling": {
+    "profile": "Offline GRBL spindle simulator",
+    "preflight": "pass",
+    "toolpaths": 1,
+    "sequence": [
+      "milling-profile"
+    ],
+    "depthPassesMm": [
+      -1,
+      -2,
+      -3
+    ],
+    "controller": {
+      "commands": 38,
+      "rapidMoves": 12,
+      "feedMoves": 15,
+      "poweredMoves": 15,
+      "toolStarts": 3,
+      "toolStops": 5,
+      "bounds": {
+        "minX": 0,
+        "minY": 0,
+        "maxX": 100,
+        "maxY": 70
+      },
+      "zRange": {
+        "min": -3,
+        "max": 5
+      },
+      "feeds": [
+        200,
+        600
+      ],
+      "powers": [
+        12000
+      ],
+      "finalPosition": {
+        "x": 0,
+        "y": 0,
+        "z": 5
+      },
+      "finalToolState": "off"
+    },
+    "simulator": {
+      "segments": 13,
+      "rapidSegments": 1,
+      "cutSegments": 12,
+      "rapidDistance": 28.284271247461902,
+      "cutDistance": 780,
+      "durationSeconds": 78.28284271247462,
+      "roleCounts": {}
+    }
+  }
+}

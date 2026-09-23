@@ -1,0 +1,11 @@
+# Keep source and notice fingerprints stable across operating systems.
+* text=auto eol=lf
+# Preserve verbatim license text and the hashed upstream evidence.
+LEGAL_ATTRIBUTIONS.md -text
+legal/upstream/** -text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.woff binary
+*.woff2 binary
+*.zip binary
