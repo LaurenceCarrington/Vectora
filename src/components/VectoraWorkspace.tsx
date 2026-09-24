@@ -386,8 +386,11 @@ function exportCurrentDocument(format: "svg" | "dxf"): void {
 }
 
 function primaryShortcut(key: string, shift = false): string {
-  const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-  return mac ? `${shift ? "⇧" : ""}⌘ ${key}` : `Ctrl${shift ? "+Shift" : ""}+${key}`;
+  return isMacPlatform() ? `${shift ? "⇧" : ""}⌘ ${key}` : `Ctrl${shift ? "+Shift" : ""}+${key}`;
+}
+
+function isMacPlatform(): boolean {
+  return typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 }
 
 function FileMenu({
@@ -2072,6 +2075,7 @@ function HelpModal({ open, onClose }: { readonly open: boolean; readonly onClose
               <div><kbd>N</kbd><span>Edit shape, line and polyline nodes or Bézier handles</span></div>
               <div><kbd>{primaryShortcut("C")}</kbd><span>Copy selected objects</span></div>
               <div><kbd>{primaryShortcut("V")}</kbd><span>Paste copied objects with a small offset</span></div>
+              <div><kbd>Delete / Backspace</kbd><span>Delete the selected objects</span></div>
               <div><kbd>⇧</kbd><span>Constrain corner scale or snap rotation to {angleSnapDeg}°</span></div>
               <div><kbd>2×</kbd><span>Double-click a polyline to edit anchors and Bézier handles</span></div>
               <div><kbd>Space</kbd><span>Hold and drag to pan; middle-drag also pans</span></div>
@@ -2084,18 +2088,27 @@ function HelpModal({ open, onClose }: { readonly open: boolean; readonly onClose
               <div><kbd>L</kbd><span>Draw a line by dragging or two clicks</span></div>
               <div><kbd>P</kbd><span>Click polyline vertices; Enter, Escape or double-click to finish</span></div>
               <div><kbd>B</kbd><span>Drag a freehand path without snapping; release to finish, Escape to cancel</span></div>
+              <div><kbd>R · C · E · Y · A</kbd><span>Rectangle, circle, ellipse, polygon and arc tools</span></div>
+              <div><kbd>F</kbd><span>Text tool</span></div>
               <div><kbd>X</kbd><span>Hover an edge in red, then click to erase that segment</span></div>
               <div><kbd>G</kbd><span>Apply the selected fill color inside a closed shape</span></div>
               <div><kbd>D</kbd><span>Pick two snap points, then place an aligned dimension</span></div>
               <div><kbd>⇧ M</kbd><span>Measure distance, deltas and angle without editing</span></div>
               <div><kbd>{primaryShortcut("K")}</kbd><span>Find every tool and workspace action</span></div>
-              <div><kbd>{primaryShortcut("S")}</kbd><span>Save the native .vectora document</span></div>
-              <div><kbd>{primaryShortcut("Z")}</kbd><span>Undo the last reversible edit</span></div>
+              <div><kbd>{primaryShortcut(",")}</kbd><span>Open Preferences</span></div>
+              <div><kbd>{primaryShortcut("L")}</kbd><span>Toggle the Layers panel</span></div>
+              <div><kbd>{primaryShortcut("N")} · {primaryShortcut("O")}</kbd><span>New document · Open document</span></div>
+              <div><kbd>{primaryShortcut("S")} · {primaryShortcut("S", true)}</kbd><span>Save · Save as</span></div>
+              <div><kbd>{primaryShortcut("E")} · {primaryShortcut("E", true)}</kbd><span>Export SVG · Export DXF</span></div>
+              <div><kbd>{primaryShortcut("Z")}</kbd><span>Undo</span></div>
+              <div><kbd>{primaryShortcut("Z", true)}</kbd><span>Redo</span></div>
+              {!isMacPlatform() && <div><kbd>Ctrl+Y</kbd><span>Redo (Windows alternative)</span></div>}
+              <div><kbd>Esc</kbd><span>Close open menus, dialogs and flyouts</span></div>
             </div>
           </section>
         </div>
         <footer className="help-footer">
-          <span className="help-note"><i /> Shortcuts work whenever a text field is not active</span>
+          <span className="help-note"><i /> App shortcuts work outside text fields. Browser-reserved shortcuts stay with your browser.</span>
           <button className="primary" onClick={onClose}>Close</button>
         </footer>
       </motion.section>
