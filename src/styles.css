@@ -525,9 +525,14 @@ textarea:focus-visible,
   transition: color var(--v-duration-normal) var(--v-ease), background var(--v-duration-normal) var(--v-ease), box-shadow var(--v-duration-normal) var(--v-ease);
 }
 
-.topbar-action:hover {
+.topbar-action:hover:not(:disabled) {
   color: var(--ink);
   background: var(--panel-soft);
+}
+
+.topbar-action:disabled {
+  color: var(--v-color-disabled-text);
+  cursor: default;
 }
 
 .topbar-action.is-active {

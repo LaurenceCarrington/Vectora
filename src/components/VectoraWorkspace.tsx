@@ -406,11 +406,6 @@ function FileMenu({
 }) {
   const open = useVectorStore((state) => state.fileMenuOpen);
   const setOpen = useVectorStore((state) => state.setFileMenuOpen);
-  const historySnapshot = useSyncExternalStore(
-    (onStoreChange) => history.subscribe(onStoreChange),
-    () => history.getSnapshot(),
-    () => history.getSnapshot(),
-  );
   const persistence = useSyncExternalStore(
     filePersistence.subscribe,
     filePersistence.getSnapshot,
@@ -427,8 +422,6 @@ function FileMenu({
   }> = [
     { icon: FilePlus2, label: "New document", shortcut: primaryShortcut("N"), action: onNew },
     { icon: Folder, label: "Open file…", shortcut: primaryShortcut("O"), action: onOpen },
-    { separator: true, icon: RotateCcw, label: historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo", shortcut: primaryShortcut("Z"), disabled: !historySnapshot.canUndo, action: undo },
-    { icon: RotateCw, label: historySnapshot.redoLabel ? `Redo ${historySnapshot.redoLabel}` : "Redo", shortcut: primaryShortcut("Z", true), disabled: !historySnapshot.canRedo, action: redo },
     { separator: true, icon: Save, label: persistence.dirty ? "Save changes" : "Save", shortcut: primaryShortcut("S"), action: onSave },
     { icon: Save, label: "Save as…", shortcut: primaryShortcut("S", true), action: onSaveAs },
     { separator: true, icon: Download, label: "Export SVG", shortcut: primaryShortcut("E"), action: () => exportCurrentDocument("svg") },
@@ -519,12 +512,30 @@ function TopBar({
 }) {
   const preferencesOpen = useVectorStore((state) => state.preferencesOpen);
   const commandPaletteOpen = useVectorStore((state) => state.commandPaletteOpen);
+  const historySnapshot = useSyncExternalStore(
+    (onStoreChange) => history.subscribe(onStoreChange),
+    () => history.getSnapshot(),
+    () => history.getSnapshot(),
+  );
   return (
     <header className="topbar surface" onPointerDown={stopPointer}>
       <div className="topbar-start">
         <VectoraLogo />
         <span className="topbar-divider" />
         <FileMenu onNew={onNew} onOpen={onOpenFile} onSave={onSave} onSaveAs={onSaveAs} />
+        <Tooltip content={historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo"} shortcut={primaryShortcut("Z")} placement="bottom">
+          <button type="button" className="icon-button topbar-action" aria-label={historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo"}
+            disabled={!historySnapshot.canUndo} onClick={undo}>
+            <RotateCcw size={19} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
+        <Tooltip content={historySnapshot.redoLabel ? `Redo ${historySnapshot.redoLabel}` : "Redo"} shortcut={primaryShortcut("Z", true)} placement="bottom">
+          <button type="button" className="icon-button topbar-action" aria-label={historySnapshot.redoLabel ? `Redo ${historySnapshot.redoLabel}` : "Redo"}
+            disabled={!historySnapshot.canRedo} onClick={redo}>
+            <RotateCw size={19} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
+        <span className="topbar-divider topbar-action-divider" />
         <Tooltip content="Command search" shortcut={primaryShortcut("K")} placement="bottom">
           <button
             className={`icon-button topbar-action ${commandPaletteOpen ? "is-active" : ""}`}
