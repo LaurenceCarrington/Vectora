@@ -185,6 +185,9 @@ export interface TextEntity extends BaseEntity<"text"> {
   /** Left-aligned baseline origin in world coordinates. */
   readonly x: number;
   readonly y: number;
+  /** Text glyphs are mirrored around their baseline without converting to paths. */
+  readonly flipHorizontal?: boolean;
+  readonly flipVertical?: boolean;
 }
 
 export interface DimensionAnchorReference {

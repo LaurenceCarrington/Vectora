@@ -26,9 +26,12 @@ import {
   CornerDownLeft,
   Download,
   Diff as SubtractIcon,
+  Edit3,
   Eraser,
   Factory,
   FilePlus2,
+  FlipHorizontal2,
+  FlipVertical2,
   Folder,
   Image as BitmapIcon,
   Layers3,
@@ -93,6 +96,7 @@ import { closePolyline } from "../geometry/operations/closePath";
 import { isJoinableOpenPath, joinPaths } from "../geometry/operations/join";
 import { entityToClosedPath } from "../geometry/operations/pathConversion";
 import { getLockedSelectionReason } from "../geometry/operations/operationSafety";
+import { flipSelection } from "../geometry/operations/flipSelection";
 import type { NestingOptions, NestingProgress, NestingResult } from "../cam/nestingEngine";
 import { exportDxf, parseDxf } from "../io/dxfSerializer";
 import {
@@ -477,6 +481,72 @@ function FileMenu({
   );
 }
 
+function EditMenu() {
+  const [open, setOpen] = useState(false);
+  const menuWrapRef = useRef<HTMLDivElement>(null);
+  const snapshot = useSyncExternalStore(
+    (onStoreChange) => documentModel.subscribe(() => onStoreChange()),
+    () => documentModel.getDocument(),
+    () => documentModel.getDocument(),
+  );
+  const selected = [...snapshot.selection].map((id) => snapshot.entities.get(id))
+    .filter((entity): entity is Entity => Boolean(entity));
+  const lockReason = getLockedSelectionReason(selected, snapshot.layers);
+
+  useEffect(() => {
+    if (!open) return;
+    const dismissOnOutsidePointer = (event: PointerEvent) => {
+      if (!menuWrapRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const dismissOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismissOnOutsidePointer, true);
+    window.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnOutsidePointer, true);
+      window.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [open]);
+
+  const applyFlip = (axis: "horizontal" | "vertical") => {
+    if (selected.length === 0 || lockReason) return;
+    try {
+      const updated = flipSelection(selected, axis);
+      executeCommand(new UpdateEntitiesCommand(selected, updated, axis === "horizontal" ? "Flip horizontal" : "Flip vertical"));
+      setOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The selected objects could not be flipped.");
+    }
+  };
+
+  return (
+    <div className="file-menu-wrap" ref={menuWrapRef}>
+      <Tooltip content="Edit" placement="bottom">
+        <button type="button" className={`icon-button file-button ${open ? "is-active" : ""}`}
+          aria-label="Edit menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+          <Edit3 size={19} />
+          <ChevronDown className="file-chevron" size={12} />
+        </button>
+      </Tooltip>
+      <AnimatePresence>
+        {open && <motion.div className="edit-menu surface" initial={{ opacity: 0, y: -8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 440, damping: 32 }}>
+          <div className="popover-eyebrow">Edit selection</div>
+          <button type="button" className="menu-row" disabled={!selected.length || Boolean(lockReason)} onClick={() => applyFlip("horizontal")}>
+            <FlipHorizontal2 size={18} /><span>Flip horizontal</span>
+          </button>
+          <button type="button" className="menu-row" disabled={!selected.length || Boolean(lockReason)} onClick={() => applyFlip("vertical")}>
+            <FlipVertical2 size={18} /><span>Flip vertical</span>
+          </button>
+          <p className="file-menu-note">{lockReason ?? (selected.length ? `${selected.length} selected` : "Select editable objects to flip.")}</p>
+        </motion.div>}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function TopBar({
   camOpen,
   rasterOpen,
@@ -523,6 +593,7 @@ function TopBar({
         <VectoraLogo />
         <span className="topbar-divider" />
         <FileMenu onNew={onNew} onOpen={onOpenFile} onSave={onSave} onSaveAs={onSaveAs} />
+        <EditMenu />
         <Tooltip content={historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo"} shortcut={primaryShortcut("Z")} placement="bottom">
           <button type="button" className="icon-button topbar-action" aria-label={historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo"}
             disabled={!historySnapshot.canUndo} onClick={undo}>

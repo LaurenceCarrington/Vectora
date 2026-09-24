@@ -160,6 +160,7 @@ function entityToDxf(entity: Entity, dxfLayerName: string, version: "R12" | "R14
     case "text":
       return pair(0, "TEXT") + pair(8, dxfLayerName) +
         pair(10, format(entity.x)) + pair(20, format(entity.y)) + pair(30, 0) +
+        pair(71, (entity.flipHorizontal ? 2 : 0) | (entity.flipVertical ? 4 : 0)) +
         pair(40, format(entity.fontSize)) + pair(1, safeDxfText(entity.text)) +
         pair(7, safeDxfText(entity.fontFamily));
     case "dimension":
@@ -699,8 +700,10 @@ export function parseDxf(source: string, options: DxfImportOptions = {}): DxfImp
           if (r.type === "CIRCLE") add({ ...base, type: "circle", center: p(10), radius });
           else add({ ...base, type: "arc", center: p(10), radius, startAngle: numeric(r, 50) * Math.PI / 180, endAngle: numeric(r, 51) * Math.PI / 180, counterClockwise: false });
         } else if (r.type === "TEXT") {
-          if (numeric(r, 50) !== 0 || numeric(r, 41, 1) !== 1) warn("Rotated or stretched TEXT was imported as editable horizontal text. Convert text to paths in the source CAD application to preserve its appearance.");
-          add({ ...base, type: "text", x: numeric(r, 10), y: numeric(r, 20), text: first(r, 1, "Text"), fontSize: Math.max(0.001, numeric(r, 40, 4)), fontFamily: first(r, 7, "STANDARD") });
+          const textGeneration = numeric(r, 71);
+          if (numeric(r, 50) !== 0 || numeric(r, 41, 1) !== 1 || (textGeneration & ~6) !== 0) warn("Rotated, stretched, or specially aligned TEXT was imported as editable horizontal text. Convert text to paths in the source CAD application to preserve its appearance.");
+          add({ ...base, type: "text", x: numeric(r, 10), y: numeric(r, 20), text: first(r, 1, "Text"), fontSize: Math.max(0.001, numeric(r, 40, 4)), fontFamily: first(r, 7, "STANDARD"),
+            ...(textGeneration & 2 ? { flipHorizontal: true } : {}), ...(textGeneration & 4 ? { flipVertical: true } : {}) });
         } else if (r.type === "SPLINE") {
           const points = vertices(r);
           const knots = r.pairs.filter(p => p.code === 40).map(p => Number(p.value));

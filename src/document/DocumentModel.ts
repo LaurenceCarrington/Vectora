@@ -147,7 +147,7 @@ const GEOMETRY_UPDATE_KEYS: Readonly<Record<Entity["type"], ReadonlySet<string>>
   segment: new Set(["cx", "cy", "radius", "startAngle", "endAngle"]),
   star: new Set(["cx", "cy", "innerRadius", "outerRadius", "points", "rotation"]),
   cloud: new Set(["points", "arcRadius"]),
-  text: new Set(["text", "fontFamily", "fontSize", "x", "y"]),
+  text: new Set(["text", "fontFamily", "fontSize", "x", "y", "flipHorizontal", "flipVertical"]),
   dimension: new Set(["dimensionKind", "startPoint", "endPoint", "textPosition", "value", "prefix", "suffix", "precision", "arrowSize", "references"]),
   leader: new Set(["arrowPoint", "elbowPoint", "textPosition", "text"]),
 };
@@ -463,11 +463,12 @@ export function calculateEntityBounds(entity: Entity): BoundingBox {
       // the live renderer uses the actual browser glyphs inside it.
       const glyphCount = Math.max(1, Array.from(entity.text).length);
       const width = Math.max(entity.fontSize * 0.35, glyphCount * entity.fontSize * 0.65);
+      const minX = entity.flipHorizontal ? entity.x - width : entity.x;
+      const maxX = entity.flipHorizontal ? entity.x : entity.x + width;
+      const minY = entity.flipVertical ? entity.y - entity.fontSize * 0.8 : entity.y - entity.fontSize * 0.25;
+      const maxY = entity.flipVertical ? entity.y + entity.fontSize * 0.25 : entity.y + entity.fontSize * 0.8;
       bbox = {
-        minX: entity.x,
-        minY: entity.y - entity.fontSize * 0.25,
-        maxX: entity.x + width,
-        maxY: entity.y + entity.fontSize * 0.8,
+        minX, minY, maxX, maxY,
       };
       break;
     }

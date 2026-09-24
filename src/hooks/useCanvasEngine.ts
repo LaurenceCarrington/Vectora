@@ -523,7 +523,9 @@ function drawLiveText(
   context.textBaseline = "alphabetic";
   context.textAlign = "left";
   context.fillStyle = colorOverride ?? entity.style.fillColor ?? entity.style.strokeColor ?? layer?.color ?? "#475569";
-  context.fillText(entity.text, x, y);
+  context.translate(x, y);
+  context.scale(entity.flipHorizontal ? -1 : 1, entity.flipVertical ? -1 : 1);
+  context.fillText(entity.text, 0, 0);
   context.restore();
 }
 

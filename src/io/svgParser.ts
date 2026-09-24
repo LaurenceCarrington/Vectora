@@ -717,6 +717,8 @@ export function parseSvg(source: string): SvgImportResult {
         fontSize: Math.max(0.1, Math.abs(finite(attributes["font-size"], 24) * matrixScale(matrix))),
         x: origin.x,
         y: origin.y,
+        ...(attributes["data-flip-horizontal"] === "true" ? { flipHorizontal: true } : {}),
+        ...(attributes["data-flip-vertical"] === "true" ? { flipVertical: true } : {}),
       };
     } else if (tag === "line") {
       entity = {
@@ -956,7 +958,12 @@ function entityToSvg(entity: Entity, layer: Layer, indent: string): string {
     }
     case "text": {
       const fill = escapeXml(entity.style.fillColor ?? entity.style.strokeColor ?? layer.color);
-      return `${indent}<text x="${format(entity.x)}" y="${format(-entity.y)}" font-family="${escapeXml(entity.fontFamily)}" font-size="${format(entity.fontSize)}" fill="${fill}" stroke="none"${entity.visible ? "" : " visibility=\"hidden\""} data-vectora-type="text" data-text="${escapeXml(entity.text)}">${escapeXml(entity.text)}</text>`;
+      const flipX = entity.flipHorizontal ? -1 : 1;
+      const flipY = entity.flipVertical ? -1 : 1;
+      const textTransform = entity.flipHorizontal || entity.flipVertical
+        ? ` transform="translate(${format(entity.x)} ${format(-entity.y)}) scale(${flipX} ${flipY}) translate(${format(-entity.x)} ${format(entity.y)})"`
+        : "";
+      return `${indent}<text x="${format(entity.x)}" y="${format(-entity.y)}"${textTransform} font-family="${escapeXml(entity.fontFamily)}" font-size="${format(entity.fontSize)}" fill="${fill}" stroke="none"${entity.visible ? "" : " visibility=\"hidden\""} data-vectora-type="text" data-text="${escapeXml(entity.text)}"${entity.flipHorizontal ? " data-flip-horizontal=\"true\"" : ""}${entity.flipVertical ? " data-flip-vertical=\"true\"" : ""}>${escapeXml(entity.text)}</text>`;
     }
     case "dimension": {
       const geometry = getDimensionGeometry(entity);

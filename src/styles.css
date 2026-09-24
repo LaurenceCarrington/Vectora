@@ -569,6 +569,16 @@ textarea:focus-visible,
   transform-origin: top left;
 }
 
+.edit-menu {
+  position: absolute;
+  z-index: 25;
+  top: 51px;
+  left: -8px;
+  width: 248px;
+  padding: 12px 14px 14px;
+  transform-origin: top left;
+}
+
 .popover-eyebrow,
 .eyebrow {
   color: var(--muted);
