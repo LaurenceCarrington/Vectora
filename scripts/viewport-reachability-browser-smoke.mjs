@@ -390,9 +390,11 @@ try {
         container.top >= -1 && container.right <= width + 1 && container.bottom <= height + 1,
       `${width}x${height} ${name}: opened container leaves the viewport: ${JSON.stringify(container)}.`);
       if (fittedPanels.has(name)) {
-        assert(container.left >= 11 && container.right <= width - 11 && container.width <= width - 23 &&
+        const clearance = name === "More menu" || name === "Mobile tool menu" ? 8 : 12;
+        assert(container.left >= clearance - 1 && container.right <= width - clearance + 1 &&
+          container.width <= width - clearance * 2 + 1 &&
           container.scrollWidth <= container.clientWidth + 1,
-        `${width}x${height} ${name}: panel lacks 12px side clearance or clips horizontally: ${JSON.stringify(container)}.`);
+        `${width}x${height} ${name}: panel lacks ${clearance}px side clearance or clips horizontally: ${JSON.stringify(container)}.`);
         if (width === 1440) assert(Math.abs(container.layoutWidth - desktopWidths[name]) < 1,
           `${name}: intended desktop width changed (${container.layoutWidth}px).`);
       }

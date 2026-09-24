@@ -67,6 +67,8 @@ import { LayersPanel } from "./panels/LayersPanel";
 import { ToastViewport, toast } from "./ui/Toast";
 import { Tooltip } from "./ui/Tooltip";
 import { NodeTypeMenu } from "./ui/NodeTypeMenu";
+import { observeWorkspaceMenus } from "./ui/viewportMenu";
+import { convertTextToPaths } from "../geometry/operations/textToPath";
 import { useCanvasEngine } from "../hooks/useCanvasEngine";
 import { useObjectClipboard } from "../hooks/useObjectClipboard";
 import { documentModel } from "../document/DocumentModel";
@@ -1808,10 +1810,28 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
     [document],
   );
   const [joinPopoverOpen, setJoinPopoverOpen] = useState(false);
+  const joinPopoverRef = useRef<HTMLDivElement>(null);
+  const joinTriggerRef = useRef<HTMLButtonElement>(null);
   const [joinTolerance, setJoinTolerance] = useState(0.1);
   const [convertingText, setConvertingText] = useState(false);
   const selectionKey = [...document.selection].join("\u0000");
   useEffect(() => setJoinPopoverOpen(false), [selectionKey]);
+  useEffect(() => {
+    const popover = joinPopoverRef.current;
+    if (!popover) return;
+    if (joinPopoverOpen && !popover.matches(":popover-open")) popover.showPopover();
+    else if (!joinPopoverOpen && popover.matches(":popover-open")) popover.hidePopover();
+  }, [joinPopoverOpen]);
+  useEffect(() => {
+    if (!joinPopoverOpen) return;
+    const dismiss = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setJoinPopoverOpen(false);
+      joinTriggerRef.current?.focus();
+    };
+    window.addEventListener("keydown", dismiss);
+    return () => window.removeEventListener("keydown", dismiss);
+  }, [joinPopoverOpen]);
   const joinPreview = useMemo(() => {
     if (selected.length < 2 || selected.some((entity) => !isJoinableOpenPath(entity))) return null;
     try {
@@ -1949,7 +1969,6 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
     const sourceDocumentId = documentModel.getDocument().id;
     const sourceText = selectedText;
     try {
-      const { convertTextToPaths } = await import("../geometry/operations/textToPath");
       const contours = await convertTextToPaths(sourceText);
       const current = documentModel.getDocument();
       if (current.id !== sourceDocumentId || current.entities.get(sourceText.id) !== sourceText) {
@@ -2027,6 +2046,8 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
         )}
         <Tooltip content={joinReason ?? "Set the tolerance used to weld matching endpoints"} placement="top">
           <button
+            ref={joinTriggerRef}
+            data-menu-anchor="join"
             aria-disabled={Boolean(joinReason)}
             aria-expanded={joinPopoverOpen}
             onClick={() => runOrExplain(joinReason, () => setJoinPopoverOpen((current) => !current))}
@@ -2052,7 +2073,9 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
         <AnimatePresence>
           {joinPopoverOpen && !joinReason && (
             <motion.div
+              ref={joinPopoverRef}
               className="join-tolerance-popover surface"
+              popover="manual"
               role="dialog"
               aria-label="Join path tolerance"
               initial={{ opacity: 0, y: 6, scale: 0.98 }}
@@ -2570,6 +2593,11 @@ export function VectoraWorkspace() {
   const [savingBeforeAction, setSavingBeforeAction] = useState(false);
   useObjectClipboard(Boolean(commandPaletteOpen || preferencesOpen || generatorsOpen || nestingOpen
     || vectorizerFile || threePreviewOpen || helpOpen || layerDialog || pendingDocumentAction));
+
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    return workspace ? observeWorkspaceMenus(workspace) : undefined;
+  }, []);
 
   useEffect(() => {
     const workspace = workspaceRef.current;

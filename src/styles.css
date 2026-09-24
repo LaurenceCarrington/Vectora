@@ -2687,13 +2687,13 @@ textarea:focus-visible,
 }
 
 .join-tolerance-popover {
-  position: absolute;
+  position: fixed;
   z-index: 4;
-  bottom: calc(100% + 11px);
-  left: 50%;
+  inset: auto;
   width: 268px;
+  max-width: calc(100vw - 16px);
+  margin: 0;
   padding: 15px;
-  transform: translateX(-50%);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-float);
   color: var(--text);

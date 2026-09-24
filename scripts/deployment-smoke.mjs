@@ -18,6 +18,8 @@ function collect(directory, prefix = "") {
 collect(join(root, "dist"));
 assert(files.has("index.html"), "Run npm run build first.");
 assert.match(files.get("index.html").toString("utf8"), /<link\b[^>]*rel="icon"[^>]*type="image\/svg\+xml"[^>]*href="[^"]+"/, "The Vectora favicon must be declared in the built page.");
+assert(![...files.keys()].some((name) => /^assets\/textToPath-[^/]+\.js$/.test(name)),
+  "Text-to-path conversion must not depend on a lazy chunk that can disappear between Pages deployments.");
 assert.deepEqual(files.get("LEGAL_ATTRIBUTIONS.md"), readFileSync(join(root, "LEGAL_ATTRIBUTIONS.md")), "The complete third-party notices must ship unchanged.");
 
 const contentTypes = {

@@ -45,6 +45,10 @@ function getHandlePoints(bounds: BoundingBox): Readonly<Record<ScaleHandle, Poin
   };
 }
 
+export function getScaleHandlePoint(bounds: BoundingBox, handle: ScaleHandle): Point2D {
+  return getHandlePoints(bounds)[handle];
+}
+
 export function getRotationHandlePoint(bounds: BoundingBox, zoom: number): Point2D {
   return {
     x: (bounds.minX + bounds.maxX) / 2,
@@ -123,7 +127,22 @@ export function hitTestTransformHandle(
   point: Point2D,
   bounds: BoundingBox,
   zoom: number,
+  touchRadiusPx?: number,
 ): TransformHandle | null {
+  if (touchRadiusPx !== undefined) {
+    const handles = getHandlePoints(bounds);
+    const candidates: readonly [TransformHandle, Point2D][] = [
+      ["rotate", getRotationHandlePoint(bounds, zoom)],
+      ...Object.entries(handles) as [ScaleHandle, Point2D][],
+    ];
+    let nearest: TransformHandle | null = null;
+    let distance = touchRadiusPx / zoom;
+    for (const [handle, candidate] of candidates) {
+      const next = Math.hypot(point.x - candidate.x, point.y - candidate.y);
+      if (next < distance) { nearest = handle; distance = next; }
+    }
+    return nearest;
+  }
   const tolerance = HANDLE_HIT_SIZE / (2 * zoom);
   const rotationPoint = getRotationHandlePoint(bounds, zoom);
   if (Math.hypot(point.x - rotationPoint.x, point.y - rotationPoint.y) <= tolerance) {

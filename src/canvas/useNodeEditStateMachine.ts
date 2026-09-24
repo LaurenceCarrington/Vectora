@@ -25,6 +25,9 @@ import { useVectorStore } from "../store/useVectorStore";
 const NODE_HIT_RADIUS_PX = 9;
 const HANDLE_HIT_RADIUS_PX = 8;
 const SEGMENT_HIT_RADIUS_PX = 7;
+const TOUCH_NODE_HIT_RADIUS_PX = 20;
+const TOUCH_HANDLE_HIT_RADIUS_PX = 20;
+const TOUCH_SEGMENT_HIT_RADIUS_PX = 18;
 
 export interface NodeEditHandle {
   readonly segmentIndex: number;
@@ -60,6 +63,8 @@ interface NodeEditSession {
   selectedVertex: number | null;
   selectedHandle: NodeEditHandle | null;
   pointerId: number | null;
+  lastPointer: Point2D | null;
+  dragOffset: Point2D | null;
   dragBefore: PolylineEntity | null;
   dragChanged: boolean;
 }
@@ -344,7 +349,8 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
       points: entity.points.map(clonePoint),
       segments: clonePolylineSegments(entity),
       nodeTypes: entity.points.map((_, index) => entity.nodeTypes?.[index] ?? "corner"),
-      selectedVertex: null, selectedHandle: null, pointerId: null, dragBefore: null, dragChanged: false,
+      selectedVertex: null, selectedHandle: null, pointerId: null, lastPointer: null,
+      dragOffset: null, dragBefore: null, dragChanged: false,
     };
     documentModel.selectEntities([entity.id]);
     publish();
@@ -476,7 +482,8 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
     if (!session) {
       if (event.button !== 0 || useVectorStore.getState().activeTool !== "node-edit") return false;
       const world = screenToWorld(event.clientX, event.clientY);
-      const tolerance = SEGMENT_HIT_RADIUS_PX / useVectorStore.getState().viewport.zoom;
+      const tolerance = (event.pointerType === "touch" ? TOUCH_SEGMENT_HIT_RADIUS_PX : SEGMENT_HIT_RADIUS_PX)
+        / useVectorStore.getState().viewport.zoom;
       const candidates = documentModel.queryVisibleEntities({
         minX: world.x - tolerance,
         minY: world.y - tolerance,
@@ -489,7 +496,9 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
         if (!entity || !supportsNodeEditing(entity) || entity.locked || layer?.locked || !pointHitsEntity(world, entity, tolerance)) continue;
         if (!begin(entity)) continue;
         session = sessionRef.current;
-        if (session) session.selectedVertex = nearestVertex(world, session.points, NODE_HIT_RADIUS_PX / useVectorStore.getState().viewport.zoom);
+        if (session) session.selectedVertex = nearestVertex(world, session.points,
+          (event.pointerType === "touch" ? TOUCH_NODE_HIT_RADIUS_PX : NODE_HIT_RADIUS_PX)
+            / useVectorStore.getState().viewport.zoom);
         publish();
         event.preventDefault();
         return true;
@@ -502,23 +511,34 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
     if (event.button !== 0) return false;
     const world = screenToWorld(event.clientX, event.clientY);
     const zoom = useVectorStore.getState().viewport.zoom;
-    const handle = nearestHandle(
+    const handleRadius = event.pointerType === "touch" ? TOUCH_HANDLE_HIT_RADIUS_PX : HANDLE_HIT_RADIUS_PX;
+    const nodeRadius = event.pointerType === "touch" ? TOUCH_NODE_HIT_RADIUS_PX : NODE_HIT_RADIUS_PX;
+    const segmentRadius = event.pointerType === "touch" ? TOUCH_SEGMENT_HIT_RADIUS_PX : SEGMENT_HIT_RADIUS_PX;
+    let handle = nearestHandle(
       world,
       listHandles(session.points, session.entity.closed, session.segments, session.selectedVertex),
-      HANDLE_HIT_RADIUS_PX / zoom,
+      handleRadius / zoom,
     );
-    const vertex = handle ? null : nearestVertex(world, session.points, NODE_HIT_RADIUS_PX / zoom);
+    let vertex = nearestVertex(world, session.points, nodeRadius / zoom);
+    if (handle && vertex !== null && event.pointerType === "touch") {
+      const node = session.points[vertex]!;
+      if (squaredDistance(world, node) < squaredDistance(world, handle.point)) handle = null;
+    }
+    if (handle) vertex = null;
     if (handle || vertex !== null) {
       session.selectedHandle = handle;
       session.selectedVertex = handle?.anchorIndex ?? vertex;
       session.pointerId = event.pointerId;
+      session.lastPointer = { x: event.clientX, y: event.clientY };
+      const target = handle?.point ?? session.points[vertex!];
+      session.dragOffset = target ? { x: world.x - target.x, y: world.y - target.y } : null;
       session.dragBefore = session.entity;
       session.dragChanged = false;
       event.currentTarget.setPointerCapture(event.pointerId);
       publish(); event.preventDefault(); return true;
     }
-    const segment = nearestPolylineSegment(world, session.points, session.entity.closed, session.segments, SEGMENT_HIT_RADIUS_PX / (zoom * 2));
-    if (segment && segment.distance <= SEGMENT_HIT_RADIUS_PX / zoom) {
+    const segment = nearestPolylineSegment(world, session.points, session.entity.closed, session.segments, segmentRadius / (zoom * 2));
+    if (segment && segment.distance <= segmentRadius / zoom) {
       session.selectedVertex = null; session.selectedHandle = null; publish(); event.preventDefault(); return true;
     }
     finish(false);
@@ -552,7 +572,12 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
   const onPointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>): boolean => {
     const session = sessionRef.current;
     if (!session || session.pointerId !== event.pointerId || session.selectedVertex === null) return false;
-    let world = screenToWorld(event.clientX, event.clientY);
+    if (session.lastPointer?.x === event.clientX && session.lastPointer.y === event.clientY) return true;
+    session.lastPointer = { x: event.clientX, y: event.clientY };
+    const pointer = screenToWorld(event.clientX, event.clientY);
+    let world = session.dragOffset
+      ? { x: pointer.x - session.dragOffset.x, y: pointer.y - session.dragOffset.y }
+      : pointer;
     const selectedHandle = session.selectedHandle;
     if (selectedHandle) {
       const anchor = session.points[selectedHandle.anchorIndex];
@@ -607,7 +632,10 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
   const onPointerUp = useCallback((event: ReactPointerEvent<HTMLCanvasElement>): boolean => {
     const session = sessionRef.current;
     if (!session || session.pointerId !== event.pointerId) return false;
+    onPointerMove(event);
     session.pointerId = null;
+    session.lastPointer = null;
+    session.dragOffset = null;
     const before = session.dragBefore;
     session.dragBefore = null;
     if (before && session.dragChanged && entitiesDiffer(before, session.entity)) {
@@ -625,13 +653,14 @@ export function useNodeEditStateMachine({ screenToWorld, requestRender, renderSt
     session.dragChanged = false;
     publish();
     return true;
-  }, [publish]);
+  }, [onPointerMove, publish]);
 
   const onPointerCancel = useCallback((event: ReactPointerEvent<HTMLCanvasElement>): boolean => {
     const session = sessionRef.current;
     if (!session || session.pointerId !== event.pointerId) return false;
     const before = session.dragBefore;
-    session.pointerId = null; session.dragBefore = null; session.dragChanged = false;
+    session.pointerId = null; session.lastPointer = null; session.dragOffset = null;
+    session.dragBefore = null; session.dragChanged = false;
     if (before) {
       ownMutationRef.current = true;
       try {

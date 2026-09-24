@@ -119,7 +119,8 @@ try {
         `${name}: zoom overlaps drawing tools or telemetry.`);
     } else {
       assert(near(layout.zoom.width, 150, 1) && near(layout.zoom.height, 48, 1) &&
-        near(width - layout.zoom.right, 24, 1) && near(height - layout.zoom.bottom, height <= 700 ? 16 : 24, 1),
+        near(width - layout.zoom.right, height <= 500 ? 16 : 24, 1) &&
+        near(height - layout.zoom.bottom, height <= 700 ? 16 : 24, 1),
         `${name}: desktop zoom layout changed: ${JSON.stringify(layout.zoom)}.`);
     }
     await screenshot(name);

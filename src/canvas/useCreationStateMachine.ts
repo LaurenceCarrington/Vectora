@@ -32,6 +32,7 @@ import {
 import { calculateDimensionValue, createDimensionReference } from "../geometry/annotations";
 import {
   getSelectionBounds,
+  getScaleHandlePoint,
   hitTestTransformHandle,
   pointInsideSelection,
   rotateEntities,
@@ -50,6 +51,9 @@ const DRAWING_TOOLS = new Set<ToolId>([
   "line", "rectangle", "circle", "arc", "ellipse", "polygon",
 ]);
 const DRAG_THRESHOLD_PX = 3;
+const TOUCH_DRAG_THRESHOLD_PX = 7;
+const TOUCH_ENTITY_HIT_RADIUS_PX = 18;
+const TOUCH_HANDLE_HIT_RADIUS_PX = 22;
 const EMPTY_BOUNDS: BoundingBox = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 let entitySequence = 0;
 
@@ -144,6 +148,7 @@ type TransformOperation = {
   latest: readonly Entity[];
   originalBounds: BoundingBox;
   handle: TransformHandle | null;
+  handleOffset: Point2D;
   rotationCenter: Point2D;
   rotationStartAngle: number;
   changed: boolean;
@@ -443,6 +448,10 @@ function screenDistance(start: Point2D, event: ReactPointerEvent<HTMLCanvasEleme
   return Math.hypot(event.clientX - start.x, event.clientY - start.y);
 }
 
+function dragThreshold(event: ReactPointerEvent<HTMLCanvasElement>): number {
+  return event.pointerType === "touch" ? TOUCH_DRAG_THRESHOLD_PX : DRAG_THRESHOLD_PX;
+}
+
 export function useCreationStateMachine({
   screenToWorld,
   requestRender,
@@ -600,7 +609,7 @@ export function useCreationStateMachine({
     }
 
     if (tool === "radial-dimension" || tool === "diameter-dimension") {
-      const tolerance = 8 / vectorState.viewport.zoom;
+      const tolerance = (event.pointerType === "touch" ? TOUCH_ENTITY_HIT_RADIUS_PX : 8) / vectorState.viewport.zoom;
       const hit = topEntityAtPoint(rawWorld, tolerance, hitCandidates.current);
       if (hit?.type === "circle" || hit?.type === "arc") {
         const angle = Math.atan2(rawWorld.y - hit.center.y, rawWorld.x - hit.center.x);
@@ -770,8 +779,14 @@ export function useCreationStateMachine({
     const selected = selectedEntities();
     const bounds = getSelectionBounds(selected);
     if (bounds && selectionIsEditable(selected)) {
-      const handle = hitTestTransformHandle(world, bounds, useVectorStore.getState().viewport.zoom);
+      const handle = hitTestTransformHandle(
+        world,
+        bounds,
+        vectorState.viewport.zoom,
+        event.pointerType === "touch" ? TOUCH_HANDLE_HIT_RADIUS_PX : undefined,
+      );
       if (handle || pointInsideSelection(world, bounds)) {
+        const handlePoint = handle && handle !== "rotate" ? getScaleHandlePoint(bounds, handle) : null;
         event.currentTarget.setPointerCapture(event.pointerId);
         operation.current = {
           kind: handle === "rotate" ? "rotate" : handle ? "scale" : "move",
@@ -783,6 +798,9 @@ export function useCreationStateMachine({
           latest: selected,
           originalBounds: bounds,
           handle,
+          handleOffset: handlePoint
+            ? { x: world.x - handlePoint.x, y: world.y - handlePoint.y }
+            : { x: 0, y: 0 },
           rotationCenter: {
             x: (bounds.minX + bounds.maxX) / 2,
             y: (bounds.minY + bounds.maxY) / 2,
@@ -798,7 +816,7 @@ export function useCreationStateMachine({
       }
     }
 
-    const tolerance = 6 / useVectorStore.getState().viewport.zoom;
+    const tolerance = (event.pointerType === "touch" ? TOUCH_ENTITY_HIT_RADIUS_PX : 6) / vectorState.viewport.zoom;
     const hit = topEntityAtPoint(world, tolerance, hitCandidates.current);
     if (hit) {
       const selection = documentModel.getDocument().selection;
@@ -825,6 +843,7 @@ export function useCreationStateMachine({
           latest: nextSelected,
           originalBounds: nextBounds,
           handle: null,
+          handleOffset: { x: 0, y: 0 },
           rotationCenter: {
             x: (nextBounds.minX + nextBounds.maxX) / 2,
             y: (nextBounds.minY + nextBounds.maxY) / 2,
@@ -866,7 +885,7 @@ export function useCreationStateMachine({
         if (Math.hypot(point.x - last.x, point.y - last.y) * current.zoom >= 1) {
           current.points.push(point);
         }
-        if (Math.hypot(sample.clientX - current.startScreen.x, sample.clientY - current.startScreen.y) >= DRAG_THRESHOLD_PX) {
+        if (Math.hypot(sample.clientX - current.startScreen.x, sample.clientY - current.startScreen.y) >= dragThreshold(event)) {
           current.dragged = true;
         }
       }
@@ -959,7 +978,7 @@ export function useCreationStateMachine({
     if (current.kind === "creation") {
       if (current.pointerId !== null && current.pointerId !== event.pointerId) return false;
       current.current = world;
-      if (!current.awaitingSecondClick && screenDistance(current.startScreen, event) >= DRAG_THRESHOLD_PX) {
+      if (!current.awaitingSecondClick && screenDistance(current.startScreen, event) >= dragThreshold(event)) {
         current.dragged = true;
       }
       const preview = createDrawingEntity(current.entityId, current.tool, current.origin, world, current.layerId);
@@ -976,7 +995,7 @@ export function useCreationStateMachine({
       return true;
     }
 
-    if (!current.changed && screenDistance(current.startScreen, event) < DRAG_THRESHOLD_PX) return true;
+    if (!current.changed && screenDistance(current.startScreen, event) < dragThreshold(event)) return true;
     current.changed = true;
     const transformed = current.kind === "move"
       ? translateEntities(
@@ -1007,7 +1026,7 @@ export function useCreationStateMachine({
             current.before,
             current.originalBounds,
             current.handle as ScaleHandle,
-            world,
+            { x: world.x - current.handleOffset.x, y: world.y - current.handleOffset.y },
             event.shiftKey,
           );
     current.latest = transformed;
@@ -1025,7 +1044,7 @@ export function useCreationStateMachine({
       const end = screenToWorld(event.clientX, event.clientY);
       const last = current.points.at(-1)!;
       if (Math.hypot(end.x - last.x, end.y - last.y) > Number.EPSILON) current.points.push(end);
-      if (current.dragged || screenDistance(current.startScreen, event) >= DRAG_THRESHOLD_PX) {
+      if (current.dragged || screenDistance(current.startScreen, event) >= dragThreshold(event)) {
         // Keep the original endpoints and bends while removing sub-pixel sampling noise.
         const points = simplifyOpen(current.points, 0.75 / current.zoom);
         const entity = createPolylineEntity(current.entityId, points, undefined, current.layerId);
@@ -1043,6 +1062,7 @@ export function useCreationStateMachine({
       const world = resolved.point;
       renderStateRef.current.activeSnap = resolved.snap;
       current.current = world;
+      if (screenDistance(current.startScreen, event) >= dragThreshold(event)) current.dragged = true;
       if (current.dragged) {
         const entity = createDrawingEntity(current.entityId, current.tool, current.origin, world, current.layerId);
         if (entity) executeCommand(new AddEntityCommand(entity));
@@ -1059,7 +1079,8 @@ export function useCreationStateMachine({
 
     if (current.pointerId !== event.pointerId) return false;
     if (current.kind === "marquee") {
-      if (screenDistance(current.startScreen, event) < DRAG_THRESHOLD_PX) {
+      current.current = screenToWorld(event.clientX, event.clientY);
+      if (screenDistance(current.startScreen, event) < dragThreshold(event)) {
         if (!current.additive) documentModel.clearSelection();
       } else {
         const box = normalizeBox(current.start, current.current);
@@ -1077,6 +1098,10 @@ export function useCreationStateMachine({
       return true;
     }
 
+    if (current.kind === "move" || current.kind === "scale" || current.kind === "rotate") {
+      // A touch release can carry the final position without an intervening move.
+      onPointerMove(event);
+    }
     if (current.changed) {
       executeCommand(
         new TransformEntityCommand(
@@ -1088,7 +1113,7 @@ export function useCreationStateMachine({
     }
     resetInteraction(false);
     return true;
-  }, [operation, renderStateRef, requestRender, resetInteraction, screenToWorld]);
+  }, [onPointerMove, operation, renderStateRef, requestRender, resetInteraction, screenToWorld]);
 
   const onPointerCancel = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
     const current = operation.current;
