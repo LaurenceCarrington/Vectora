@@ -125,6 +125,8 @@ function assert(condition, message) {
 try {
   await send("Runtime.enable");
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await evaluate(`document.querySelector('.recovery-dialog footer button')?.click();`);
+  await wait(100);
   await evaluate(`
     const { documentModel } = await import('/src/document/DocumentModel.ts');
     for (const id of [...documentModel.getDocument().entities.keys()]) documentModel.removeEntity(id);

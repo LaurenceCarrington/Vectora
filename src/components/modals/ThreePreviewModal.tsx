@@ -179,6 +179,7 @@ export function ThreePreviewModal({ open, onClose }: { readonly open: boolean; r
                 )}
               </div>
               <aside className="three-controls">
+                <div className="three-controls-scroll">
                 <p className="three-preview-limit-note">Visual guide only. This is not a complete stock-removal simulation or a machine-job check; review Manufacture before cutting.</p>
                 <section>
                   <span className="three-section-label">Material</span>
@@ -208,6 +209,7 @@ export function ThreePreviewModal({ open, onClose }: { readonly open: boolean; r
                   <input type="checkbox" checked={autoRotate} onChange={(event) => setAutoRotate(event.target.checked)} />
                   <i />
                 </label>
+                </div>
                 <section className="three-export-section">
                   <span className="three-section-label">Export model</span>
                   <div>

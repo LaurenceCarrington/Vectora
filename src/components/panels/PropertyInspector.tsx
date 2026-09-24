@@ -14,6 +14,7 @@ import {
 import { useVectorStore } from "../../store/useVectorStore";
 import { MANUFACTURING_INTENT_LABELS } from "../ui/terminology";
 import { Tooltip } from "../ui/Tooltip";
+import { MobilePanelNavigation, useMobilePanelChrome } from "./MobilePanelChrome";
 
 const RADIANS_TO_DEGREES = 180 / Math.PI;
 const DEGREES_TO_RADIANS = Math.PI / 180;
@@ -274,6 +275,7 @@ function replaceProperties(
 }
 
 export function PropertyInspector() {
+  const { mobile, panelRef } = useMobilePanelChrome("properties");
   const position = useVectorStore((state) => state.panelPositions.properties);
   const setPanelPosition = useVectorStore((state) => state.setPanelPosition);
   const togglePanel = useVectorStore((state) => state.togglePanel);
@@ -304,15 +306,16 @@ export function PropertyInspector() {
   if (!bounds || selected.length === 0) {
     return (
     <motion.aside
+      ref={panelRef}
       id="properties-panel"
       className="property-inspector surface is-empty"
         aria-label="Properties"
-        style={{ x: position.x, y: position.y }}
+        style={{ x: mobile ? 0 : position.x, y: mobile ? 0 : position.y }}
         initial={{ opacity: 0, scale: .98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: .98 }}
         transition={{ type: "spring", stiffness: 400, damping: 32 }}
-        drag
+        drag={!mobile}
         dragControls={dragControls}
         dragListener={false}
         dragMomentum={false}
@@ -320,13 +323,14 @@ export function PropertyInspector() {
         onDragEnd={onDragEnd}
         onPointerDown={(event) => {
           event.stopPropagation();
-          if ((event.target as Element).closest(".drag-handle")) dragControls.start(event);
+          if (!mobile && (event.target as Element).closest(".drag-handle")) dragControls.start(event);
         }}
       >
         <header className="drag-handle">
           <div><span className="eyebrow">Inspector</span><h2>Properties</h2></div>
           <Tooltip content="Close panel" placement="left"><button className="panel-close" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => togglePanel("properties", false)} aria-label="Close panel"><X size={18} /></button></Tooltip>
         </header>
+        <MobilePanelNavigation active="properties" />
         <div className="property-empty"><SlidersHorizontal size={22} /><strong>No selection</strong><p>Select an object to inspect and edit its properties.</p></div>
       </motion.aside>
     );
@@ -447,15 +451,16 @@ export function PropertyInspector() {
 
   return (
     <motion.aside
+      ref={panelRef}
       id="properties-panel"
       className="property-inspector surface"
       aria-label={`${inspectorTitle} properties`}
-      style={{ x: position.x, y: position.y }}
+      style={{ x: mobile ? 0 : position.x, y: mobile ? 0 : position.y }}
       initial={{ opacity: 0, scale: .98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: .98 }}
       transition={{ type: "spring", stiffness: 400, damping: 32 }}
-      drag
+      drag={!mobile}
       dragControls={dragControls}
       dragListener={false}
       dragMomentum={false}
@@ -463,7 +468,7 @@ export function PropertyInspector() {
       onDragEnd={onDragEnd}
       onPointerDown={(event) => {
         event.stopPropagation();
-        if ((event.target as Element).closest(".drag-handle")) dragControls.start(event);
+        if (!mobile && (event.target as Element).closest(".drag-handle")) dragControls.start(event);
       }}
     >
       <header className="drag-handle">
@@ -473,6 +478,7 @@ export function PropertyInspector() {
           <Tooltip content="Close panel" placement="left"><button className="panel-close" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => togglePanel("properties", false)} aria-label="Close panel"><X size={18} /></button></Tooltip>
         </div>
       </header>
+      <MobilePanelNavigation active="properties" />
       <CollapsiblePropertySection id="geometry" title="Geometry" expanded={expandedSections.geometry} onToggle={() => toggleSection("geometry")}>
         <div className="property-grid">
           <NumericField label="X" value={bounds.minX} suffix={document.units} disabled={!editable} onCommit={(value) => updatePosition("x", value)} />

@@ -169,6 +169,8 @@ export type PanelId = "preferences" | "layers" | "cam" | "raster" | "properties"
 type ToggleablePanelId = "preferences" | "layers" | "properties";
 export type Point = { x: number; y: number };
 export type Viewport = Point & { zoom: number };
+export const MIN_VIEWPORT_ZOOM = 0.2;
+export const MAX_VIEWPORT_ZOOM = 4;
 export interface NodeEditSelection {
   readonly entityId: string;
   readonly vertexIndex: number;
@@ -433,7 +435,7 @@ export const useVectorStore = create<VectorState>((set) => ({
   zoomBy: (factor) => set((state) => ({
     viewport: {
       ...state.viewport,
-      zoom: Math.min(4, Math.max(0.2, state.viewport.zoom * factor)),
+      zoom: Math.min(MAX_VIEWPORT_ZOOM, Math.max(MIN_VIEWPORT_ZOOM, state.viewport.zoom * factor)),
     },
   })),
   resetViewport: () => set({ viewport: INITIAL_VIEWPORT }),

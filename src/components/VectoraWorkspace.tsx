@@ -26,6 +26,7 @@ import {
   CornerDownLeft,
   Download,
   Diff as SubtractIcon,
+  Ellipsis,
   Eraser,
   Factory,
   FilePlus2,
@@ -91,7 +92,7 @@ import { generateGearWithHoles } from "../geometry/generators/gearGenerator";
 import { generateLivingHinge, type LivingHingePattern } from "../geometry/generators/livingHinge";
 import { generateMountingPlate, type MountingHoleLayout } from "../geometry/generators/mountingPlate";
 import { applyBooleanOperation, type BooleanOperation } from "../geometry/operations/booleans";
-import { closePolyline } from "../geometry/operations/closePath";
+import { closeSelectedPaths } from "../geometry/operations/closePath";
 import { isJoinableOpenPath, joinPaths } from "../geometry/operations/join";
 import { entityToClosedPath } from "../geometry/operations/pathConversion";
 import { getLockedSelectionReason } from "../geometry/operations/operationSafety";
@@ -105,7 +106,8 @@ import {
 } from "../io/filePersistence";
 import { recoveryController } from "../recovery/recoveryController";
 import { exportSvg, parseSvg } from "../io/svgParser";
-import { useVectorStore, type ToolId } from "../store/useVectorStore";
+import { MAX_VIEWPORT_ZOOM, MIN_VIEWPORT_ZOOM, useVectorStore, type ToolId } from "../store/useVectorStore";
+import { useMachineStore } from "../store/useMachineStore";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
 
@@ -396,6 +398,31 @@ function isMacPlatform(): boolean {
   return typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 }
 
+type FileMenuItem = {
+  icon: IconType;
+  label: string;
+  shortcut: string;
+  separator?: boolean;
+  action: () => void;
+};
+
+function getFileMenuItems({ onNew, onOpen, onSave, onSaveAs, dirty }: {
+  onNew: () => void;
+  onOpen: () => void;
+  onSave: () => void;
+  onSaveAs: () => void;
+  dirty: boolean;
+}): FileMenuItem[] {
+  return [
+    { icon: FilePlus2, label: "New document", shortcut: primaryShortcut("N"), action: onNew },
+    { icon: Folder, label: "Open file…", shortcut: primaryShortcut("O"), action: onOpen },
+    { separator: true, icon: Save, label: dirty ? "Save changes" : "Save", shortcut: primaryShortcut("S"), action: onSave },
+    { icon: Save, label: "Save as…", shortcut: primaryShortcut("S", true), action: onSaveAs },
+    { separator: true, icon: Download, label: "Export SVG", shortcut: primaryShortcut("E"), action: () => exportCurrentDocument("svg") },
+    { icon: Download, label: "Export DXF", shortcut: primaryShortcut("E", true), action: () => exportCurrentDocument("dxf") },
+  ];
+}
+
 function FileMenu({
   onNew,
   onOpen,
@@ -415,21 +442,7 @@ function FileMenu({
     filePersistence.getSnapshot,
   );
 
-  const items: Array<{
-    icon: IconType;
-    label: string;
-    shortcut: string;
-    separator?: boolean;
-    disabled?: boolean;
-    action?: () => void;
-  }> = [
-    { icon: FilePlus2, label: "New document", shortcut: primaryShortcut("N"), action: onNew },
-    { icon: Folder, label: "Open file…", shortcut: primaryShortcut("O"), action: onOpen },
-    { separator: true, icon: Save, label: persistence.dirty ? "Save changes" : "Save", shortcut: primaryShortcut("S"), action: onSave },
-    { icon: Save, label: "Save as…", shortcut: primaryShortcut("S", true), action: onSaveAs },
-    { separator: true, icon: Download, label: "Export SVG", shortcut: primaryShortcut("E"), action: () => exportCurrentDocument("svg") },
-    { icon: Download, label: "Export DXF", shortcut: primaryShortcut("E", true), action: () => exportCurrentDocument("dxf") },
-  ];
+  const items = getFileMenuItems({ onNew, onOpen, onSave, onSaveAs, dirty: persistence.dirty });
 
   return (
     <div className="file-menu-wrap">
@@ -460,9 +473,8 @@ function FileMenu({
                 <button
                   className={item.separator ? "menu-row has-separator" : "menu-row"}
                   key={item.label}
-                  disabled={item.disabled}
                   onClick={() => {
-                    item.action?.();
+                    item.action();
                     setOpen(false);
                   }}
                 >
@@ -478,6 +490,18 @@ function FileMenu({
       </AnimatePresence>
     </div>
   );
+}
+
+function flipEditableSelection(selected: Entity[], lockReason: string | null, axis: "horizontal" | "vertical"): boolean {
+  if (selected.length === 0 || lockReason) return false;
+  try {
+    const updated = flipSelection(selected, axis);
+    executeCommand(new UpdateEntitiesCommand(selected, updated, axis === "horizontal" ? "Flip horizontal" : "Flip vertical"));
+    return true;
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "The selected objects could not be flipped.");
+    return false;
+  }
 }
 
 function EditMenu() {
@@ -511,13 +535,7 @@ function EditMenu() {
 
   const applyFlip = (axis: "horizontal" | "vertical") => {
     if (selected.length === 0 || lockReason) return;
-    try {
-      const updated = flipSelection(selected, axis);
-      executeCommand(new UpdateEntitiesCommand(selected, updated, axis === "horizontal" ? "Flip horizontal" : "Flip vertical"));
-      setOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "The selected objects could not be flipped.");
-    }
+    if (flipEditableSelection(selected, lockReason, axis)) setOpen(false);
   };
 
   return (
@@ -580,29 +598,81 @@ function TopBar({
   readonly onSave: () => void;
   readonly onSaveAs: () => void;
 }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreWrapRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
   const setFileMenuOpen = useVectorStore((state) => state.setFileMenuOpen);
   const setEditMenuOpen = useVectorStore((state) => state.setEditMenuOpen);
   const preferencesOpen = useVectorStore((state) => state.preferencesOpen);
   const commandPaletteOpen = useVectorStore((state) => state.commandPaletteOpen);
+  const machineConnected = useMachineStore((machine) => machine.connectionStatus === "connected");
   const historySnapshot = useSyncExternalStore(
     (onStoreChange) => history.subscribe(onStoreChange),
     () => history.getSnapshot(),
     () => history.getSnapshot(),
   );
+  const persistence = useSyncExternalStore(
+    filePersistence.subscribe,
+    filePersistence.getSnapshot,
+    filePersistence.getSnapshot,
+  );
+  const documentSnapshot = useSyncExternalStore(
+    (onStoreChange) => documentModel.subscribe(() => onStoreChange()),
+    () => documentModel.getDocument(),
+    () => documentModel.getDocument(),
+  );
+  const selected = [...documentSnapshot.selection].map((id) => documentSnapshot.entities.get(id))
+    .filter((entity): entity is Entity => Boolean(entity));
+  const lockReason = getLockedSelectionReason(selected, documentSnapshot.layers);
+  const fileItems = getFileMenuItems({ onNew, onOpen: onOpenFile, onSave, onSaveAs, dirty: persistence.dirty });
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const dismissOnOutsidePointer = (event: PointerEvent) => {
+      if (!moreWrapRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    const dismissOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMoreOpen(false);
+        moreButtonRef.current?.focus();
+      }
+    };
+    const dismissOnDesktop = () => {
+      if (window.innerWidth >= 768) setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", dismissOnOutsidePointer, true);
+    window.addEventListener("keydown", dismissOnEscape);
+    window.addEventListener("resize", dismissOnDesktop);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnOutsidePointer, true);
+      window.removeEventListener("keydown", dismissOnEscape);
+      window.removeEventListener("resize", dismissOnDesktop);
+    };
+  }, [moreOpen]);
+
+  const runMoreAction = (action: () => void) => {
+    setMoreOpen(false);
+    action();
+  };
+  const runMoreFlip = (axis: "horizontal" | "vertical") => {
+    if (flipEditableSelection(selected, lockReason, axis)) setMoreOpen(false);
+  };
+
   return (
     <header
       className="topbar surface"
       onPointerDown={stopPointer}
       onClickCapture={(event) => {
         const target = event.target;
-        if (!(target instanceof Element) || target.closest(".file-menu, .edit-menu, .file-button")) return;
+        if (!(target instanceof Element) || target.closest(".file-menu, .edit-menu, .file-button, .mobile-more-wrap")) return;
         if (target.closest("button")) {
           setFileMenuOpen(false);
           setEditMenuOpen(false);
+          setMoreOpen(false);
         }
       }}
     >
-      <div className="topbar-start">
+      <div className="topbar-start topbar-desktop">
         <VectoraLogo />
         <span className="topbar-divider" />
         <FileMenu onNew={onNew} onOpen={onOpenFile} onSave={onSave} onSaveAs={onSaveAs} />
@@ -691,6 +761,89 @@ function TopBar({
           </button>
         </Tooltip>
       </div>
+      <div className="topbar-mobile">
+        <VectoraLogo />
+        <div className="topbar-mobile-actions">
+          <Tooltip content={historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo"} shortcut={primaryShortcut("Z")} placement="bottom">
+            <button type="button" className="icon-button topbar-action" aria-label={historySnapshot.undoLabel ? `Undo ${historySnapshot.undoLabel}` : "Undo"}
+              disabled={!historySnapshot.canUndo} onClick={undo}>
+              <RotateCcw size={19} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+          <Tooltip content={historySnapshot.redoLabel ? `Redo ${historySnapshot.redoLabel}` : "Redo"} shortcut={primaryShortcut("Z", true)} placement="bottom">
+            <button type="button" className="icon-button topbar-action" aria-label={historySnapshot.redoLabel ? `Redo ${historySnapshot.redoLabel}` : "Redo"}
+              disabled={!historySnapshot.canRedo} onClick={redo}>
+              <RotateCw size={19} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Command search" shortcut={primaryShortcut("K")} placement="bottom">
+            <button type="button" className={`icon-button topbar-action ${commandPaletteOpen ? "is-active" : ""}`}
+              aria-label="Command search" aria-expanded={commandPaletteOpen} onClick={onFindTool}>
+              <Search size={19} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+          <div className="mobile-more-wrap" ref={moreWrapRef}>
+            <Tooltip content="More" placement="bottom">
+              <button ref={moreButtonRef} type="button" className={`icon-button topbar-action ${moreOpen ? "is-active" : ""}`}
+                aria-label="More" aria-expanded={moreOpen} aria-controls={moreOpen ? "mobile-more-menu" : undefined}
+                onClick={() => {
+                  setFileMenuOpen(false);
+                  setEditMenuOpen(false);
+                  setMoreOpen((open) => !open);
+                }}>
+                <Ellipsis size={20} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
+            <AnimatePresence>
+              {moreOpen && <motion.div id="mobile-more-menu" role="group" aria-label="More actions" className="mobile-more-menu surface"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ type: "spring", stiffness: 440, damping: 32 }}>
+                <div className="popover-eyebrow">File</div>
+                {fileItems.map((item) => {
+                  const Icon = item.icon;
+                  return <button key={item.label} type="button" className={item.separator ? "menu-row has-separator" : "menu-row"}
+                    onClick={() => runMoreAction(item.action)}>
+                    <Icon size={18} /><span>{item.label}</span><kbd>{item.shortcut}</kbd>
+                  </button>;
+                })}
+                <div className="popover-eyebrow mobile-more-heading">Edit selection</div>
+                <button type="button" className="menu-row" disabled={!selected.length || Boolean(lockReason)} onClick={() => runMoreFlip("horizontal")}>
+                  <FlipHorizontal2 size={18} /><span>Flip horizontal</span>
+                </button>
+                <button type="button" className="menu-row" disabled={!selected.length || Boolean(lockReason)} onClick={() => runMoreFlip("vertical")}>
+                  <FlipVertical2 size={18} /><span>Flip vertical</span>
+                </button>
+                {(!selected.length || lockReason) && <p className="mobile-more-note">{lockReason ?? "Select editable objects to flip."}</p>}
+                <div className="popover-eyebrow mobile-more-heading">Tools</div>
+                {([
+                  { icon: BitmapIcon, label: "Raster engrave", active: rasterOpen, action: onOpenRaster },
+                  { icon: RasterVectorIcon, label: "Trace to vector", active: vectorizerOpen, action: onOpenVectorizer },
+                  { icon: Box, label: "3D preview", active: preview3dOpen, action: onOpenThreePreview },
+                  { icon: Factory, label: "Manufacture", active: camOpen, action: onOpenCam },
+                ] as const).map((item) => {
+                  const Icon = item.icon;
+                  return <button key={item.label} type="button" className={`menu-row ${item.active ? "is-active" : ""}`}
+                    aria-expanded={item.active} onClick={() => runMoreAction(item.action)}>
+                    <Icon size={18} /><span>{item.label}</span>
+                  </button>;
+                })}
+                {machineConnected && <>
+                  <div className="popover-eyebrow mobile-more-heading">Machine</div>
+                  <div onClick={() => setMoreOpen(false)}><MachineQuickStop menu /></div>
+                </>}
+                <div className="popover-eyebrow mobile-more-heading">Workspace</div>
+                <button type="button" className="menu-row" onClick={() => runMoreAction(onOpenHelp)}>
+                  <CircleHelp size={18} /><span>Quick reference</span><kbd>?</kbd>
+                </button>
+                <button type="button" className={`menu-row ${preferencesOpen ? "is-active" : ""}`}
+                  aria-expanded={preferencesOpen} onClick={() => runMoreAction(onOpenPreferences)}>
+                  <Settings2 size={18} /><span>Preferences</span><kbd>{primaryShortcut(",")}</kbd>
+                </button>
+              </motion.div>}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
     </header>
   );
 }
@@ -712,7 +865,7 @@ function ToolButton({
   shortcut?: string;
   onClick?: () => void;
   highlighted?: boolean;
-  tooltipPlacement?: "left" | "right";
+  tooltipPlacement?: "top" | "left" | "right";
   expanded?: boolean;
   controls?: string;
 }) {
@@ -1020,6 +1173,150 @@ function ToolDock({
         <ToolButton icon={MeasureIcon} label="Measuring tape" tool="measure" shortcut="Shift M" />
         <ToolButton icon={WandSparkles} label="Parametric generators" onClick={onOpenGenerators} />
       </nav>
+    </aside>
+  );
+}
+
+type MobileToolGroup = "selection" | "lines" | "shapes" | "fill" | "more";
+
+const MOBILE_SELECTION_TOOLS: Array<{ id: ToolId; label: string; key: string; icon: IconType }> = [
+  { id: "select", label: "Select", key: "V", icon: MousePointer2 },
+  { id: "node-edit", label: "Node edit", key: "N", icon: NodeEditIcon },
+];
+const MOBILE_LINE_TOOLS: Array<{ id: ToolId; label: string; key: string; icon: IconType }> = [
+  { id: "line", label: "Line", key: "L", icon: ArrowUpRight },
+  { id: "pen", label: "Polyline", key: "P", icon: PenLineIcon },
+  { id: "freehand", label: "Freehand", key: "B", icon: Pencil },
+];
+
+function MobileToolShelf({ onOpenGenerators }: { readonly onOpenGenerators: () => void }) {
+  const activeTool = useVectorStore((state) => state.activeTool);
+  const setActiveTool = useVectorStore((state) => state.setActiveTool);
+  const color = useVectorStore((state) => state.fillBucketColor);
+  const setFillBucketColor = useVectorStore((state) => state.setFillBucketColor);
+  const [openGroup, setOpenGroup] = useState<MobileToolGroup | null>(null);
+  const shelfRef = useRef<HTMLElement>(null);
+  const groupIsActive = (group: MobileToolGroup) => {
+    if (group === "selection") return activeTool === "select" || activeTool === "node-edit";
+    if (group === "lines") return MOBILE_LINE_TOOLS.some((tool) => tool.id === activeTool);
+    if (group === "shapes") return SHAPE_TOOLS.some((tool) => tool.id === activeTool);
+    if (group === "fill") return activeTool === "fill";
+    return activeTool === "erase" || activeTool === "measure" || DIMENSION_TOOLS.some((tool) => tool.id === activeTool);
+  };
+  const toggleGroup = (group: MobileToolGroup) => setOpenGroup((current) => current === group ? null : group);
+  const chooseTool = (tool: ToolId) => {
+    setActiveTool(tool);
+    setOpenGroup(null);
+  };
+
+  useEffect(() => {
+    if (!openGroup) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!shelfRef.current?.contains(event.target as Node)) setOpenGroup(null);
+    };
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      const trigger = shelfRef.current?.querySelector<HTMLButtonElement>(`.mobile-tool-group-${openGroup} button`);
+      setOpenGroup(null);
+      trigger?.focus();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [openGroup]);
+
+  const renderRows = (tools: Array<{ id: ToolId; label: string; key: string; icon: IconType }>) => tools.map((tool) => {
+    const Icon = tool.icon;
+    return (
+      <button key={tool.id} className={`shape-row ${activeTool === tool.id ? "is-selected" : ""}`}
+        aria-label={tool.label} aria-pressed={activeTool === tool.id}
+        aria-keyshortcuts={tool.key ? tool.key.replace(/\s+/g, "+") : undefined}
+        onClick={() => chooseTool(tool.id)}>
+        <Icon size={19} /><span>{tool.label}</span>{tool.key && <kbd>{tool.key}</kbd>}
+      </button>
+    );
+  });
+  const menu = (group: MobileToolGroup, heading: string, content: React.ReactNode) => openGroup === group && (
+    <div id={`mobile-${group}-tools`} className={`mobile-tool-menu mobile-tool-menu-${group} surface`}>
+      <div className="popover-eyebrow">{heading}</div>
+      {content}
+    </div>
+  );
+
+  return (
+    <aside ref={shelfRef} className="mobile-tool-shelf-wrap" aria-label="Mobile drawing tools" onPointerDown={stopPointer}>
+      <div className="mobile-tool-shelf surface">
+        <div className="mobile-tool-status" aria-live="polite"><span>Active tool</span><strong>{TOOL_LABELS[activeTool]}</strong></div>
+        <nav className="mobile-tool-actions" aria-label="Drawing tools">
+          <div className="mobile-tool-group mobile-tool-group-selection">
+            <div data-mobile-tool-group="selection">
+              <ToolButton icon={activeTool === "node-edit" ? NodeEditIcon : MousePointer2} label="Selection tools"
+                highlighted={openGroup === "selection" || groupIsActive("selection")} tooltipPlacement="top"
+                expanded={openGroup === "selection"} controls="mobile-selection-tools"
+                onClick={() => toggleGroup("selection")} />
+            </div>
+            {menu("selection", "Select", renderRows(MOBILE_SELECTION_TOOLS))}
+          </div>
+          <div className="mobile-tool-group mobile-tool-group-lines">
+            <div data-mobile-tool-group="lines">
+              <ToolButton icon={activeTool === "freehand" ? Pencil : activeTool === "pen" ? PenLineIcon : ArrowUpRight}
+                label="Line tools" highlighted={openGroup === "lines" || groupIsActive("lines")}
+                tooltipPlacement="top" expanded={openGroup === "lines"} controls="mobile-lines-tools"
+                onClick={() => toggleGroup("lines")} />
+            </div>
+            {menu("lines", "Lines", renderRows(MOBILE_LINE_TOOLS))}
+          </div>
+          <div className="mobile-tool-group mobile-tool-group-shapes">
+            <div data-mobile-tool-group="shapes">
+              <ToolButton icon={SHAPE_TOOLS.find((tool) => tool.id === activeTool)?.icon ?? Shapes}
+                label="Shape tools" highlighted={openGroup === "shapes" || groupIsActive("shapes")}
+                tooltipPlacement="top" expanded={openGroup === "shapes"} controls="mobile-shapes-tools"
+                onClick={() => toggleGroup("shapes")} />
+            </div>
+            {menu("shapes", "Shapes", renderRows(SHAPE_TOOLS))}
+          </div>
+          <ToolButton icon={Type} label="Text" tool="text" shortcut="F" tooltipPlacement="top"
+            onClick={() => setOpenGroup(null)} />
+          <div className="mobile-tool-group mobile-tool-group-fill">
+            <div data-mobile-tool-group="fill">
+              <ToolButton icon={PaintBucket} label="Fill bucket" tool="fill" shortcut="G"
+                tooltipPlacement="top" expanded={openGroup === "fill"} controls="mobile-fill-tools"
+                onClick={() => toggleGroup("fill")} />
+            </div>
+            {menu("fill", "Fill bucket", <>
+              <label className="fill-tool-color">
+                <input type="color" aria-label="Fill bucket color" value={color}
+                  onChange={(event) => setFillBucketColor(event.target.value)} />
+                <span><strong>Fill color</strong><small>{color.toUpperCase()}</small></span>
+              </label>
+              <p className="mobile-fill-note">Click inside a closed shape to apply this color.</p>
+            </>)}
+          </div>
+          <div className="mobile-tool-group mobile-tool-group-more">
+            <button className={`mobile-tool-more tool-button ${openGroup === "more" || groupIsActive("more") ? "is-active" : ""}`}
+              type="button" aria-label="More tools" aria-expanded={openGroup === "more"}
+              aria-controls="mobile-more-tools" aria-pressed={groupIsActive("more")}
+              data-mobile-tool-group="more" onClick={() => toggleGroup("more")}>
+              <Ellipsis size={19} /><span>More</span>
+            </button>
+            {menu("more", "More tools", <>
+              {renderRows([{ id: "erase", label: "Segment erase", key: "X", icon: Eraser }])}
+              <div className="mobile-tool-menu-heading">Dimensions &amp; callouts</div>
+              {renderRows(DIMENSION_TOOLS)}
+              <div className="mobile-tool-menu-heading">Utilities</div>
+              {renderRows([{ id: "measure", label: "Measuring tape", key: "Shift M", icon: MeasureIcon }])}
+              <button className="shape-row" aria-label="Parametric generators" onClick={() => {
+                setOpenGroup(null);
+                onOpenGenerators();
+              }}><WandSparkles size={19} /><span>Parametric generators</span></button>
+            </>)}
+          </div>
+        </nav>
+      </div>
     </aside>
   );
 }
@@ -1557,12 +1854,17 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
   const openPolylines = selected.filter(
     (entity): entity is Extract<Entity, { type: "polyline" }> => entity.type === "polyline" && !entity.closed,
   );
+  const closeMultiplePaths = selected.length >= 2 && selected.every(isJoinableOpenPath);
   const shortPolyline = openPolylines.find((entity) => entity.points.length < 3);
-  const closePathReason = shortPolyline
-    ? `Polyline "${shortPolyline.name?.trim() || shortPolyline.id}" needs at least three vertices to close.`
-    : openPolylines.length > 0
-      ? getLockedSelectionReason(openPolylines, document.layers)
-      : null;
+  const closePathReason = closeMultiplePaths
+    ? lockReason ?? (joinPreview && joinPreview.merged > 0 && joinPreview.chains === joinPreview.closed
+      ? null
+      : `The selected endpoints do not form a closed loop within ${joinTolerance.toFixed(2)} ${document.units}. Align both ends or adjust Join tolerance.`)
+    : shortPolyline
+      ? `Polyline "${shortPolyline.name?.trim() || shortPolyline.id}" needs at least three vertices to close.`
+      : openPolylines.length > 0
+        ? getLockedSelectionReason(openPolylines, document.layers)
+        : null;
   const selectedText = selected.length === 1 && selected[0]?.type === "text" ? selected[0] : null;
 
   const cyclePrimary = () => {
@@ -1600,9 +1902,15 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
     }
   };
   const closeSelectedPolylines = () => {
-    if (openPolylines.length === 0 || closePathReason) return;
-    const closed = openPolylines.map(closePolyline);
+    if ((openPolylines.length === 0 && !closeMultiplePaths) || closePathReason) return;
     try {
+      if (closeMultiplePaths) {
+        const closed = closeSelectedPaths(selected, joinTolerance);
+        executeCommand(new ReplaceEntitySetCommand(selected, closed, "Close paths"));
+        toast.success(`Joined and closed ${closed.length} outline${closed.length === 1 ? "" : "s"} for 3D and Manufacture.`);
+        return;
+      }
+      const closed = openPolylines.flatMap((entity) => closeSelectedPaths([entity]));
       executeCommand(new UpdateEntitiesCommand(openPolylines, closed, "Close path"));
       toast.success(`Closed ${closed.length} polyline${closed.length === 1 ? "" : "s"} for 3D and Manufacture.`);
     } catch (error) {
@@ -1724,8 +2032,8 @@ function SelectionActions({ onNest }: { readonly onNest: () => void }) {
             onClick={() => runOrExplain(joinReason, () => setJoinPopoverOpen((current) => !current))}
           >Join</button>
         </Tooltip>
-        {openPolylines.length > 0 && (
-          <Tooltip content={closePathReason ?? "Connect the final vertex back to the first for 3D and CAM"} placement="top">
+        {(openPolylines.length > 0 || closeMultiplePaths) && (
+          <Tooltip content={closePathReason ?? (closeMultiplePaths ? "Join matching endpoints into a closed outline" : "Connect the final vertex back to the first for 3D and CAM")} placement="top">
             <button
               aria-disabled={Boolean(closePathReason)}
               onClick={() => runOrExplain(closePathReason, closeSelectedPolylines)}
@@ -1941,6 +2249,8 @@ function CommandPalette({
 }
 
 function Telemetry({ coordinateRef }: { readonly coordinateRef: React.RefObject<HTMLSpanElement | null> }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsButtonRef = useRef<HTMLButtonElement>(null);
   const activeTool = useVectorStore((state) => state.activeTool);
   const snapToGrid = useVectorStore((state) => state.preferences.drafting.snapToGrid);
   const gridVisible = useVectorStore((state) => state.preferences.drafting.gridVisible);
@@ -1956,18 +2266,25 @@ function Telemetry({ coordinateRef }: { readonly coordinateRef: React.RefObject<
   );
   const ActiveToolIcon = TOOL_ICONS[activeTool];
   const activeToolLabel = displayToolLabel(TOOL_LABELS[activeTool], activeTool);
+  const activeToolShortcut = TOOL_SHORTCUTS[activeTool];
   const toggleGridSnap = () => setSnapToGrid(!snapToGrid);
   const toggleGrid = () => updateDraftingPreferences({ gridVisible: !gridVisible });
 
   return (
     <>
-      <div className="telemetry surface" aria-label="Canvas telemetry">
-        <span className="tool-state"><ActiveToolIcon size={15} /> {activeToolLabel}</span>
-        <kbd>{TOOL_SHORTCUTS[activeTool]}</kbd>
+      <div className={`telemetry surface${detailsOpen ? " is-expanded" : ""}`} aria-label="Canvas telemetry"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || !detailsOpen) return;
+          event.stopPropagation();
+          setDetailsOpen(false);
+          detailsButtonRef.current?.focus();
+        }}>
+        <span className="tool-state" aria-label={`Active tool: ${activeToolLabel}`}><ActiveToolIcon size={15} /><span className="tool-state-label">{activeToolLabel}</span></span>
+        <kbd aria-label={activeToolShortcut ? `Shortcut: ${activeToolShortcut}` : "No shortcut"}>{activeToolShortcut || <span className="telemetry-shortcut-empty">—</span>}</kbd>
         <i className="telemetry-rule" />
         <button
           type="button"
-          className={snapToGrid ? "telemetry-toggle is-on" : "telemetry-toggle"}
+          className={snapToGrid ? "telemetry-toggle telemetry-snap is-on" : "telemetry-toggle telemetry-snap"}
           aria-label={snapToGrid ? "Turn grid snapping off" : "Turn grid snapping on"}
           aria-pressed={snapToGrid}
           onClick={toggleGridSnap}
@@ -1978,7 +2295,7 @@ function Telemetry({ coordinateRef }: { readonly coordinateRef: React.RefObject<
         <Tooltip content={gridVisible ? "Turn grid off" : "Turn grid on"} placement="top">
           <button
             type="button"
-            className={gridVisible ? "telemetry-toggle is-on" : "telemetry-toggle"}
+            className={gridVisible ? "telemetry-toggle telemetry-grid is-on" : "telemetry-toggle telemetry-grid"}
             aria-label={gridVisible ? "Turn grid off" : "Turn grid on"}
             aria-pressed={gridVisible}
             onClick={toggleGrid}
@@ -1988,11 +2305,16 @@ function Telemetry({ coordinateRef }: { readonly coordinateRef: React.RefObject<
         </Tooltip>
         <i className="telemetry-rule" />
         <span ref={coordinateRef} className="coordinates">x 0 {documentUnits} · y 0 {documentUnits}</span>
+        <button ref={detailsButtonRef} type="button" className="telemetry-expand"
+          aria-label={detailsOpen ? "Hide telemetry details" : "Show telemetry details"}
+          aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>
+          <ChevronDown size={14} aria-hidden="true" /><span>{detailsOpen ? "Less" : "More"}</span>
+        </button>
       </div>
       <div className="zoom-control surface">
-        <Tooltip content="Zoom out"><button onClick={() => zoomBy(0.8)} aria-label="Zoom out"><Minus size={17} /></button></Tooltip>
+        <Tooltip content="Zoom out"><button onClick={() => zoomBy(0.8)} aria-label="Zoom out" disabled={zoom <= MIN_VIEWPORT_ZOOM + 1e-9}><Minus size={17} /></button></Tooltip>
         <Tooltip content="Reset zoom"><button className="zoom-value" onClick={resetViewport} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button></Tooltip>
-        <Tooltip content="Zoom in"><button onClick={() => zoomBy(1.25)} aria-label="Zoom in"><Plus size={17} /></button></Tooltip>
+        <Tooltip content="Zoom in"><button onClick={() => zoomBy(1.25)} aria-label="Zoom in" disabled={zoom >= MAX_VIEWPORT_ZOOM - 1e-9}><Plus size={17} /></button></Tooltip>
       </div>
     </>
   );
@@ -2212,7 +2534,11 @@ function HelpModal({ open, onClose }: { readonly open: boolean; readonly onClose
 }
 
 export function VectoraWorkspace() {
+  const workspaceRef = useRef<HTMLElement>(null);
   const { canvasRef, canvasProps, coordinateRef, setGeneratorPreview, inlineTextEditor } = useCanvasEngine();
+  const inlineTextEditorWidth = inlineTextEditor
+    ? Math.min(560, Math.max(128, (inlineTextEditor.value.length + 2) * inlineTextEditor.fontSize * 0.62))
+    : 128;
   const activeTool = useVectorStore((state) => state.activeTool);
   const setActiveTool = useVectorStore((state) => state.setActiveTool);
   const setCommandPaletteOpen = useVectorStore((state) => state.setCommandPaletteOpen);
@@ -2244,6 +2570,78 @@ export function VectoraWorkspace() {
   const [savingBeforeAction, setSavingBeforeAction] = useState(false);
   useObjectClipboard(Boolean(commandPaletteOpen || preferencesOpen || generatorsOpen || nestingOpen
     || vectorizerFile || threePreviewOpen || helpOpen || layerDialog || pendingDocumentAction));
+
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const floatingPanels = [
+      ["preferences", ".preferences-hub"],
+      ["layers", ".layers-panel"],
+      ["cam", ".cam-panel:not(.raster-panel)"],
+      ["raster", ".raster-panel"],
+      ["properties", ".property-inspector"],
+      ["selectionActions", ".selection-actions"],
+    ] as const;
+    let frame = 0;
+    let settleTimer = 0;
+    const keepPanelsInView = () => {
+      frame = 0;
+      const visual = window.visualViewport;
+      const viewportLeft = visual?.offsetLeft ?? 0;
+      const viewportTop = visual?.offsetTop ?? 0;
+      const viewportRight = viewportLeft + (visual?.width ?? window.innerWidth);
+      const viewportBottom = viewportTop + (visual?.height ?? window.innerHeight);
+      const state = useVectorStore.getState();
+      let corrected = false;
+      for (const [panel, selector] of floatingPanels) {
+        if (window.innerWidth < 768 && (panel === "layers" || panel === "properties")) continue;
+        if (window.innerWidth <= 620 && panel === "preferences") continue;
+        const element = workspace.querySelector<HTMLElement>(selector);
+        if (!element) continue;
+        const bounds = element.getBoundingClientRect();
+        if (bounds.width < 1 || bounds.height < 1) continue;
+        const horizontalInset = Math.min(24, Math.max(0, (viewportRight - viewportLeft - bounds.width) / 2));
+        const verticalInset = Math.min(24, Math.max(0, (viewportBottom - viewportTop - bounds.height) / 2));
+        const dx = bounds.left < viewportLeft + horizontalInset ? viewportLeft + horizontalInset - bounds.left
+          : bounds.right > viewportRight - horizontalInset ? viewportRight - horizontalInset - bounds.right : 0;
+        const dy = bounds.top < viewportTop + verticalInset ? viewportTop + verticalInset - bounds.top
+          : bounds.bottom > viewportBottom - verticalInset ? viewportBottom - verticalInset - bounds.bottom : 0;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+        const position = state.panelPositions[panel];
+        state.setPanelPosition(panel, { x: position.x + dx, y: position.y + dy });
+        corrected = true;
+      }
+      if (corrected) {
+        window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(schedule, 180);
+      }
+    };
+    const schedule = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(keepPanelsInView);
+    };
+    const onInteractionEnd = () => {
+      schedule();
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(schedule, 180);
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(workspace, { childList: true });
+    window.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("resize", schedule);
+    document.addEventListener("pointerup", onInteractionEnd, true);
+    document.addEventListener("keyup", onInteractionEnd, true);
+    schedule();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("resize", schedule);
+      document.removeEventListener("pointerup", onInteractionEnd, true);
+      document.removeEventListener("keyup", onInteractionEnd, true);
+      if (frame) cancelAnimationFrame(frame);
+      window.clearTimeout(settleTimer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!camOpen) return;
@@ -2523,6 +2921,7 @@ export function VectoraWorkspace() {
 
   return (
     <main
+      ref={workspaceRef}
       className={`workspace theme-${themeMode} cursor-${cursorStyle} tool-${activeTool}${temporaryPanActive ? " is-space-panning" : ""}${canvasPanning ? " is-canvas-panning" : ""}`}
       onDragEnter={(event) => {
         if ([...event.dataTransfer.items].some((item) => item.kind === "file")) setDragActive(true);
@@ -2559,10 +2958,10 @@ export function VectoraWorkspace() {
           placeholder="Type text"
           value={inlineTextEditor.value}
           style={{
-            left: inlineTextEditor.left,
-            top: inlineTextEditor.top,
+            left: `clamp(8px, ${inlineTextEditor.left}px, calc(100% - min(${inlineTextEditorWidth}px, 100% - 24px) - 8px))`,
+            top: `clamp(8px, ${inlineTextEditor.top}px, calc(100% - ${inlineTextEditor.fontSize * 1.24}px - 8px))`,
             fontSize: inlineTextEditor.fontSize,
-            width: Math.min(560, Math.max(128, (inlineTextEditor.value.length + 2) * inlineTextEditor.fontSize * 0.62)),
+            width: inlineTextEditorWidth,
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onChange={(event) => inlineTextEditor.onChange(event.target.value)}
@@ -2613,6 +3012,7 @@ export function VectoraWorkspace() {
         onSaveAs={() => saveDocument(true)}
       />
       <ToolDock onOpenGenerators={() => setGeneratorsOpen(true)} />
+      <MobileToolShelf onOpenGenerators={() => setGeneratorsOpen(true)} />
       <UtilityDock />
       <PreferencesModal open={preferencesOpen} onClose={() => togglePanel("preferences", false)} />
       <LayersPanel

@@ -40,6 +40,7 @@ import type { Entity, Layer } from "../../document/types";
 import { useVectorStore } from "../../store/useVectorStore";
 import { toast } from "../ui/Toast";
 import { Tooltip } from "../ui/Tooltip";
+import { MobilePanelNavigation, useMobilePanelChrome } from "./MobilePanelChrome";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
 
@@ -261,6 +262,7 @@ export function LayersPanel({ onCreateLayer, onDeleteLayer }: LayersPanelProps) 
 }
 
 function LayersPanelContent({ onCreateLayer, onDeleteLayer }: LayersPanelProps) {
+  const { mobile, panelRef } = useMobilePanelChrome("layers");
   const togglePanel = useVectorStore((state) => state.togglePanel);
   const position = useVectorStore((state) => state.panelPositions.layers);
   const setPanelPosition = useVectorStore((state) => state.setPanelPosition);
@@ -307,15 +309,16 @@ function LayersPanelContent({ onCreateLayer, onDeleteLayer }: LayersPanelProps) 
 
   return (
     <motion.section
+      ref={panelRef}
       id="layers-panel"
       className="utility-panel surface layers-panel"
       aria-label="Document layers and entities"
-      style={{ x: position.x, y: position.y }}
-      initial={{ opacity: 0, scale: 0.97, y: position.y + 8 }}
-      animate={{ opacity: 1, scale: 1, y: position.y }}
-      exit={{ opacity: 0, scale: 0.97, y: position.y + 8 }}
+      style={{ x: mobile ? 0 : position.x, y: mobile ? 0 : position.y }}
+      initial={{ opacity: 0, scale: 0.97, y: mobile ? 0 : position.y + 8 }}
+      animate={{ opacity: 1, scale: 1, y: mobile ? 0 : position.y }}
+      exit={{ opacity: 0, scale: 0.97, y: mobile ? 0 : position.y + 8 }}
       transition={{ type: "spring", stiffness: 400, damping: 32 }}
-      drag
+      drag={!mobile}
       dragControls={dragControls}
       dragListener={false}
       dragMomentum={false}
@@ -323,7 +326,7 @@ function LayersPanelContent({ onCreateLayer, onDeleteLayer }: LayersPanelProps) 
       onDragEnd={onDragEnd}
       onPointerDown={(event) => {
         event.stopPropagation();
-        if ((event.target as Element).closest(".drag-handle")) dragControls.start(event);
+        if (!mobile && (event.target as Element).closest(".drag-handle")) dragControls.start(event);
       }}
     >
       <div className="panel-header drag-handle">
@@ -337,6 +340,7 @@ function LayersPanelContent({ onCreateLayer, onDeleteLayer }: LayersPanelProps) 
           ><X size={20} /></button>
         </Tooltip>
       </div>
+      <MobilePanelNavigation active="layers" />
       <div className="panel-rule" />
       <div className="layer-list" role="tree" aria-label="Document layer tree">
         {layers.map((layer) => (

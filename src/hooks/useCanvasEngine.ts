@@ -27,12 +27,23 @@ import { drawIsometricGrid } from "../renderer/IsometricGrid";
 import { drawLeadMarkers } from "../renderer/LeadOverlay";
 import { pathCache } from "../renderer/PathCache";
 import { drawTransformOverlay, getSelectionBounds } from "../renderer/TransformOverlay";
-import { useVectorStore, type GridStyle, type Point, type ThemeMode, type ToolId, type Viewport } from "../store/useVectorStore";
+import { MAX_VIEWPORT_ZOOM, MIN_VIEWPORT_ZOOM, useVectorStore, type GridStyle, type Point, type ThemeMode, type ToolId, type Viewport } from "../store/useVectorStore";
 import { vectoraRenderColors, vectoraRenderOpacity } from "../design/vectoraRenderColors";
 
-const MIN_ZOOM = 0.2;
-const MAX_ZOOM = 4;
 let inlineTextSequence = 0;
+
+type TouchPosition = { readonly clientX: number; readonly clientY: number };
+type PinchSession = {
+  readonly pointerIds: readonly [number, number];
+  readonly startDistance: number;
+  readonly startZoom: number;
+  readonly anchorX: number;
+  readonly anchorY: number;
+};
+
+function clampZoom(zoom: number): number {
+  return Math.min(MAX_VIEWPORT_ZOOM, Math.max(MIN_VIEWPORT_ZOOM, zoom));
+}
 
 interface InlineTextDraft {
   readonly entity: TextEntity;
@@ -1369,6 +1380,9 @@ export function useCanvasEngine() {
   const frameStatsRef = useRef<FrameStats>({ lastTimestamp: 0, frameTimeMs: 1000 / 60, fps: 60 });
   const repeatDrawRef = useRef<() => void>(() => undefined);
   const panRef = useRef<{ pointerId: number; start: Point; viewport: Viewport } | null>(null);
+  const touchPointersRef = useRef(new Map<number, TouchPosition>());
+  const suppressedTouchIdsRef = useRef(new Set<number>());
+  const pinchRef = useRef<PinchSession | null>(null);
   const inlineTextDraftRef = useRef<InlineTextDraft | null>(null);
   const [inlineTextDraft, setInlineTextDraft] = useState<InlineTextDraft | null>(null);
   const interactionRef = useRef<CanvasInteractionRenderState>({
@@ -1595,6 +1609,10 @@ export function useCanvasEngine() {
     if (canvasRef.current) {
       resizeObserver.observe(canvasRef.current);
     }
+    const canvas = canvasRef.current;
+    const preventBrowserGesture = (event: Event) => event.preventDefault();
+    canvas?.addEventListener("gesturestart", preventBrowserGesture, { passive: false });
+    canvas?.addEventListener("gesturechange", preventBrowserGesture, { passive: false });
     return () => {
       unsubscribe();
       unsubscribeDocument();
@@ -1602,6 +1620,11 @@ export function useCanvasEngine() {
       unsubscribeMachine();
       unsubscribeCalibration();
       resizeObserver.disconnect();
+      canvas?.removeEventListener("gesturestart", preventBrowserGesture);
+      canvas?.removeEventListener("gesturechange", preventBrowserGesture);
+      touchPointersRef.current.clear();
+      suppressedTouchIdsRef.current.clear();
+      pinchRef.current = null;
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
         frameRef.current = null;
@@ -1611,6 +1634,31 @@ export function useCanvasEngine() {
   }, [scheduleDraw, updateCoordinates]);
 
   const onPointerMove = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerType === "touch") {
+      const pointers = touchPointersRef.current;
+      if (pointers.has(event.pointerId)) pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      const pinch = pinchRef.current;
+      if (pinch) {
+        const first = pointers.get(pinch.pointerIds[0]);
+        const second = pointers.get(pinch.pointerIds[1]);
+        if (first && second) {
+          const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+          const zoom = clampZoom(pinch.startZoom * distance / pinch.startDistance);
+          const metrics = metricsRef.current;
+          const centerX = (first.clientX + second.clientX) / 2 - metrics.left - metrics.width / 2;
+          const centerY = (first.clientY + second.clientY) / 2 - metrics.top - metrics.height / 2;
+          const viewport = { zoom, x: centerX - pinch.anchorX * zoom, y: centerY - pinch.anchorY * zoom };
+          viewportRef.current = viewport;
+          useVectorStore.getState().setViewport(viewport);
+        }
+        event.preventDefault();
+        return;
+      }
+      if (suppressedTouchIdsRef.current.has(event.pointerId)) {
+        event.preventDefault();
+        return;
+      }
+    }
     const state = useVectorStore.getState();
     const metrics = metricsRef.current;
     pointerPositionRef.current.x = event.clientX - metrics.left;
@@ -1663,6 +1711,59 @@ export function useCanvasEngine() {
 
   const onPointerDown = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     const state = useVectorStore.getState();
+    if (event.pointerType === "touch") {
+      const pointers = touchPointersRef.current;
+      pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      if (pointers.size >= 2) {
+        suppressedTouchIdsRef.current.add(event.pointerId);
+        if (!pinchRef.current) {
+          const entries = [...pointers.entries()];
+          const firstEntry = entries[0];
+          const secondEntry = entries[1];
+          if (firstEntry && secondEntry) {
+            const [firstId, first] = firstEntry;
+            const [secondId, second] = secondEntry;
+            suppressedTouchIdsRef.current.add(firstId);
+            interactionHandlers.cancelInteraction();
+            measureHandlers.clear();
+            nodeEditHandlers.onPointerCancel({ pointerId: firstId } as React.PointerEvent<HTMLCanvasElement>);
+            eraserHandlers.onPointerLeave();
+            finishInlineText(false);
+            interactionRef.current.activeSnap = null;
+            pointerPositionRef.current.visible = false;
+            if (panRef.current) {
+              panRef.current = null;
+              state.setCanvasPanning(false);
+            }
+            for (const id of [firstId, secondId]) {
+              try {
+                if (!event.currentTarget.hasPointerCapture(id)) event.currentTarget.setPointerCapture(id);
+              } catch {
+                // A pointer can end between the second contact and capture.
+              }
+            }
+            const metrics = metricsRef.current;
+            const centerX = (first.clientX + second.clientX) / 2 - metrics.left - metrics.width / 2;
+            const centerY = (first.clientY + second.clientY) / 2 - metrics.top - metrics.height / 2;
+            const viewport = viewportRef.current;
+            pinchRef.current = {
+              pointerIds: [firstId, secondId],
+              startDistance: Math.max(1, Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)),
+              startZoom: viewport.zoom,
+              anchorX: (centerX - viewport.x) / viewport.zoom,
+              anchorY: (centerY - viewport.y) / viewport.zoom,
+            };
+          }
+        }
+        event.preventDefault();
+        return;
+      }
+      if (suppressedTouchIdsRef.current.size > 0) {
+        suppressedTouchIdsRef.current.add(event.pointerId);
+        event.preventDefault();
+        return;
+      }
+    }
     if (event.button === 1 || (event.button === 0 && state.temporaryPanActive)) {
       event.currentTarget.setPointerCapture(event.pointerId);
       panRef.current = {
@@ -1684,9 +1785,17 @@ export function useCanvasEngine() {
     if (nodeEditHandlers.onPointerDown(event)) return;
     if (eraserHandlers.onPointerDown(event)) return;
     interactionHandlers.onPointerDown(event);
-  }, [beginInlineText, eraserHandlers, fillHandlers, interactionHandlers, measureHandlers, nodeEditHandlers]);
+  }, [beginInlineText, eraserHandlers, fillHandlers, finishInlineText, interactionHandlers, measureHandlers, nodeEditHandlers]);
 
   const onPointerUp = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerType === "touch") {
+      touchPointersRef.current.delete(event.pointerId);
+      if (suppressedTouchIdsRef.current.delete(event.pointerId)) {
+        if (pinchRef.current?.pointerIds.includes(event.pointerId)) pinchRef.current = null;
+        event.preventDefault();
+        return;
+      }
+    }
     if (panRef.current?.pointerId === event.pointerId) {
       panRef.current = null;
       const state = useVectorStore.getState();
@@ -1700,6 +1809,14 @@ export function useCanvasEngine() {
   }, [eraserHandlers, fillHandlers, interactionHandlers, measureHandlers, nodeEditHandlers]);
 
   const onPointerCancel = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerType === "touch") {
+      touchPointersRef.current.delete(event.pointerId);
+      if (suppressedTouchIdsRef.current.delete(event.pointerId)) {
+        if (pinchRef.current?.pointerIds.includes(event.pointerId)) pinchRef.current = null;
+        event.preventDefault();
+        return;
+      }
+    }
     if (panRef.current?.pointerId === event.pointerId) {
       panRef.current = null;
       const state = useVectorStore.getState();
@@ -1723,7 +1840,7 @@ export function useCanvasEngine() {
     const state = useVectorStore.getState();
     const current = viewportRef.current;
     const factor = Math.exp(-event.deltaY * 0.0012);
-    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current.zoom * factor));
+    const nextZoom = clampZoom(current.zoom * factor);
     const cursorX = event.clientX - metrics.left - metrics.width / 2;
     const cursorY = event.clientY - metrics.top - metrics.height / 2;
     const worldX = (cursorX - current.x) / current.zoom;

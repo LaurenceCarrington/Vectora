@@ -32,18 +32,18 @@ function sentenceLabel(value: string): string {
 }
 
 /** Keep stop controls reachable when CAM settings are scrolled out of view. */
-export function MachineQuickStop() {
+export function MachineQuickStop({ menu = false }: { menu?: boolean }) {
   const connected = useMachineStore((machine) => machine.connectionStatus === "connected");
   const dialect = useMachineStore((machine) => machine.dialect);
   if (!connected) return null;
   const execute = (operation: () => Promise<void>) => {
     void operation().catch((error: unknown) => toast.error(error instanceof Error ? error.message : "The machine command could not be sent."));
   };
-  return <div className="machine-quick-stop">
+  return <div className={`machine-quick-stop ${menu ? "is-menu" : ""}`}>
     {dialect === "grbl" && <Tooltip content="Feed hold" placement="bottom"><button type="button" aria-label="Feed hold"
-      onClick={() => execute(() => webSerialController.feedHold())}><Pause size={17} /></button></Tooltip>}
+      onClick={() => execute(() => webSerialController.feedHold())}><Pause size={17} />{menu && <span>Feed hold</span>}</button></Tooltip>}
     <Tooltip content="Software stop · not a physical emergency stop" placement="bottom"><button type="button" aria-label="Stop job (software)"
-      onClick={() => execute(() => webSerialController.stopJob())}><OctagonX size={18} /></button></Tooltip>
+      onClick={() => execute(() => webSerialController.stopJob())}><OctagonX size={18} />{menu && <span>Stop job (software)</span>}</button></Tooltip>
   </div>;
 }
 

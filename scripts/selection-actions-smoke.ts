@@ -1,6 +1,6 @@
-import type { Layer, LineEntity, PolylineEntity, RectangleEntity } from "../src/document/types";
+import type { ArcEntity, Layer, LineEntity, PolylineEntity, RectangleEntity } from "../src/document/types";
 import { documentModel } from "../src/document/DocumentModel";
-import { UpdateEntitiesCommand, executeCommand, history } from "../src/document/History";
+import { ReplaceEntitySetCommand, UpdateEntitiesCommand, executeCommand, history } from "../src/document/History";
 import { nestEntities } from "../src/cam/nestingEngine";
 import { buildContourHierarchy, signedPolygonArea } from "../src/geometry/topology";
 import {
@@ -12,7 +12,7 @@ import {
   weldEntities,
 } from "../src/geometry/operations/booleans";
 import { joinPaths } from "../src/geometry/operations/join";
-import { closePolyline } from "../src/geometry/operations/closePath";
+import { closePolyline, closeSelectedPaths } from "../src/geometry/operations/closePath";
 import {
   applyKerfCompensation,
   CSS_PIXELS_PER_MILLIMETRE,
@@ -250,6 +250,39 @@ assertThrows(
   () => joinPaths([{ ...line("locked-join", { x: 0, y: 0 }, { x: 1, y: 0 }), locked: true }]),
   "Join accepted a locked entity.",
 );
+
+function semicircle(id: string, startAngle: number, endAngle: number, layerId = cutLayer.id): ArcEntity {
+  return {
+    id, type: "arc", layerId, intent: layerId === detailLayer.id ? "engrave" : "cut",
+    style, visible: true, locked: false,
+    center: { x: 0, y: 0 }, radius: 10, startAngle, endAngle, counterClockwise: false,
+    bbox: { minX: -10, minY: -10, maxX: 10, maxY: 10 },
+  };
+}
+
+const upperArc = semicircle("upper-arc", 0, Math.PI);
+const lowerArc = semicircle("lower-arc", Math.PI, Math.PI * 2);
+const arcCircle = closeSelectedPaths([upperArc, lowerArc]);
+assert(arcCircle.length === 1 && arcCircle[0]?.type === "polyline" && arcCircle[0].closed,
+  "Close path did not join two semicircles into one closed outline.");
+assert(arcCircle[0]?.type === "polyline" && Math.abs(signedPolygonArea(arcCircle[0].points)) > 300,
+  "The joined arcs lost the circular outline or closed against themselves.");
+assertThrows(() => closeSelectedPaths([upperArc]), "A single arc was incorrectly closed with a chord.");
+assertThrows(() => closeSelectedPaths([upperArc, { ...lowerArc, center: { x: 30, y: 0 } }]),
+  "Unconnected arcs were incorrectly closed individually.");
+assertThrows(() => closeSelectedPaths([upperArc, semicircle("other-layer-arc", Math.PI, Math.PI * 2, detailLayer.id)]),
+  "Close path joined arcs across different layers and intents.");
+documentModel.replaceDocument({ title: "Arc circle", units: "mm", activeLayerId: cutLayer.id,
+  layers, entities: [upperArc, lowerArc] });
+history.clear();
+executeCommand(new ReplaceEntitySetCommand([upperArc, lowerArc], arcCircle, "Close paths"));
+assert(documentModel.getDocument().entities.size === 1 &&
+  documentModel.getDocument().entities.get(upperArc.id)?.type === "polyline",
+  "Closing arcs did not commit one outline.");
+assert(history.undo() && documentModel.getDocument().entities.size === 2,
+  "Undo did not restore both source arcs.");
+assert(history.redo() && documentModel.getDocument().entities.size === 1,
+  "Redo did not restore the combined outline.");
 
 const openPolyline: PolylineEntity = {
   id: "open-polyline",
