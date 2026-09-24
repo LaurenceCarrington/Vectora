@@ -26,7 +26,6 @@ import {
   CornerDownLeft,
   Download,
   Diff as SubtractIcon,
-  Edit3,
   Eraser,
   Factory,
   FilePlus2,
@@ -482,7 +481,8 @@ function FileMenu({
 }
 
 function EditMenu() {
-  const [open, setOpen] = useState(false);
+  const open = useVectorStore((state) => state.editMenuOpen);
+  const setOpen = useVectorStore((state) => state.setEditMenuOpen);
   const menuWrapRef = useRef<HTMLDivElement>(null);
   const snapshot = useSyncExternalStore(
     (onStoreChange) => documentModel.subscribe(() => onStoreChange()),
@@ -524,8 +524,8 @@ function EditMenu() {
     <div className="file-menu-wrap" ref={menuWrapRef}>
       <Tooltip content="Edit" placement="bottom">
         <button type="button" className={`icon-button file-button ${open ? "is-active" : ""}`}
-          aria-label="Edit menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-          <Edit3 size={19} />
+          aria-label="Edit menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <Pencil size={19} />
           <ChevronDown className="file-chevron" size={12} />
         </button>
       </Tooltip>
@@ -580,6 +580,8 @@ function TopBar({
   readonly onSave: () => void;
   readonly onSaveAs: () => void;
 }) {
+  const setFileMenuOpen = useVectorStore((state) => state.setFileMenuOpen);
+  const setEditMenuOpen = useVectorStore((state) => state.setEditMenuOpen);
   const preferencesOpen = useVectorStore((state) => state.preferencesOpen);
   const commandPaletteOpen = useVectorStore((state) => state.commandPaletteOpen);
   const historySnapshot = useSyncExternalStore(
@@ -588,7 +590,18 @@ function TopBar({
     () => history.getSnapshot(),
   );
   return (
-    <header className="topbar surface" onPointerDown={stopPointer}>
+    <header
+      className="topbar surface"
+      onPointerDown={stopPointer}
+      onClickCapture={(event) => {
+        const target = event.target;
+        if (!(target instanceof Element) || target.closest(".file-menu, .edit-menu, .file-button")) return;
+        if (target.closest("button")) {
+          setFileMenuOpen(false);
+          setEditMenuOpen(false);
+        }
+      }}
+    >
       <div className="topbar-start">
         <VectoraLogo />
         <span className="topbar-divider" />

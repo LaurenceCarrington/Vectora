@@ -182,6 +182,7 @@ interface VectorState {
   viewport: Viewport;
   preferences: VectorPreferences;
   fileMenuOpen: boolean;
+  editMenuOpen: boolean;
   selectMenuOpen: boolean;
   lineMenuOpen: boolean;
   shapeMenuOpen: boolean;
@@ -208,6 +209,7 @@ interface VectorState {
   setSnapToGrid: (enabled: boolean) => void;
   setGridSize: (size: number) => void;
   setFileMenuOpen: (open: boolean) => void;
+  setEditMenuOpen: (open: boolean) => void;
   setSelectMenuOpen: (open: boolean) => void;
   setLineMenuOpen: (open: boolean) => void;
   setShapeMenuOpen: (open: boolean) => void;
@@ -333,6 +335,7 @@ export const useVectorStore = create<VectorState>((set) => ({
   viewport: INITIAL_VIEWPORT,
   preferences: loadPreferences(),
   fileMenuOpen: false,
+  editMenuOpen: false,
   selectMenuOpen: false,
   lineMenuOpen: false,
   shapeMenuOpen: false,
@@ -383,7 +386,14 @@ export const useVectorStore = create<VectorState>((set) => ({
   }),
   setSnapToGrid: (snapToGrid) => set((state) => withDrafting(state, { snapToGrid })),
   setGridSize: (gridSize) => set((state) => withDrafting(state, { gridSize })),
-  setFileMenuOpen: (fileMenuOpen) => set({ fileMenuOpen }),
+  setFileMenuOpen: (fileMenuOpen) => set({
+    fileMenuOpen,
+    ...(fileMenuOpen ? { editMenuOpen: false } : {}),
+  }),
+  setEditMenuOpen: (editMenuOpen) => set({
+    editMenuOpen,
+    ...(editMenuOpen ? { fileMenuOpen: false } : {}),
+  }),
   setSelectMenuOpen: (selectMenuOpen) => set({ selectMenuOpen }),
   setLineMenuOpen: (lineMenuOpen) => set({ lineMenuOpen }),
   setShapeMenuOpen: (shapeMenuOpen) => set({ shapeMenuOpen }),
