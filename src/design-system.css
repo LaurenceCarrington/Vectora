@@ -885,3 +885,12 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .tool-search-result[aria-disabled="true"] { opacity:.55; cursor:not-allowed; }
 .tool-search-status { margin:0; padding:var(--space-12) var(--space-16); border-top:var(--border-width) solid var(--menu-border); color:var(--menu-muted); font-size:var(--text-xs); line-height:18px; }
 .tool-search-specimen { position:relative; inset:auto; margin:var(--space-16) 0; }
+
+.selection-context-menu:has(.selection-layer-menu:not([hidden])) { width:240px; }
+.selection-layer-trigger .selection-layer-chevron { margin-left:auto; width:12px; height:12px; }
+.selection-layer-trigger[aria-expanded="true"] .selection-layer-chevron { transform:rotate(180deg); }
+.selection-layer-menu { border-top:var(--border-width) solid var(--menu-border); margin-top:var(--space-4); padding-top:var(--space-4); }
+.selection-layer-option { gap:var(--space-8); }
+.selection-layer-name { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.selection-layer-check { visibility:hidden; margin-left:auto; }
+.selection-layer-option[aria-checked="true"] .selection-layer-check { visibility:visible; }

@@ -44,7 +44,7 @@ test('Right-click selects objects, preserves multiselection, pastes at canvas co
  await page.mouse.click(target.x,target.y,{button:'right'});await expect(menu).toBeVisible();
  const r=(await menu.boundingBox())!;expect(r.x+r.width).toBeLessThanOrEqual(1236);expect(r.y+r.height).toBeLessThanOrEqual(852);
  // Menu is above the canvas, supports keyboard navigation, and stays compact.
- await page.keyboard.press('End');await expect(menu.getByRole('menuitem',{name:'Paste',exact:true})).toBeFocused();
+ await page.keyboard.press('Home');await page.keyboard.press('ArrowDown');await expect(menu.getByRole('menuitem',{name:'Paste',exact:true})).toBeFocused();
  await page.screenshot({path:'test-results/clipboard-context-menu.png'});await page.keyboard.press('Enter');
  const result=await page.evaluate(()=>{const e=(window as any).__vectora,s=e.selected;return {x:s.bounds.center.x,y:s.bounds.center.y,name:s.data.name,role:s.data.role,color:s.strokeColor.toCSS(true)};});
  expect(result.x).toBeCloseTo(expected.x,8);expect(result.y).toBeCloseTo(expected.y,8);expect(result.name).toBe('First');expect(result.role).toBe('engrave');expect(result.color.toLowerCase()).toBe('#0000ff');
