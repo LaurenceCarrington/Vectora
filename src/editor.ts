@@ -114,6 +114,11 @@ export class CADEditor {
   get canUndo():boolean {return this.undoStack.length>0;}
   get canRedo():boolean {return this.redoStack.length>0;}
   get zoom():number {return paper.view.zoom;}
+  resetZoom():void {
+    if(this.interaction)return;
+    this.activeObjectSnap=null;this.clearDeletePreview();
+    paper.view.zoom=BASE_ZOOM;this.changed();
+  }
   snapshot():DocumentSnapshot {
     return {artwork:JSON.stringify(this.artwork.children.map(i=>i.exportJSON({precision:12}))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>item.exportJSON({precision:12})))}:{})})))};
   }

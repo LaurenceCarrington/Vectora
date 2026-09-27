@@ -15,6 +15,9 @@ import { BASE_ZOOM } from './units';
 import type { ToolName } from './types';
 const $=<T extends HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
 const editor=new CADEditor($<HTMLCanvasElement>('#cad-canvas'));
+const resetZoom=$<HTMLButtonElement>('[data-reset-zoom]');
+resetZoom.onclick=()=>editor.resetZoom();
+resetZoom.addEventListener('keydown',event=>event.stopPropagation());
 let ready=false;
 const alerts=new Alerts($('#toast-stack'),editor.canvas);
 function notify(message:string,kind:boolean|AlertKind=false):void {
@@ -183,7 +186,8 @@ function update():void {
   $('#tool-status').textContent=({fill:'Colour fill · B · Click an enclosed area',select:editor.selectedArc?'Arc · Drag handles · Shift: 15°':count>1?`Select · V · ${count} selected`:'Select · V',nodes:'Nodes · N · Double-click to add · Right-click for actions',text:'Text · T · Click to place',rectangle:'Rectangle · R · Shift for square',circle:'Circle · C · Drag from centre',ellipse:'Ellipse · E · Shift for circle',polygon:`Polygon · Y · ${editor.polygonSides} sides · ↑/↓ · Shift: 15°`,line:'Line · L · Drag · Shift: 45°',polyline:'Polyline · P · Click points · Enter to finish',freehand:'Freehand · F · Drag to draw · No snapping',arc:`Centre arc · A · ${editor.arcHint}`,'arc-three-point':`Three-point arc · ⇧ A · ${editor.threePointArcHint}`,'dissect-delete':'Dissect delete · K · Click a section','line-delete':'Line delete · ⇧ K · Click an outline'} as Record<ToolName,string>)[editor.tool];
   if(isDimensionTool(editor.tool))$('#tool-status').textContent=`${DIMENSION_NAMES[editor.tool]}${editor.tool==='dimension-aligned'?' · D':''} · ${editor.dimensions.hint}`;
   const snapButton=$('#snap-grid');snapButton.classList.toggle('selected',editor.snappingEnabled);snapButton.setAttribute('aria-pressed',String(editor.snappingEnabled));snapButton.title=`Snapping (S) · ${editor.snappingEnabled?'On':'Off'}`;
-  $('#view-status').textContent=`${Math.round(editor.zoom/BASE_ZOOM*100)}% · Grid ${editor.grid.spacingMM} mm`;
+  resetZoom.textContent=`${Math.round(editor.zoom/BASE_ZOOM*100)}%`;
+  $('#grid-status').textContent=`Grid ${editor.grid.spacingMM} mm`;
   for(const [button,active] of [[$('[aria-label="Select"]'),editor.tool==='select'],[$('[data-shape-trigger]'),['rectangle','circle','ellipse','polygon'].includes(editor.tool)],[$('[data-line-trigger]'),editor.tool==='line'||editor.tool==='polyline'||editor.tool==='freehand'],[$('[data-arc-trigger]'),editor.tool==='arc'||editor.tool==='arc-three-point'],[$('[data-delete-trigger]'),editor.isDeleteTool],[$('[data-dimension-trigger]'),isDimensionTool(editor.tool)]] as const){button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active));}
   document.querySelectorAll<HTMLElement>('[data-shape]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.shape?.toLowerCase()===editor.tool)));
   document.querySelectorAll<HTMLElement>('[data-line-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.lineTool===editor.tool)));

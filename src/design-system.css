@@ -181,6 +181,8 @@ section { margin-top: var(--space-32); }
     var(--grid-preview-cell) var(--grid-preview-cell);
 }
 .workspace-footer { position:absolute; bottom:var(--workspace-edge-inset); left:var(--workspace-edge-inset); right:var(--workspace-edge-inset); display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:16px; color:var(--color-muted); font-size:12px; pointer-events:none; }
+.zoom-reset { appearance:none; display:inline; border:0; padding:4px; margin:-4px; background:transparent; color:inherit; font:inherit; line-height:inherit; border-radius:var(--radius-sm); pointer-events:auto; }
+.zoom-reset:hover { color:var(--color-text); text-decoration:underline; text-underline-offset:3px; }
 .workspace-footer > :first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .workspace-footer > :nth-child(2) { grid-column:2; justify-self:center; white-space:nowrap; }
 .workspace-footer > :last-child { min-width:0; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
