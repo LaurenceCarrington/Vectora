@@ -248,7 +248,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await page.getByRole('button',{name:'Layers',exact:true}).click();
   const panel=page.locator('#primary-layers-panel');
   await expect(panel).toBeVisible();expect(await panelStyles()).toEqual(reference);
-  const box=(await panel.boundingBox())!;expect(box.width).toBe(300);expect(box.y).toBe(88);expect(box.height).toBe(812);
+  const box=(await panel.boundingBox())!;expect(box.width).toBe(300);expect(box.y).toBe(88);expect(box.height).toBe(784);
   await expect(panel.locator('[data-layer-count]')).toHaveText('4');
   await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toBeEnabled();
   await expect(panel.getByRole('button',{name:'Delete selected layer'})).toBeEnabled();

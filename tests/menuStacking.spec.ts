@@ -42,9 +42,12 @@ test('Every drawing popout stays flush with its rail and follows its own icon on
    const check=async()=>expect(async()=>{
     const rail=(await page.locator('.left-toolbar').boundingBox())!,button=(await trigger.boundingBox())!,box=(await menu.boundingBox())!;
     const height=page.viewportSize()!.height;
+    const footer=(await page.locator('.workspace-footer').boundingBox())!,readout=(await page.locator('#view-status').boundingBox())!;
+    expect(footer).toMatchObject({x:0,y:height-28,width:page.viewportSize()!.width,height:28});
+    expect(readout.x+readout.width/2).toBeCloseTo(page.viewportSize()!.width/2,1);
     expect(box.x).toBeCloseTo(rail.x+rail.width,3);
-    expect(box.y).toBeCloseTo(Math.max(rail.y,Math.min(button.y,height-box.height)),3);
-    expect(box.y+box.height).toBeLessThanOrEqual(height+0.1);
+    expect(box.y).toBeCloseTo(Math.max(rail.y,Math.min(button.y,rail.y+rail.height-box.height)),3);
+    expect(box.y+box.height).toBeLessThanOrEqual(rail.y+rail.height+0.1);
     expect(box.x+box.width).toBeLessThanOrEqual(page.viewportSize()!.width+0.1);
    }).toPass({timeout:1000});
    await check();

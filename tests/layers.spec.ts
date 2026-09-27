@@ -114,7 +114,7 @@ test('Layers and Properties expand into the same full-height dock at every viewp
   for(const [name,id] of [['Layers','primary-layers-panel'],['Properties','properties-panel']]){
    const trigger=page.getByRole('button',{name,exact:true});await trigger.click();const panel=page.locator('#'+id);await expect(panel).toBeVisible();
    const top=(await page.locator('.top-toolbar').boundingBox())!,rail=(await page.locator('.right-toolbar').boundingBox())!;
-   await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.y===top.y+top.height&&b.y+b.height===viewport.height&&b.x+b.width===rail.x&&b.x>=44;}).toBe(true);
+   await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.y===top.y+top.height&&b.y+b.height===viewport.height-28&&b.x+b.width===rail.x&&b.x>=44;}).toBe(true);
    await expect(page.locator(name==='Layers'?'#properties-panel':'#primary-layers-panel')).toBeHidden();
    const header=panel.locator('.layers-header'),before=await header.boundingBox();
    await panel.locator(name==='Layers'?'.layer-list':'.editor-panel-body').evaluate(el=>el.scrollTop=el.scrollHeight);
