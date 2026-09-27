@@ -8,4 +8,4 @@ Type directly on the canvas, choose from a range of fonts, and convert text into
 
 Apply colour to enclosed areas, including regions formed by overlapping shapes, or use No fill to remove colour without changing the surrounding outlines. Organise objects into Artwork, Cut Path, Engrave Path and Construction Path layers, with visibility, locking and drag-and-drop controls.
 
-Add dimensions and callouts, generate offset sticker outlines, and export cut and engraving paths as DXF files, with optional artwork included. Undo and redo let you revise your work as you draw.
+Add dimensions and callouts, generate offset sticker outlines, and export cut and engraving paths as DXF files, with optional artwork included. Export visible artwork as SVG with vector curves, colours, fills and millimetre dimensions. Undo and redo let you revise your work as you draw.
