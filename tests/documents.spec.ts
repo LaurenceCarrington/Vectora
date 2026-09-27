@@ -10,7 +10,7 @@ test('Vectora round trip retains curves, text editing, dimensions, fills, hidden
  await page.goto(DEV);const result=await page.evaluate(async()=>{
   const p=(window as any).__paper,e=(window as any).__vectora,{encodeDocument,decodeDocument}=await import('/src/documentFormat.ts'),{loadTextFont,createTextShape}=await import('/src/text.ts'),{createCircularArc}=await import('/src/arc.ts'),{createDimension}=await import('/src/dimensions.ts');
   await loadTextFont('lato');e.addShape(createTextShape({content:'OB',fontId:'lato',sizeMM:12,transform:[1,0,0,1,20,30]}),'Text');const textId=e.selected.data.uid;
-  e.addShape(createCircularArc({cx:10,cy:20,radius:8,start:30,sweep:220}),'Arc');e.moveSelectionToLayer('construction');e.setLayerState('construction','visible',false);
+  e.addShape(createCircularArc({cx:10,cy:20,radius:8,start:30,sweep:220}),'Arc');e.moveSelectionToLayer('construction');e.setLayerState('construction','visible',false);e.setActiveLayer('artwork');
   e.addShape(new p.Path.Circle({insert:false,center:[-20,-20],radius:10,strokeColor:'#383838'}),'Circle');e.fillAt(new p.Point(-20,-20));e.setFillColor('#FF00FF');e.fillAt(new p.Point(-20,-20));
   e.addShape(createDimension({kind:'leader',points:[[0,0],[10,10],[20,10]],text:'Label & <test>',transform:[1,0,0,1,0,0]}),'Callout');
   const layer=e.addDocumentLayer('engrave');layer.name='Engrave <safe> & "quoted"';e.moveSelectionToLayer(layer.data.documentId);e.setLayerState(layer.data.documentId,'locked',true);

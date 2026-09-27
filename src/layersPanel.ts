@@ -7,9 +7,9 @@ const icon = (name: string) => `<svg aria-hidden="true" viewBox="0 0 24 24"><use
 
 /** Live document data inside the design system's Layers component. */
 export class LayersPanel {
-  private active = 'cutline';
+  private get active():string {return this.editor.activeLayerId;}
+  private set active(id:string){this.editor.setActiveLayer(id);}
   private expanded = new Set<string>();
-  private lastSelection: string | null = null;
   private lastRender = '';
   private draggedObjects: string[] = [];
   private scrollPointer: {x:number;y:number}|null = null;
@@ -75,7 +75,7 @@ export class LayersPanel {
       // Rebuilding rows must not strand keyboard focus on a detached button.
       const selector = button.dataset.objectId ? `[data-object-id="${button.dataset.objectId}"]` : `[data-layer-id="${role}"] [data-layer-action="${action}"]`;
       this.list.querySelector<HTMLButtonElement>(selector)?.focus({ preventScroll: true });
-      this.status.textContent = `${layer.name} ${action === 'visibility' ? (layer.visible ? 'visible.' : 'hidden on canvas.') : action === 'lock' ? (layer.locked ? 'locked.' : 'unlocked.') : action === 'expand' ? (this.expanded.has(role) ? 'expanded.' : 'collapsed.') : 'selected.'}`;
+      this.status.textContent = `${layer.name} ${action === 'visibility' ? (layer.visible ? 'visible.' : 'hidden on canvas.') : action === 'lock' ? (layer.locked ? 'locked.' : 'unlocked.') : action === 'expand' ? (this.expanded.has(role) ? 'expanded.' : 'collapsed.') : 'active for new objects.'}`;
     });
     this.list.addEventListener('dragstart', event => {
       const button=(event.target as Element).closest<HTMLButtonElement>('.layer-object');
@@ -142,10 +142,6 @@ export class LayersPanel {
 
   render(): void {
     const layers=this.editor.documentLayers;
-    if(!this.editor.documentLayer(this.active))this.active=layers[0]?layerId(layers[0]):'';
-    const selection=this.editor.selectedItems,signature=selection.map(item=>`${layerId(item.layer)}:${item.data.uid}`).join('|'),layer=selection[0]?.layer;
-    if(signature!==this.lastSelection&&layer&&selection.every(item=>item.layer===layer))this.active=layerId(layer);
-    this.lastSelection=signature;
     const remove=this.panel.querySelector<HTMLButtonElement>('[data-layer-delete]')!,activeLayer=this.editor.documentLayer(this.active);
     remove.disabled=!activeLayer||activeLayer.locked;remove.title=activeLayer?.locked?'Unlock the selected layer before deleting':'Delete selected layer';
     const roles=layers.map(layerId);
@@ -165,7 +161,7 @@ export class LayersPanel {
       const objectsId = `layer-objects-${role}`;
       entry.innerHTML = `<div class="layer-row${this.active === role ? ' is-selected' : ''}${!layer.visible ? ' is-hidden' : ''}">
         <button type="button" class="panel-icon layer-expand" data-layer-action="expand" aria-label="${expanded ? 'Collapse' : 'Expand'} ${name}" aria-expanded="${expanded}" aria-controls="${objectsId}">${icon('chevron')}</button>
-        <button type="button" class="layer-select" data-layer-action="select" aria-pressed="${this.active === role}"><span class="layer-dot" aria-hidden="true"></span><span><span class="layer-name">${name}</span><span class="layer-meta">${layer.children.length} ${layer.children.length === 1 ? 'object' : 'objects'}</span></span></button>
+        <button type="button" class="layer-select" data-layer-action="select" title="Draw new objects in ${name}" aria-pressed="${this.active === role}"><span class="layer-dot" aria-hidden="true"></span><span><span class="layer-name">${name}</span><span class="layer-meta">${layer.children.length} ${layer.children.length === 1 ? 'object' : 'objects'}</span></span></button>
         <button type="button" class="panel-icon" data-layer-action="visibility" aria-label="${layer.visible ? 'Hide' : 'Show'} ${name}" title="${layer.visible ? 'Hide' : 'Show'} ${name} on canvas" aria-pressed="${!layer.visible}">${icon(layer.visible ? 'eye' : 'eye-off')}</button>
         <button type="button" class="panel-icon" data-layer-action="lock" aria-label="${layer.locked ? 'Unlock' : 'Lock'} ${name}" title="${layer.locked ? 'Unlock' : 'Lock'} ${name}" aria-pressed="${layer.locked}">${icon(layer.locked ? 'lock' : 'unlock')}</button>
       </div>`;
@@ -189,7 +185,7 @@ export class LayersPanel {
   private canDropObjects(id:string):boolean {
     const layer=this.editor.documentLayer(id),items=this.editor.objects.filter(item=>this.draggedObjects.includes(item.data.uid));
     return !!layer&&layer.visible&&!layer.locked&&items.length===this.draggedObjects.length&&items.length>0
-      &&items.every(item=>item.layer.visible&&!item.layer.locked&&(!item.data.dimension||layerRole(layer)==='artwork'))
+      &&items.every(item=>item.layer.visible&&!item.layer.locked)
       &&items.some(item=>item.layer!==layer);
   }
   private clearDropTarget():void {this.list.querySelectorAll('.is-drop-target').forEach(entry=>entry.classList.remove('is-drop-target'));}

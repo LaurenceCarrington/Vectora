@@ -1,4 +1,3 @@
-import {artworkColor} from './shapeStyles';
 import paper from 'paper';
 import type { CADEditor } from './editor';
 import type { DimensionTool, DimensionData } from './dimensions';
@@ -88,8 +87,8 @@ export class DimensionTools {
     if(!this.active||!isDimensionTool(this.editor.tool)&&!this.pending)return;
     let data=this.pending;
     if(!data&&this.cursor)data=this.data(this.editor.tool as DimensionTool,this.cursor);
-    if(data){const shape=createDimension(data);shape.opacity=0.65;const label=dimensionLabel(shape);add(shape);if(label){label.opacity=0.8;add(label);}}
-    else if(this.points.length&&this.cursor)add(new paper.Path({insert:false,segments:[this.points[0],this.cursor],strokeColor:artworkColor(),strokeWidth:1/paper.view.zoom,dashArray:[4/paper.view.zoom,4/paper.view.zoom]}));
-    for(const point of this.points)add(new paper.Path.Circle({insert:false,center:point,radius:3/paper.view.zoom,fillColor:'white',strokeColor:artworkColor(),strokeWidth:1/paper.view.zoom}));
+    if(data){const shape=createDimension(data);void shape.strokeColor;shape.strokeColor=new paper.Color(this.editor.drawingColor);shape.opacity=0.65;const label=dimensionLabel(shape);add(shape);if(label){label.opacity=0.8;add(label);}}
+    else if(this.points.length&&this.cursor)add(new paper.Path({insert:false,segments:[this.points[0],this.cursor],strokeColor:this.editor.drawingColor,strokeWidth:1/paper.view.zoom,dashArray:[4/paper.view.zoom,4/paper.view.zoom]}));
+    for(const point of this.points)add(new paper.Path.Circle({insert:false,center:point,radius:3/paper.view.zoom,fillColor:'white',strokeColor:this.editor.drawingColor,strokeWidth:1/paper.view.zoom}));
   }
 }

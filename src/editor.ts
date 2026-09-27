@@ -1,5 +1,5 @@
 import paper from 'paper';
-import {artworkColor,hasFilledArea} from './shapeStyles';
+import {hasFilledArea} from './shapeStyles';
 import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
 import { NodeEditing } from './nodeEditing';
@@ -31,6 +31,23 @@ export class CADEditor {
   private extraLayers:paper.Layer[]=[];
   readonly overlays:paper.Layer;
   private selection:Shape[]=[];
+  private drawingLayerId='artwork';
+  private layerSelectionSignature='';
+  get activeLayerId():string {return layerId(this.activeLayer??this.artwork);}
+  get activeLayer():paper.Layer|undefined {return this.documentLayer(this.drawingLayerId)??this.documentLayers.find(layer=>layerRole(layer)==='artwork'&&layer.visible&&!layer.locked)??this.documentLayers.find(layer=>layer.visible&&!layer.locked)??this.documentLayers[0];}
+  get drawingColor():string {return getComputedStyle(document.documentElement).getPropertyValue(layerType(this.activeLayer?layerRole(this.activeLayer):'artwork').color).trim();}
+  setActiveLayer(id:string):void {if(!this.documentLayer(id))return;this.cancel();this.drawingLayerId=id;this.layerSelectionSignature=this.selectionSignature();this.changed();}
+  private selectionSignature():string {return this.selection.map(item=>`${layerId(item.layer)}:${item.data.uid}`).join('|');}
+  private drawingLayer():paper.Layer {const layer=this.activeLayer;if(!layer)throw new Error('Add a layer before drawing.');if(!layer.visible||layer.locked)throw new Error(`Show and unlock ${layer.name} before drawing.`);return layer;}
+  private styleForLayer(item:Shape,layer:paper.Layer):void {
+    // Resolve Paper's lazy colour values before replacing or clearing them.
+    void item.fillColor;void item.strokeColor;
+    const role=layerRole(layer),color=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(role).color).trim());
+    if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
+    else if(item.data.text||(role==='engrave'&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
+    else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=item.data.dimension?1:1.5;item.strokeScaling=false;}
+  }
+  private insertDrawing(item:Shape,layer=this.drawingLayer()):void {item.data.role=layerRole(layer);this.styleForLayer(item,layer);layer.addChild(item);}
   get selectedItems():readonly Shape[] {return this.selection;}
   get selected():Shape|null {return this.selection.length===1?this.selection[0]:null;}
   set selected(item:Shape|null){this.selection=item?[item]:[];}
@@ -128,11 +145,11 @@ export class CADEditor {
     paper.view.zoom=BASE_ZOOM;this.changed();
   }
   snapshot():DocumentSnapshot {
-    return {artwork:JSON.stringify(this.artwork.children.map(i=>i.exportJSON({precision:12}))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>item.exportJSON({precision:12})))}:{})})))};
+    return {activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>i.exportJSON({precision:12}))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>item.exportJSON({precision:12})))}:{})})))};
   }
   newDocument():void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
-    this.loadDocument({artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
+    this.loadDocument({activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
   }
   loadDocument(snapshot:DocumentSnapshot,view:{zoom:number;center:[number,number]}):void {
     this.cancel();const before=this.snapshot(),oldZoom=paper.view.zoom,oldCenter=paper.view.center.clone();
@@ -155,6 +172,7 @@ export class CADEditor {
     }
     const ids=snapshot.selectedIds??(snapshot.selected?[snapshot.selected]:[]);
     this.selection=this.objects.filter(o=>ids.includes(o.data.uid)&&this.isEditable(o));
+    this.drawingLayerId=snapshot.activeLayerId??'artwork';this.layerSelectionSignature=this.selectionSignature();
     this.artwork.activate();this.changed();
   }
   private commit(before:DocumentSnapshot):void {
@@ -180,7 +198,7 @@ export class CADEditor {
       while(this.documentLayers.some(layer=>layer.name===name))name=`${original} ${index++}`;
       layer=this.createDocumentLayer(role,name,crypto.randomUUID());
     }
-    this.commit(before);return layer;
+    this.drawingLayerId=layerId(layer);this.layerSelectionSignature=this.selectionSignature();this.commit(before);return layer;
   }
   deleteDocumentLayer(id:string):boolean {
     this.cancel();const layer=this.documentLayer(id);if(!layer||layer.locked)return false;
@@ -194,7 +212,7 @@ export class CADEditor {
     this.selection=this.selection.filter(item=>this.isEditable(item));this.commit(before);
   }
   canMoveSelectionToLayer(id:string):boolean {
-    const layer=this.documentLayer(id);return !!layer&&layer.visible&&!layer.locked&&this.selection.some(item=>item.layer!==layer&&this.isEditable(item)&&(!item.data.dimension||layerRole(layer)==='artwork'));
+    const layer=this.documentLayer(id);return !!layer&&layer.visible&&!layer.locked&&this.selection.some(item=>item.layer!==layer&&this.isEditable(item));
   }
   moveSelectionToLayer(id:string):number {
     return this.moveObjectsToLayer(id,this.selection);
@@ -202,15 +220,9 @@ export class CADEditor {
   moveObjectsToLayer(id:string,objects:readonly Shape[]):number {
     this.cancel();const layer=this.documentLayer(id);if(!layer)throw new Error('Choose an available destination layer.');
     if(!layer.visible||layer.locked)throw new Error(`Show and unlock ${layer.name} before moving objects.`);
-    const items=objects.filter(item=>this.objects.includes(item)&&item.layer!==layer&&this.isEditable(item)&&(!item.data.dimension||layerRole(layer)==='artwork'));
+    const items=objects.filter(item=>this.objects.includes(item)&&item.layer!==layer&&this.isEditable(item));
     if(!items.length)return 0;const before=this.snapshot(),role=layerRole(layer);
-    const color=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(role).color).trim());
-    for(const item of items){
-      layer.addChild(item);item.data.role=role;
-      if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
-      else if(item.data.text||(role==='engrave'&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
-      else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=1.5;item.strokeScaling=false;}
-    }
+    for(const item of items){layer.addChild(item);item.data.role=role;this.styleForLayer(item,layer);}
     this.selection=items;this.commit(before);return items.length;
   }
   select(item:Shape|null,additive=false):void {
@@ -228,17 +240,18 @@ export class CADEditor {
   }
   fillAt(point:paper.Point):void {
     if(this.noFill){this.clearFillAt(point);return;}
-    if(this.artwork.data.deleted||!this.artwork.visible||this.artwork.locked)throw new Error('Show and unlock Artwork before filling.');
+    const layer=this.drawingLayer();
     const region=regionAt(this.objects,point);
     if(!region){this.onMessage('Click inside an enclosed area. Open gaps cannot be filled.','information');return;}
     const before=this.snapshot();
-    const existing=this.objects.find(item=>item.data.regionFill&&this.isEditable(item)&&layerRole(item.layer)==='artwork'&&item.compare(region));
-    if(existing){region.remove();existing.fillColor=new paper.Color(this.fillColor);existing.data.regionFillColor=this.fillColor;this.selected=existing;}
+    const existing=this.objects.find(item=>item.data.regionFill&&this.isEditable(item)&&item.layer===layer&&item.compare(region));
+    if(existing){region.remove();existing.fillColor=new paper.Color(this.fillColor);existing.data.regionFillColor=this.fillColor;this.styleForLayer(existing,layer);this.selected=existing;}
     else{
-      region.data={uid:crypto.randomUUID(),name:'Colour fill',role:'artwork',regionFill:true,regionFillColor:this.fillColor};region.fillColor=new paper.Color(this.fillColor);region.strokeColor=null;
-      const painted=this.artwork.children.filter(item=>item.fillColor);
+      region.data={uid:crypto.randomUUID(),name:'Colour fill',role:layerRole(layer),regionFill:true,regionFillColor:this.fillColor};region.fillColor=new paper.Color(this.fillColor);region.strokeColor=null;
+      this.styleForLayer(region,layer);
+      const painted=layer.children.filter(item=>item.fillColor);
       const index=painted.length?painted[painted.length-1].index+1:0;
-      this.artwork.insertChild(index,region);this.selected=region;
+      layer.insertChild(index,region);this.selected=region;
     }
     this.commit(before);
   }
@@ -419,19 +432,19 @@ export class CADEditor {
     this.commit(before);
   }
   addShape(item:Shape, name:string):void {
-    const layer=item.data.role==='cutline'?this.cutlines:this.artwork;
+    const layer=item.data.role==='cutline'?this.cutlines:this.drawingLayer();
     if(layer.data.deleted||!layer.visible||layer.locked)throw new Error('Show and unlock the destination layer before adding an object.');
     const before=this.snapshot();
     // Read first so Paper resolves any lazily stored color string before clearing it.
     if(item.fillColor&&!item.data.text&&item.data.rasterTrace?.mode!=='fill')item.fillColor=null;
-    item.data={...item.data,uid:crypto.randomUUID(),role:item.data.role??'artwork',name};
-    (item.data.role==='cutline'?this.cutlines:this.artwork).addChild(item);this.selected=item;this.commit(before);
+    item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name};
+    if(layerRole(layer)!=='artwork')this.styleForLayer(item,layer);layer.addChild(item);this.selected=item;this.commit(before);
   }
   addTracedShapes(items:Shape[],name:string):void {
     if(!items.length)return;
-    if(this.artwork.data.deleted||!this.artwork.visible||this.artwork.locked)throw new Error('Show and unlock Artwork before adding traced vectors.');
+    const layer=this.drawingLayer();
     const before=this.snapshot();
-    items.forEach((item,index)=>{item.data={...item.data,uid:crypto.randomUUID(),role:'artwork',name:items.length>1?`${name} · Path ${index+1}`:name};this.artwork.addChild(item);});
+    items.forEach((item,index)=>{item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name:items.length>1?`${name} · Path ${index+1}`:name};this.insertDrawing(item,layer);});
     this.selection=items;this.commit(before);
   }
   get canMoveSelectionToCutPath():boolean {return this.canMoveSelectionToLayer('cutline');}
@@ -538,7 +551,7 @@ export class CADEditor {
     for(const item of [stem,knob,label]){item.data.role='overlay';this.overlays.addChild(item);}
     stem.data.control='rotation-stem';knob.data.control='rotate';
   }
-  private changed():void {this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
+  private changed():void {const signature=this.selectionSignature(),layer=this.selection[0]?.layer;if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);this.layerSelectionSignature=signature;this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
   private drawOverlay():void {
     // A drawing preview also lives on this layer, so remove selection decorations only.
     for(const child of [...this.overlays.children]) if(child.data.role==='overlay')child.remove();
@@ -599,7 +612,7 @@ export class CADEditor {
   private pointerDown=(event:PointerEvent):void=>{
     if(this.interaction || ![0,1].includes(event.button))return;
     event.preventDefault();this.canvas.focus({preventScroll:true});
-    if(event.button===0&&!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&!this.isDeleteTool&&(this.artwork.data.deleted||!this.artwork.visible||this.artwork.locked)){this.onMessage(this.artwork.data.deleted?'Add an Artwork layer before drawing.':'Show and unlock Artwork before drawing.','warning');return;}
+    if(event.button===0&&!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&!this.isDeleteTool){try{this.drawingLayer();}catch(error){this.onMessage((error as Error).message,'warning');return;}}
     const screen=this.screen(event),point=paper.view.viewToProject(screen);
     const base={id:event.pointerId,start:point,screen,center:paper.view.center.clone(),before:this.snapshot(),snapSpacing:this.gridSnappingActive?this.grid.spacingMM:null};
     if(event.button===1 || this.space){this.activeObjectSnap=null;this.clearDeletePreview();this.interaction={...base,kind:'pan'};}
@@ -776,10 +789,10 @@ export class CADEditor {
     if(state.points.length===1){state.points.push(end);this.previewThreePointArc();return;}
     try{
       const item=this.tool==='arc-endpoints'?createEndpointArc(state.points[0],state.points[1],end,shift):createArc(state.points[0],state.points[1],end);
-      item.strokeColor=new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
+      item.strokeColor=new paper.Color(this.drawingColor);item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
       item.data={...item.data,role:'artwork',uid:crypto.randomUUID(),name:'Arc'};
       if(this.tool==='arc-endpoints'){this.tool='select';this.updateCursor();}
-      state.item.remove();this.threePointArc=null;this.activeObjectSnap=null;this.artwork.addChild(item);this.selected=item;this.commit(state.before);
+      state.item.remove();this.threePointArc=null;this.activeObjectSnap=null;this.insertDrawing(item);this.selected=item;this.commit(state.before);
     }catch(error){this.onMessage((error as Error).message,true);}
   }
   private previewThreePointArc(point?:paper.Point,shift=false):void {
@@ -789,7 +802,7 @@ export class CADEditor {
     let item:paper.Path|null=null;
     if(points.length===3){try{item=this.tool==='arc-endpoints'?createEndpointArc(points[0],points[1],points[2],shift):createArc(points[0],points[1],points[2]);}catch{/* Keep a guide for invalid preview positions. */}}
     if(!item)item=new paper.Path({segments:angleStep?state.points:points,insert:false,dashArray:[4,4]});
-    item.strokeColor=new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
+    item.strokeColor=new paper.Color(this.drawingColor);item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
     state.item.remove();this.overlays.addChild(item);state.item=item;this.changed();
   }
   private segmentEnd(start:paper.Point,point:paper.Point,spacing:number|null,shift:boolean):paper.Point {
@@ -800,7 +813,7 @@ export class CADEditor {
   private addPolylinePoint(point:paper.Point,shift:boolean):void {
     if(!this.polyline){
       const before=this.snapshot(),spacing=this.gridSnappingActive?this.grid.spacingMM:null;
-      const item=new paper.Path({insert:false,closed:false,strokeColor:artworkColor(),strokeWidth:1.5,strokeScaling:false,fillColor:null});
+      const item=new paper.Path({insert:false,closed:false,strokeColor:this.drawingColor,strokeWidth:1.5,strokeScaling:false,fillColor:null});
       this.overlays.addChild(item);this.polyline={points:[this.snapPoint(point,spacing)],item,before,spacing};this.selected=null;
     }else{
       const state=this.polyline,last=state.points[state.points.length-1],end=this.segmentEnd(last,point,state.spacing,shift);
@@ -818,12 +831,12 @@ export class CADEditor {
     if(state.points.length<2){this.cancel();return;}
     this.polyline=null;this.activeObjectSnap=null;state.item.removeSegments();state.item.addSegments(state.points.map(point=>new paper.Segment(point)));
     state.item.data={...state.item.data,role:'artwork',uid:crypto.randomUUID(),name:'Polyline'};
-    this.artwork.addChild(state.item);this.selected=state.item;this.commit(state.before);
+    this.insertDrawing(state.item);this.selected=state.item;this.commit(state.before);
   }
   private appendFreehand(state:Interaction,point:paper.Point,force=false):void {
     if(![state.start.x,state.start.y,point.x,point.y].every(validNumber))return;
     if(!state.item){
-      state.item=new paper.Path({segments:[state.start],insert:false,closed:false,fillColor:null,strokeColor:artworkColor(),strokeWidth:1.5,strokeScaling:false,strokeCap:'round',strokeJoin:'round'});
+      state.item=new paper.Path({segments:[state.start],insert:false,closed:false,fillColor:null,strokeColor:this.drawingColor,strokeWidth:1.5,strokeScaling:false,strokeCap:'round',strokeJoin:'round'});
       this.overlays.addChild(state.item);
     }
     const path=state.item as paper.Path;
@@ -867,7 +880,7 @@ export class CADEditor {
       });
       item=new paper.Path({segments,closed:true,insert:false});
     }else item=new paper.Path.Circle({center:state.start,radius,insert:false});
-    item.fillColor=null;item.strokeColor=new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;
+    item.fillColor=null;item.strokeColor=new paper.Color(this.drawingColor);item.strokeWidth=1.5;item.strokeScaling=false;
     this.overlays.addChild(item);state.item=item;
   }
   private pointerUp=(event:PointerEvent):void=>{
@@ -876,7 +889,7 @@ export class CADEditor {
     this.pointerMove(event);if(state.kind==='draw'&&this.tool==='freehand')this.finishFreehand(state,event);this.interaction=null;this.activeObjectSnap=null;state.originals?.forEach(item=>item.remove());
     if(state.kind==='draw' && state.item) {
       if(this.tool==='line'||this.tool==='freehand'?(state.item as paper.Path).length<MIN_DIMENSION_MM:state.item.bounds.width<MIN_DIMENSION_MM||state.item.bounds.height<MIN_DIMENSION_MM)state.item.remove();
-      else {state.item.data={...state.item.data,role:'artwork',uid:crypto.randomUUID(),name:this.tool[0].toUpperCase()+this.tool.slice(1),...(this.tool==='polygon'?{sides:this.polygonSides}:{})};this.artwork.addChild(state.item);this.selected=state.item;if(this.tool==='arc')this.tool='select';}
+      else {state.item.data={...state.item.data,role:'artwork',uid:crypto.randomUUID(),name:this.tool[0].toUpperCase()+this.tool.slice(1),...(this.tool==='polygon'?{sides:this.polygonSides}:{})};this.insertDrawing(state.item);this.selected=state.item;if(this.tool==='arc')this.tool='select';}
     }
     if(state.kind!=='pan'&&state.kind!=='marquee')this.commit(state.before);
     if(this.canvas.hasPointerCapture(event.pointerId))this.canvas.releasePointerCapture(event.pointerId);

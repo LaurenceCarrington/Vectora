@@ -29,7 +29,7 @@ export function encodeDocument(editor:CADEditor):string {
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
   }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:item.fillColor?.toCSS(true)??null,stroke:item.strokeColor?.toCSS(true)??null,width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
  })}));
- return JSON.stringify({format:'vectora',version:1,units:'mm',layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
+ return JSON.stringify({format:'vectora',version:1,units:'mm',activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
 }
 
 function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string>):JsonObject {
@@ -106,5 +106,6 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  }
  for(const role of ['artwork','cutline'])if(!layerIds.has(role))states.push({id:role,name:role==='artwork'?'Artwork':'Cut Path',role,visible:false,locked:false,deleted:true});
  await Promise.all([...fonts].map(loadTextFont));
- return {snapshot:{artwork,cutlines,layers:JSON.stringify(states),selected:null,selectedIds:[]},view:{zoom,center}};
+ const activeLayerId=file.activeLayerId===undefined?'artwork':id(file.activeLayerId);
+ return {snapshot:{activeLayerId:layerIds.has(activeLayerId)?activeLayerId:'artwork',artwork,cutlines,layers:JSON.stringify(states),selected:null,selectedIds:[]},view:{zoom,center}};
 }

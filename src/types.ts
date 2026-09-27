@@ -4,4 +4,4 @@ export type ToolName = 'fill' | 'dimension-aligned' | 'dimension-linear' | 'dime
 export type ObjectRole = 'artwork' | 'cutline' | 'engrave' | 'construction';
 export interface Vertex { x: number; y: number }
 export interface Contour { points: Vertex[]; closed: boolean }
-export interface DocumentSnapshot { artwork: string; cutlines: string; selected: string | null; selectedIds?: string[]; layers?: string }
+export interface DocumentSnapshot { activeLayerId?:string; artwork: string; cutlines: string; selected: string | null; selectedIds?: string[]; layers?: string }
