@@ -41,7 +41,7 @@ export class CADEditor {
   get activeLayerId():string {return layerId(this.activeLayer??this.artwork);}
   get activeLayer():paper.Layer|undefined {return this.documentLayer(this.drawingLayerId)??this.documentLayers.find(layer=>layerRole(layer)==='artwork'&&layer.visible&&!layer.locked)??this.documentLayers.find(layer=>layer.visible&&!layer.locked)??this.documentLayers[0];}
   get drawingColor():string {return getComputedStyle(document.documentElement).getPropertyValue(layerType(this.activeLayer?layerRole(this.activeLayer):'artwork').color).trim();}
-  setActiveLayer(id:string):void {if(!this.documentLayer(id))return;this.cancel();this.drawingLayerId=id;this.layerSelectionSignature=this.selectionSignature();this.changed();}
+  setActiveLayer(id:string):void {if(!this.documentLayer(id))return;this.cancel();this.drawingLayerId=id;this.layerSelectionSignature=this.selectionSignature();this.changed();this.onDocumentChange();}
   private selectionSignature():string {return this.selection.map(item=>`${layerId(item.layer)}:${item.data.uid}`).join('|');}
   private drawingLayer():paper.Layer {const layer=this.activeLayer;if(!layer)throw new Error('Add a layer before drawing.');if(!layer.visible||layer.locked)throw new Error(`Show and unlock ${layer.name} before drawing.`);return layer;}
   private styleForLayer(item:Shape,layer:paper.Layer):void {
@@ -69,6 +69,8 @@ export class CADEditor {
   activeObjectSnap:ObjectSnap|null=null;
   polygonSides=6;
   onChange:()=>void=()=>{};
+  onDocumentChange:()=>void=()=>{};
+  get hasPendingGesture():boolean {return !!this.interaction||!!this.polyline||!!this.threePointArc||this.nodes.dragging||this.dimensions.active;}
   onTextRequest:(point:paper.Point|null,target:Shape|null)=>void=()=>{};
   textEditing=false;
   private textEditingBounds:paper.Rectangle|null=null;
@@ -178,14 +180,14 @@ export class CADEditor {
     const ids=snapshot.selectedIds??(snapshot.selected?[snapshot.selected]:[]);
     this.selection=this.objects.filter(o=>ids.includes(o.data.uid)&&this.isEditable(o));
     this.drawingLayerId=snapshot.activeLayerId??'artwork';this.layerSelectionSignature=this.selectionSignature();
-    this.artwork.activate();this.changed();
+    this.artwork.activate();this.changed();this.onDocumentChange();
   }
   private commit(before:DocumentSnapshot):void {
     const after=this.snapshot();
     if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers) {
       this.undoStack.push({before,after}); if(this.undoStack.length>100)this.undoStack.shift();this.redoStack=[];
     }
-    this.changed();
+    this.changed();this.onDocumentChange();
   }
   undo():void {this.cancel();const entry=this.undoStack.pop();if(entry){this.redoStack.push(entry);this.restore(entry.before);}}
   redo():void {this.cancel();const entry=this.redoStack.pop();if(entry){this.undoStack.push(entry);this.restore(entry.after);}}

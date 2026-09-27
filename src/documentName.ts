@@ -42,7 +42,7 @@ export class DocumentName {
   setName(value: string): void {
     this.value = value; this.element.textContent = value; this.element.title = 'Click to rename project';
   }
-  private commit(): void {
+  commit(): void {
     const base = (this.element.textContent ?? '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '').trim().replace(/(?:\.vectora)+$/i, '').replace(/[. ]+$/g, '');
     const name = base ? `${Array.from(base).slice(0,180).join('')}.vectora` : this.value;
     const changed = name !== this.value;

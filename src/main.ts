@@ -249,6 +249,7 @@ function update():void {
 editor.onChange=update;editor.onMessage=notify;
 initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
 update();
+void documentFiles.restoreRecovery(()=>inlineText.recoveryDraft);
 initializeClipper().then(()=>{ready=true;$('#wasm-status').textContent='Outline engine ready';update();}).catch(error=>{$('#wasm-status').textContent='Outline engine unavailable. Reload to retry.';notify(`Could not load the outline engine: ${error instanceof Error?error.message:String(error)}`,true);});
 document.addEventListener('pointerdown',e=>{if(!(e.target instanceof Element))return;for(const [menu,trigger] of menus)if(!menu.contains(e.target)&&!trigger.contains(e.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});
 document.addEventListener('keydown',event=>{

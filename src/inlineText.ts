@@ -25,7 +25,8 @@ export class InlineText {
     document.addEventListener('pointerdown',event=>{
       if(this.active&&event.target!==input&&!this.finish(false,false)){event.preventDefault();event.stopImmediatePropagation();}
     },true);
-    window.addEventListener('blur',()=>this.finish(true));
+    window.addEventListener('blur',()=>{this.caret.style.display='none';});
+    window.addEventListener('focus',()=>this.render());
     editor.onTextRequest=(point,source)=>{
       if(this.active&&!this.finish())return;
       editor.cancel();
@@ -37,6 +38,10 @@ export class InlineText {
         .then(()=>{if(this.active===active){active.ready=true;this.render();if(active.finishRequested!==undefined)this.finish(false,active.finishRequested);}})
         .catch(error=>{if(this.active===active){editor.onMessage((error as Error).message,true);this.finish(true);}});
     };
+  }
+  get recoveryDraft():{content:string;sourceId:string|null;point:[number,number]|null}|undefined {
+    const active=this.active;if(!active)return undefined;
+    return {content:this.input.value,sourceId:active.source?.data.uid??null,point:active.point?[active.point.x,active.point.y]:null};
   }
   finish(cancel=false,focus=true):boolean {
     const active=this.active;if(!active)return true;
