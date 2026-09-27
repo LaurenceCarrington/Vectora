@@ -29,7 +29,7 @@ export class Preview3D {
   };
   this.get<HTMLInputElement>('#preview-engraving').onchange=()=>this.rebuild();
   dialog.addEventListener('keydown',event=>{
-   event.stopPropagation();if(event.target===this.renderer?.domElement){const delta=.12;if(event.key==='ArrowLeft')this.orbit(-delta,0);else if(event.key==='ArrowRight')this.orbit(delta,0);else if(event.key==='ArrowUp')this.orbit(0,-delta);else if(event.key==='ArrowDown')this.orbit(0,delta);else if(event.key==='+'||event.key==='=')this.zoom(.85);else if(event.key==='-')this.zoom(1.15);else return;event.preventDefault();}
+   event.stopPropagation();if(event.target===this.renderer?.domElement){const delta=.12;if(event.key.toLowerCase()==='f')this.fit(false);else if(event.key==='ArrowLeft')this.orbit(-delta,0);else if(event.key==='ArrowRight')this.orbit(delta,0);else if(event.key==='ArrowUp')this.orbit(0,-delta);else if(event.key==='ArrowDown')this.orbit(0,delta);else if(event.key==='+'||event.key==='=')this.zoom(.85);else if(event.key==='-')this.zoom(1.15);else return;event.preventDefault();}
   });
   dialog.addEventListener('close',()=>{this.revision++;this.dispose();trigger.setAttribute('aria-expanded','false');trigger.focus({preventScroll:true});});
  }
@@ -42,7 +42,7 @@ export class Preview3D {
    const model=await buildPreviewModel(this.editor.objects);if(revision!==this.revision||!this.dialog.open)return;
    this.model=model;if(!model){this.message('Nothing to preview yet','Move closed outlines to Cut Path or drawing paths to Engrave Path. Artwork and Construction Path stay in the editor.');return;}
    this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor(getComputedStyle(this.stage).getPropertyValue('--preview-background').trim());this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-   const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','3D material preview. Drag to rotate 360 degrees, scroll to zoom. Arrow keys rotate; plus and minus zoom.');canvas.setAttribute('role','img');
+   const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','3D material preview. Drag to rotate, shift or right or middle-drag to pan, scroll or control-drag to zoom. Arrow keys rotate; plus and minus zoom; F fits the model.');canvas.setAttribute('role','img');
    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!this.dialog.open||this.renderer?.domElement!==canvas)return;this.message('3D preview was interrupted','Close and reopen the preview to try again.');});
    this.stage.replaceChildren(canvas);this.stage.setAttribute('aria-busy','false');
    this.scene=new THREE.Scene();this.scene.add(new THREE.HemisphereLight('#ffffff','#697481',2));
@@ -50,7 +50,10 @@ export class Preview3D {
    const fill=new THREE.DirectionalLight('#cfdeff',1.3);fill.position.set(span,span*.7,-span);this.scene.add(fill);
    const underside=new THREE.DirectionalLight('#e4eaff',2);underside.position.set(span,-span*2,-span);this.scene.add(underside);
    this.assembly=new THREE.Group();this.assembly.rotation.x=-Math.PI/2;this.scene.add(this.assembly);
-   this.controls=new OrbitControls(this.camera,canvas);this.controls.enableDamping=!matchMedia('(prefers-reduced-motion: reduce)').matches;this.controls.dampingFactor=.14;this.controls.rotateSpeed=.55;this.controls.zoomSpeed=.8;this.controls.panSpeed=.7;this.controls.minPolarAngle=.00001;this.controls.maxPolarAngle=Math.PI-.00001;this.controls.addEventListener('change',()=>this.render());
+   this.controls=new OrbitControls(this.camera,canvas);this.controls.enableDamping=!matchMedia('(prefers-reduced-motion: reduce)').matches;this.controls.dampingFactor=.22;this.controls.zoomSpeed=.8;this.controls.mouseButtons.MIDDLE=THREE.MOUSE.PAN;this.navigationSensitivity();this.controls.minPolarAngle=.00001;this.controls.maxPolarAngle=Math.PI-.00001;this.controls.addEventListener('change',()=>this.render());
+   // Keep modifier gestures familiar without changing OrbitControls internals.
+   canvas.addEventListener('pointerdown',event=>{if(this.controls&&event.pointerType==='mouse')this.controls.mouseButtons.LEFT=event.ctrlKey||event.metaKey?THREE.MOUSE.DOLLY:THREE.MOUSE.ROTATE;},true);
+   canvas.addEventListener('dblclick',()=>this.fit(false));
    this.renderer.setAnimationLoop(()=>this.controls?.update());
    this.observer.observe(this.stage);this.get('[data-preview-settings]').removeAttribute('inert');this.rebuild();this.resize();this.fit();
   }catch(error){if(revision!==this.revision||!this.dialog.open)return;this.dispose();this.message('Unable to show 3D preview',error instanceof Error?error.message:'Enable hardware acceleration and try again.');}
@@ -82,11 +85,18 @@ export class Preview3D {
   this.get('[data-preview-note]').textContent=[model.stock?'No closed cut outline: showing engraving on a fitted rectangular blank.':'Nested cut outlines create through-holes; separate outlines create separate pieces.',model.openCuts?`${model.openCuts} open cut ${model.openCuts===1?'path is':'paths are'} omitted. Close them to preview a cut-through shape.`:''].filter(Boolean).join(' ');
   this.render();
  }
+ /** Fixed angular and distance-relative pan sensitivity across window sizes. */
+ private navigationSensitivity():void {
+  if(!this.controls)return;
+  const height=this.stage.clientHeight;
+  this.controls.rotateSpeed=height/720; // Half a degree per CSS pixel.
+  this.controls.panSpeed=height*.001/(2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2)));
+ }
  private radius():number {const b=this.model!.bounds;return Math.hypot(b.width,b.height,this.thickness)/2;}
  private fitDistance():number {const fov=THREE.MathUtils.degToRad(this.camera.fov);return this.radius()/Math.sin(Math.min(fov,2*Math.atan(Math.tan(fov/2)*this.camera.aspect))/2)*1.2;}
  private resize():void{
   if(!this.renderer)return;const width=this.stage.clientWidth,height=this.stage.clientHeight;if(!width||!height)return;
-  const oldFit=this.model?this.fitDistance():1;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;
+  const oldFit=this.model?this.fitDistance():1;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;this.navigationSensitivity();
   // Keep the same zoom relative to a fitted view when the viewport changes shape.
   if(this.model&&this.controls){const offset=this.camera.position.clone().sub(this.controls.target);offset.multiplyScalar(this.fitDistance()/oldFit);this.camera.position.copy(this.controls.target).add(offset);}
   this.camera.updateProjectionMatrix();this.controls?.update();this.render();

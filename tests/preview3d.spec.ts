@@ -119,3 +119,22 @@ test('Filled engraving covers interiors, preserves holes and survives layer tran
  expect(result.pixels.hole).toEqual(result.pixels.holeBefore);expect(result.pixels.outside).toEqual(result.pixels.outsideBefore);
  expect(result.legacy).toBe(true);expect(result.traceFill).toBe('#0000ff');expect(result.kinds).toEqual([true,false]);
 });
+
+test('Viewer gestures pan, zoom and fit consistently without changing the design',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto(DEV);await design(page);
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());await page.getByRole('button',{name:'3D preview',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'3D preview',exact:true}),canvas=dialog.locator('canvas');await expect(canvas).toBeVisible();
+ const state=()=>page.evaluate(()=>{const v=(window as any).__preview3D;return {target:v.controls.target.toArray(),distance:v.camera.position.distanceTo(v.controls.target),phi:v.controls.getPolarAngle(),theta:v.controls.getAzimuthalAngle()};});
+ const drag=async(button:'left'|'middle'|'right',dx:number,dy:number,modifier?:'Shift'|'Control')=>{const b=(await canvas.boundingBox())!;if(modifier)await page.keyboard.down(modifier);await page.mouse.move(b.x+b.width*.5,b.y+b.height*.5);await page.mouse.down({button});await page.mouse.move(b.x+b.width*.5+dx,b.y+b.height*.5+dy,{steps:10});await page.mouse.up({button});if(modifier)await page.keyboard.up(modifier);};
+ const panTargets=[];
+ for(const [button,modifier] of [['middle',undefined],['right',undefined],['left','Shift']] as const){
+  await dialog.getByRole('button',{name:'Top view',exact:true}).click();const start=await state();await drag(button,40,25,modifier);const end=await state();expect(end.target).not.toEqual(start.target);expect(end.phi).toBeCloseTo(start.phi,5);expect(end.theta).toBeCloseTo(start.theta,5);panTargets.push(end.target);
+ }
+ panTargets[0].forEach((v,i)=>{expect(panTargets[1][i]).toBeCloseTo(v,5);expect(panTargets[2][i]).toBeCloseTo(v,5);});
+ await dialog.getByRole('button',{name:'Top view',exact:true}).click();const start=await state();await drag('left',0,70,'Control');const zoomed=await state();expect(zoomed.distance).toBeGreaterThan(start.distance);expect(zoomed.target).toEqual(start.target);expect(zoomed.phi).toBeCloseTo(start.phi,5);
+ const angles=[];
+ for(const viewport of [{width:1280,height:900},{width:1024,height:650}]){await page.setViewportSize(viewport);await expect.poll(()=>canvas.evaluate(el=>el.clientHeight)).toBeGreaterThan(200);await dialog.getByRole('button',{name:'Top view',exact:true}).click();await drag('left',35,-70);angles.push(await state());}
+ expect(angles[0].phi).toBeCloseTo(angles[1].phi,5);expect(angles[0].theta).toBeCloseTo(angles[1].theta,5);
+ await drag('right',50,25);const panned=await state();await canvas.focus();await page.keyboard.press('f');const fitted=await state();expect(fitted.target).toEqual([0,1.5,0]);expect(fitted.phi).toBeCloseTo(panned.phi,5);expect(fitted.theta).toBeCloseTo(panned.theta,5);
+ await dialog.getByRole('button',{name:'Close 3D preview',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+});
