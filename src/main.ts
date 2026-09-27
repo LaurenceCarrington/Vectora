@@ -88,14 +88,14 @@ function setPanel(panel:HTMLElement,open:boolean,showExport=false):void {
   exportRequested=panel===props&&open&&showExport;
   updatePropertiesContent();
   props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;
-  if(panel===layers&&open)layersPanel.open(layersButton);
+  if(panel===layers&&open)layersPanel.open();
   for(const [button,target] of [[propertiesButton,props],[layersButton,layers]] as const){button.classList.toggle('selected',!target.hidden);button.setAttribute('aria-pressed',String(!target.hidden));button.setAttribute('aria-expanded',String(!target.hidden));}
 }
 setPanel(props,false);
 propertiesButton.setAttribute('aria-controls','properties-panel');
 propertiesButton.onclick=()=>setPanel(props,props.hidden);
 layersButton.onclick=()=>setPanel(layers,layers.hidden);
-$('#close-properties').onclick=()=>setPanel(props,false);$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
+$('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
 const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu');
 const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')]] as const;
 function closeMenus():void {for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}

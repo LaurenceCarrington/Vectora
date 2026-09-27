@@ -17,24 +17,13 @@ export class LayersPanel {
   private scrollTime = 0;
   private readonly scrollEdge: number;
   private readonly scrollSpeed: number;
-  private drag: { id: number; x: number; y: number; left: number; top: number } | null = null;
   private readonly list: HTMLElement;
-  private readonly grip: HTMLButtonElement;
-  private readonly stage: HTMLElement;
   private readonly status: HTMLElement;
-  private readonly inset: number;
-  private readonly step: number;
-  private readonly bigStep: number;
 
   constructor(private panel: HTMLElement, private editor: CADEditor, close: () => void) {
     this.list = panel.querySelector('.layer-list')!;
-    this.grip = panel.querySelector('[data-panel-drag]')!;
-    this.stage = panel.parentElement!;
     this.status = panel.querySelector('[role="status"]')!;
     const tokens = getComputedStyle(document.documentElement);
-    this.inset = parseInt(tokens.getPropertyValue('--floating-edge-inset'), 10);
-    this.step = parseInt(tokens.getPropertyValue('--drag-step'), 10);
-    this.bigStep = parseInt(tokens.getPropertyValue('--drag-step-large'), 10);
     this.scrollEdge = parseFloat(tokens.getPropertyValue('--layer-drag-scroll-edge'));
     this.scrollSpeed = parseFloat(tokens.getPropertyValue('--layer-drag-scroll-speed'));
     const add=panel.querySelector<HTMLButtonElement>('[data-layer-add]')!,menu=panel.querySelector<HTMLElement>('[data-layer-add-menu]')!;
@@ -141,39 +130,14 @@ export class LayersPanel {
     document.addEventListener('drop',()=>this.finishObjectDrag());
     document.addEventListener('dragend',()=>this.finishObjectDrag());
     window.addEventListener('blur',()=>this.finishObjectDrag());
-    this.grip.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || !event.isPrimary) return;
-      event.preventDefault();
-      this.grip.focus({ preventScroll: true });
-      this.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: panel.offsetLeft, top: panel.offsetTop };
-      this.grip.setPointerCapture(event.pointerId);
-      panel.classList.add('is-dragging');
-    });
-    this.grip.addEventListener('pointermove', event => {
-      if (this.drag?.id === event.pointerId) this.moveTo(this.drag.left + event.clientX - this.drag.x, this.drag.top + event.clientY - this.drag.y);
-    });
-    this.grip.addEventListener('pointerup', () => this.finishDrag());
-    this.grip.addEventListener('pointercancel', () => this.finishDrag(true));
-    this.grip.addEventListener('lostpointercapture', () => this.finishDrag(true));
-    window.addEventListener('blur', () => this.finishDrag(true));
-    this.grip.addEventListener('keydown', event => {
-      const delta: Record<string, number[]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-      const direction = delta[event.key];
-      if (!direction || this.drag) return;
-      event.preventDefault();event.stopPropagation();
-      const step = event.shiftKey ? this.bigStep : this.step;
-      this.moveTo(panel.offsetLeft + direction[0] * step, panel.offsetTop + direction[1] * step);
-      this.status.textContent = 'Layers panel moved.';
-    });
     panel.addEventListener('keydown', event => {
       if ((event.key === 'Enter' || event.code === 'Space') && (event.target as Element).closest('button')) {
         event.stopPropagation();return;
       }
       if (event.key !== 'Escape') return;
       event.preventDefault();event.stopPropagation();
-      if (this.drag) this.finishDrag(true); else close();
+      close();
     });
-    new ResizeObserver(() => { if (!panel.hidden) this.moveTo(panel.offsetLeft, panel.offsetTop); }).observe(this.stage);
   }
 
   render(): void {
@@ -217,12 +181,9 @@ export class LayersPanel {
     }
   }
 
-  open(trigger: HTMLElement): void {
+  open(): void {
     this.finishObjectDrag();
-    this.finishDrag();
-    this.panel.style.left = '';this.panel.style.right = '';
-    this.moveTo(this.panel.offsetLeft, trigger.getBoundingClientRect().top - this.stage.getBoundingClientRect().top);
-    this.grip.focus({ preventScroll: true });
+    this.panel.querySelector<HTMLButtonElement>('[data-panel-close]')!.focus({preventScroll:true});
   }
 
   private canDropObjects(id:string):boolean {
@@ -256,20 +217,4 @@ export class LayersPanel {
     this.list.querySelectorAll('.is-object-dragging').forEach(row=>row.classList.remove('is-object-dragging'));
   }
 
-  private moveTo(x: number, y: number): void {
-    const maxX = Math.max(this.inset, this.stage.clientWidth - this.panel.offsetWidth - this.inset);
-    const maxY = Math.max(this.inset, this.stage.clientHeight - this.panel.offsetHeight - this.inset);
-    this.panel.style.right = 'auto';
-    this.panel.style.left = `${Math.min(maxX, Math.max(this.inset, Math.round(x / this.step) * this.step))}px`;
-    this.panel.style.top = `${Math.min(maxY, Math.max(this.inset, Math.round(y / this.step) * this.step))}px`;
-  }
-
-  private finishDrag(cancel = false): void {
-    const drag = this.drag;this.drag = null;
-    if (!drag) return;
-    if (cancel) this.moveTo(drag.left, drag.top);
-    this.panel.classList.remove('is-dragging');
-    if (this.grip.hasPointerCapture(drag.id)) this.grip.releasePointerCapture(drag.id);
-    this.status.textContent = cancel ? 'Panel move cancelled.' : 'Layers panel moved.';
-  }
 }

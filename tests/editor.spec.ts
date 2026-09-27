@@ -234,9 +234,9 @@ test('production snap toggle and shortcut work without altering existing artwork
   await page.locator('#cad-canvas').focus();await page.keyboard.press('s');
   await expect(page.getByRole('button',{name:'Snapping',exact:true})).toHaveAttribute('aria-pressed','false');
 });
-test('Layers matches reference and controls real objects, visibility, locking and panel movement',async({page})=>{
+test('Layers matches reference and controls real objects, visibility, locking and docking',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  async function panelStyles(){return page.locator('#primary-layers-panel').evaluate(panel=>['.layers-header','.layer-drag','.layer-row','.layer-dot','.layer-footer'].map(selector=>{
+  async function panelStyles(){return page.locator('#primary-layers-panel').evaluate(panel=>['.layers-header','.layer-heading','.layer-row','.layer-dot','.layer-footer'].map(selector=>{
     const style=getComputedStyle(panel.querySelector(selector)!);
     return [style.height,style.padding,style.gap,style.borderRadius,style.backgroundColor,style.fontSize];
   }));}
@@ -248,7 +248,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await page.getByRole('button',{name:'Layers',exact:true}).click();
   const panel=page.locator('#primary-layers-panel');
   await expect(panel).toBeVisible();expect(await panelStyles()).toEqual(reference);
-  const box=(await panel.boundingBox())!;expect(box.width).toBe(360);expect(box.height).toBe(488);
+  const box=(await panel.boundingBox())!;expect(box.width).toBe(360);expect(box.y).toBe(60);expect(box.height).toBe(840);
   await expect(panel.locator('[data-layer-count]')).toHaveText('4');
   await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toBeEnabled();
   await expect(panel.getByRole('button',{name:'Delete selected layer'})).toBeEnabled();
@@ -274,16 +274,13 @@ test('Layers matches reference and controls real objects, visibility, locking an
   expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
   await panel.getByRole('button',{name:'Unlock Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Rectangle',exact:true}).click();
-  const grip=panel.getByRole('button',{name:'Move Layers panel'});
-  await grip.focus();await page.keyboard.press('Shift+ArrowLeft');
-  expect((await panel.boundingBox())!.x).toBe(box.x-10);
-  const gripBox=(await grip.boundingBox())!;
-  await page.mouse.move(gripBox.x+20,gripBox.y+20);await page.mouse.down();await page.mouse.move(gripBox.x-100,gripBox.y+90);await page.keyboard.press('Escape');await page.mouse.up();
-  expect((await panel.boundingBox())!.x).toBe(box.x-10);
+  const header=panel.locator('.layer-heading'),headerBox=(await header.boundingBox())!;
+  await page.mouse.move(headerBox.x+20,headerBox.y+20);await page.mouse.down();await page.mouse.move(headerBox.x-100,headerBox.y+90);await page.mouse.up();
+  expect(await panel.boundingBox()).toEqual(box);
   await page.screenshot({path:'test-results/layers-panel.png',animations:'disabled'});
   await page.setViewportSize({width:650,height:750});
-  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x>=16&&b.x+b.width<=634&&b.y+b.height<=734;}).toBe(true);
-  await grip.focus();await page.keyboard.press('Escape');await expect(panel).toBeHidden();
+  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x+b.width===590&&b.y===60&&b.y+b.height===750;}).toBe(true);
+  await panel.getByRole('button',{name:'Close Layers panel'}).focus();await page.keyboard.press('Escape');await expect(panel).toBeHidden();
   await expect(page.getByRole('button',{name:'Layers',exact:true})).toBeFocused();expect(errors).toEqual([]);
 });
 test('ellipse and regular polygon support millimetre snapping, sides, cancellation, history and outlines',async({page})=>{

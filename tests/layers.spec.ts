@@ -81,7 +81,7 @@ test('Layer drag highlights valid targets and cancelled or blocked drops leave o
 });
 
 test('Holding a layer object at list edges scrolls both directions, stops away from edges and drops onto revealed layers',async({page})=>{
-  await page.goto(DEV);await seed(page);await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<10;i++)e.addDocumentLayer('engrave');});await open(page);
+  await page.goto(DEV);await seed(page);await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<14;i++)e.addDocumentLayer('engrave');});await open(page);
   const panel=page.locator('#primary-layers-panel'),list=panel.locator('.layer-list');await panel.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   const source=panel.locator('[data-layer-id="artwork"] .layer-object');await source.scrollIntoViewIfNeeded();const bounds=(await list.boundingBox())!,from=(await source.boundingBox())!,x=bounds.x+bounds.width/2;
   const initial=await list.evaluate(el=>el.scrollTop);expect(initial).toBeGreaterThan(400);const header=await panel.locator('.layers-header').boundingBox(),footer=await panel.locator('.layer-footer').boundingBox();
@@ -105,4 +105,22 @@ test('Cancelling an edge-scrolling layer drag stops scrolling without moving obj
   const panel=page.locator('#primary-layers-panel'),list=panel.locator('.layer-list'),source=panel.getByRole('button',{name:'First',exact:true});await source.scrollIntoViewIfNeeded();const from=(await source.boundingBox())!,bounds=(await list.boundingBox())!,before=await page.evaluate(()=>(window as any).__vectora.snapshot()),initial=await list.evaluate(el=>el.scrollTop);
   await page.mouse.move(from.x+25,from.y+from.height/2);await page.mouse.down();await page.mouse.move(from.x+40,from.y+from.height/2,{steps:5});await page.mouse.move(bounds.x+100,bounds.y+5,{steps:8});await expect.poll(()=>list.evaluate(el=>el.scrollTop)).toBeLessThan(initial-60);
   await page.keyboard.press('Escape');await page.mouse.up();const stopped=await list.evaluate(el=>el.scrollTop);await page.waitForTimeout(200);expect(await list.evaluate(el=>el.scrollTop)).toBe(stopped);expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+});
+
+test('Layers and Properties expand into the same full-height dock at every viewport size',async({page})=>{
+ await page.goto(DEV);await seed(page);
+ for(const viewport of [{width:1280,height:900},{width:390,height:844},{width:1024,height:450}]){
+  await page.setViewportSize(viewport);
+  for(const [name,id] of [['Layers','primary-layers-panel'],['Properties','properties-panel']]){
+   const trigger=page.getByRole('button',{name,exact:true});await trigger.click();const panel=page.locator('#'+id);await expect(panel).toBeVisible();
+   const top=(await page.locator('.top-toolbar').boundingBox())!,rail=(await page.locator('.right-toolbar').boundingBox())!;
+   await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.y===top.height&&b.y+b.height===viewport.height&&b.x+b.width===rail.x&&b.x>=60;}).toBe(true);
+   await expect(page.locator(name==='Layers'?'#properties-panel':'#primary-layers-panel')).toBeHidden();
+   const header=panel.locator('.layers-header'),before=await header.boundingBox();
+   await panel.locator(name==='Layers'?'.layer-list':'.editor-panel-body').evaluate(el=>el.scrollTop=el.scrollHeight);
+   expect(await header.boundingBox()).toEqual(before);
+   await expect(panel.locator(name==='Layers'?'#close-layers':'#close-properties')).toBeInViewport();
+  }
+  await page.locator('#close-properties').click();await expect(page.getByRole('button',{name:'Properties',exact:true})).toBeFocused();
+ }
 });
