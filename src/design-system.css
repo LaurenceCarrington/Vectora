@@ -98,6 +98,7 @@
   --button-warning-foreground: var(--color-text);
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
+  --toolbar-radius: 0px;
   --toolbar-padding: 8px;
   --toolbar-gap: 4px;
   --toolbar-width: 60px;
@@ -193,7 +194,7 @@ section { margin-top: var(--space-32); }
 .preview-inner { position: relative; min-width: 940px; height: 640px; }
 .preview-caption { position: absolute; color: var(--color-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
 .top-caption { top: 0; left: 50%; transform: translateX(-50%); }
-.toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--radius-pill); align-items: center; width: fit-content; }
+.toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
 .top-toolbar { position: absolute; top: var(--workspace-edge-inset); left: 50%; transform: translateX(-50%); }
 .brand { font-size: var(--text-xl); font-weight: 650; display: flex; gap: 10px; align-items: center; padding: 0 12px; }
 svg { width: var(--icon-lg); height: var(--icon-lg); stroke: currentColor; fill: none; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -235,6 +236,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--color-foc
 .space-sample { display: flex; align-items: center; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); }
 .space-sample i { display: block; background: var(--color-toolbar); width: var(--sample); height: var(--sample); border-radius: 2px; }
 table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: var(--color-muted); text-align: left; font-weight: 500; }th,td { padding: 10px 0; border-bottom: 2px solid var(--color-canvas); }th:last-child,td:last-child { text-align: right; } td code { font-size: 12px; }
+/* All toolbar shells, including floating selection, use square corners at every screen size. */
 /* Pop-out menus: shared by the toolbar and the component specimen. */
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 2px; height: 2px; padding: 0; margin: -2px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -270,7 +272,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 /* Floating selection menu: the grip is the only drag target. */
 .floating-stage-wrap { overflow-x: auto; border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background: #EAEAE7; }
 .floating-stage { position: relative; min-width: 600px; height: 240px; }
-.floating-menu { position: absolute; top: 64px; left: 24px; display: flex; align-items: center; gap: var(--floating-gap); padding: var(--floating-padding); width: max-content; background: var(--color-toolbar); color: var(--color-surface); border-radius: var(--radius-pill); box-shadow: var(--menu-shadow); }
+.floating-menu { position: absolute; top: 64px; left: 24px; display: flex; align-items: center; gap: var(--floating-gap); padding: var(--floating-padding); width: max-content; background: var(--color-toolbar); color: var(--color-surface); border-radius: var(--toolbar-radius); box-shadow: var(--menu-shadow); }
 .drag-handle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 var(--drag-handle-width); width: var(--drag-handle-width); height: var(--floating-control-height); padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--color-on-toolbar-muted); cursor: grab; touch-action: none; user-select: none; }
 .drag-handle svg { width: var(--icon-sm); height: var(--icon-sm); }
 .drag-handle:hover, .drag-handle:focus-visible { background: var(--color-hover); color: var(--color-surface); }
@@ -283,7 +285,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .floating-menu .divider { height:20px; margin:0 var(--space-4); }
 .floating-menu { max-width:calc(100% - 2 * var(--floating-edge-inset)); flex-wrap:wrap; }
 .floating-menu .floating-action:disabled { opacity:1; background:transparent; border-color:transparent; color:#999999; cursor:not-allowed; }
-@media(max-width:600px) { .floating-menu { border-radius:var(--radius-menu); } }
+
 
 
 

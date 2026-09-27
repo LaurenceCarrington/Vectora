@@ -100,6 +100,7 @@
   --button-warning-foreground: var(--color-text);
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
+  --toolbar-radius: 0px;
   --toolbar-padding: 8px;
   --toolbar-gap: 4px;
   --toolbar-width: 60px;
@@ -195,7 +196,7 @@ section { margin-top: var(--space-32); }
 .preview-inner { position: relative; min-width: 940px; height: 640px; }
 .preview-caption { position: absolute; color: var(--color-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
 .top-caption { top: 0; left: 50%; transform: translateX(-50%); }
-.toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--radius-pill); align-items: center; width: fit-content; }
+.toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
 .top-toolbar { position: absolute; top: var(--workspace-edge-inset); left: 50%; transform: translateX(-50%); }
 .brand { font-size: var(--text-xl); font-weight: 650; display: flex; gap: 10px; align-items: center; padding: 0 12px; }
 svg { width: var(--icon-lg); height: var(--icon-lg); stroke: currentColor; fill: none; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -237,6 +238,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--color-foc
 .space-sample { display: flex; align-items: center; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); }
 .space-sample i { display: block; background: var(--color-toolbar); width: var(--sample); height: var(--sample); border-radius: 2px; }
 table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: var(--color-muted); text-align: left; font-weight: 500; }th,td { padding: 10px 0; border-bottom: 2px solid var(--color-canvas); }th:last-child,td:last-child { text-align: right; } td code { font-size: 12px; }
+/* All toolbar shells, including floating selection, use square corners at every screen size. */
 /* Pop-out menus: shared by the toolbar and the component specimen. */
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 2px; height: 2px; padding: 0; margin: -2px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -272,7 +274,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 /* Floating selection menu: the grip is the only drag target. */
 .floating-stage-wrap { overflow-x: auto; border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background: #EAEAE7; }
 .floating-stage { position: relative; min-width: 600px; height: 240px; }
-.floating-menu { position: absolute; top: 64px; left: 24px; display: flex; align-items: center; gap: var(--floating-gap); padding: var(--floating-padding); width: max-content; background: var(--color-toolbar); color: var(--color-surface); border-radius: var(--radius-pill); box-shadow: var(--menu-shadow); }
+.floating-menu { position: absolute; top: 64px; left: 24px; display: flex; align-items: center; gap: var(--floating-gap); padding: var(--floating-padding); width: max-content; background: var(--color-toolbar); color: var(--color-surface); border-radius: var(--toolbar-radius); box-shadow: var(--menu-shadow); }
 .drag-handle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 var(--drag-handle-width); width: var(--drag-handle-width); height: var(--floating-control-height); padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--color-on-toolbar-muted); cursor: grab; touch-action: none; user-select: none; }
 .drag-handle svg { width: var(--icon-sm); height: var(--icon-sm); }
 .drag-handle:hover, .drag-handle:focus-visible { background: var(--color-hover); color: var(--color-surface); }
@@ -285,7 +287,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .floating-menu .divider { height:20px; margin:0 var(--space-4); }
 .floating-menu { max-width:calc(100% - 2 * var(--floating-edge-inset)); flex-wrap:wrap; }
 .floating-menu .floating-action:disabled { opacity:1; background:transparent; border-color:transparent; color:#999999; cursor:not-allowed; }
-@media(max-width:600px) { .floating-menu { border-radius:var(--radius-menu); } }
+
 
 
 
@@ -1087,7 +1089,7 @@ SOFTWARE.
  </div>
 </div></div>
 <div class="floating-caption"><p id="floating-help">Drag the six-dot grip to move. Focus the grip and use arrow keys for 2px steps; Shift + arrow moves 10px.</p><p>32px grip &amp; controls · 4px padding · 40px shell</p></div>
-<p class="subtext" style="margin-top:8px">A compact 40px-high charcoal pill with a 12px selection count and 16px action icons, smaller than the main toolbars. Close path, Join, Explode, Flip horizontal, Flip vertical and Nest use 32px square icon-only buttons with accessible names and hover labels. Close path shows two endpoints connected by a dashed closing segment. Visible only when one or more objects are selected, with a live selection count. The editor starts the menu at the bottom centre above the footer; drag to reposition it, with the position retained while working. It stays inside the workspace and wraps on narrow screens. Close path is enabled for selected open paths on the same layer. Connect the nearest pair of endpoints, reversing path direction when needed, then repeat until one outline remains and close its final gap with a straight segment. A single open curve or polyline closes directly between its endpoints. Existing curves stay exact; coincident endpoints merge without an extra segment. Preserve closed contours, layer and stroke style, clear circular-arc controls after closing, and select the result. Grid snapping does not move the geometry. The action is one undo step and does not open Properties. Closed shapes, a lone straight line and mixed-layer open selections cannot be closed. Join combines two or more selected shapes on the same layer into one selectable object, preserving every contour, open endpoint and curve in place. The joined shape moves, rotates, resizes, duplicates, transfers layers and deletes as one; Layers and the selection menu show one object. Click any component to select the whole. Joining adds no connecting lines and keeps overlapping outlines intact. Existing joins can be joined again. Explode reverses joining: each contour in a selected joined shape or compound outline becomes a separate selectable path, preserving its exact curves, position, open/closed state and layer colour. Inner outlines become independent paths too. Explode keeps simple paths and editable text unchanged; use Convert to path for text. Select all resulting paths, preserve untouched selected objects, and record one undo step. Disable Explode when no compound outline is selected or while editing text or drawing. Use one undo step and keep Properties visibility unchanged. Disable Join for fewer than two objects, mixed layers or an active drawing gesture. Flip horizontal mirrors left/right across the combined selection centre; Flip vertical mirrors top/bottom. Both preserve exact curves, object positions relative to the mirrored selection, original layers and styles. Text stays editable and circular arcs retain their radius and arc controls with a reversed sweep. All objects remain selected. Each flip is one undo step; flipping twice restores the geometry. Buttons are disabled while typing or drawing, and Properties stays closed unless already open. Nest remains a disabled placeholder.</p>
+<p class="subtext" style="margin-top:8px">A compact 40px-high charcoal toolbar with square corners with a 12px selection count and 16px action icons, smaller than the main toolbars. Close path, Join, Explode, Flip horizontal, Flip vertical and Nest use 32px square icon-only buttons with accessible names and hover labels. Close path shows two endpoints connected by a dashed closing segment. Visible only when one or more objects are selected, with a live selection count. The editor starts the menu at the bottom centre above the footer; drag to reposition it, with the position retained while working. It stays inside the workspace and wraps on narrow screens. Close path is enabled for selected open paths on the same layer. Connect the nearest pair of endpoints, reversing path direction when needed, then repeat until one outline remains and close its final gap with a straight segment. A single open curve or polyline closes directly between its endpoints. Existing curves stay exact; coincident endpoints merge without an extra segment. Preserve closed contours, layer and stroke style, clear circular-arc controls after closing, and select the result. Grid snapping does not move the geometry. The action is one undo step and does not open Properties. Closed shapes, a lone straight line and mixed-layer open selections cannot be closed. Join combines two or more selected shapes on the same layer into one selectable object, preserving every contour, open endpoint and curve in place. The joined shape moves, rotates, resizes, duplicates, transfers layers and deletes as one; Layers and the selection menu show one object. Click any component to select the whole. Joining adds no connecting lines and keeps overlapping outlines intact. Existing joins can be joined again. Explode reverses joining: each contour in a selected joined shape or compound outline becomes a separate selectable path, preserving its exact curves, position, open/closed state and layer colour. Inner outlines become independent paths too. Explode keeps simple paths and editable text unchanged; use Convert to path for text. Select all resulting paths, preserve untouched selected objects, and record one undo step. Disable Explode when no compound outline is selected or while editing text or drawing. Use one undo step and keep Properties visibility unchanged. Disable Join for fewer than two objects, mixed layers or an active drawing gesture. Flip horizontal mirrors left/right across the combined selection centre; Flip vertical mirrors top/bottom. Both preserve exact curves, object positions relative to the mirrored selection, original layers and styles. Text stays editable and circular arcs retain their radius and arc controls with a reversed sweep. All objects remain selected. Each flip is one undo step; flipping twice restores the geometry. Buttons are disabled while typing or drawing, and Properties stays closed unless already open. Nest remains a disabled placeholder.</p>
 <svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 180" aria-label="Close path joins the nearest open endpoints" role="img"><path d="M220 130V50H310M320 50H420V130" fill="none" stroke="var(--color-selection)"/><path id="close-path-demo-segments" d="M310 50H320M420 130H220" fill="none" stroke="var(--color-selection)" stroke-dasharray="4 4"/></svg><p class="drag-status" id="floating-status" role="status">Grip on the left · drag to reposition</p>
 </section>
 <section aria-labelledby="dropdown-heading">
@@ -1358,6 +1360,7 @@ SOFTWARE.
   --button-warning-foreground: var(--color-text);
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
+  --toolbar-radius: 0px;
   --toolbar-padding: 8px;
   --toolbar-gap: 4px;
   --toolbar-width: 60px;
