@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {TrackballControls} from 'three/addons/controls/TrackballControls.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import type {CADEditor} from './editor';
 import {buildPreviewModel,type PreviewModel} from './previewModel';
 import {PREVIEW_MATERIALS,materialCanvas} from './previewMaterials';
@@ -8,7 +8,7 @@ export class Preview3D {
  private renderer:THREE.WebGLRenderer|null=null;
  private scene=new THREE.Scene();
  private camera=new THREE.PerspectiveCamera(38,1,.01,10000);
- private controls:TrackballControls|null=null;
+ private controls:OrbitControls|null=null;
  private model:PreviewModel|null=null;
  private assembly=new THREE.Group();
  private observer:ResizeObserver;
@@ -25,7 +25,7 @@ export class Preview3D {
   this.get<HTMLSelectElement>('#preview-material').onchange=event=>{this.material=PREVIEW_MATERIALS.find(m=>m.id===(event.target as HTMLSelectElement).value)!;this.rebuild();};
   const thickness=this.get<HTMLInputElement>('#preview-thickness');thickness.oninput=()=>{
    const n=thickness.valueAsNumber,valid=Number.isFinite(n)&&n>=.1&&n<=100;thickness.setAttribute('aria-invalid',String(!valid));this.get('[data-preview-validation]').hidden=valid;
-   if(valid){this.thickness=n;this.rebuild();this.fit();}
+   if(valid){this.thickness=n;this.rebuild();this.fit(false);}
   };
   this.get<HTMLInputElement>('#preview-engraving').onchange=()=>this.rebuild();
   dialog.addEventListener('keydown',event=>{
@@ -50,7 +50,7 @@ export class Preview3D {
    const fill=new THREE.DirectionalLight('#cfdeff',1.3);fill.position.set(span,span*.7,-span);this.scene.add(fill);
    const underside=new THREE.DirectionalLight('#e4eaff',2);underside.position.set(span,-span*2,-span);this.scene.add(underside);
    this.assembly=new THREE.Group();this.assembly.rotation.x=-Math.PI/2;this.scene.add(this.assembly);
-   this.controls=new TrackballControls(this.camera,canvas);this.controls.staticMoving=true;this.controls.rotateSpeed=3;this.controls.keys=['','',''];this.controls.addEventListener('change',()=>this.render());
+   this.controls=new OrbitControls(this.camera,canvas);this.controls.enableDamping=!matchMedia('(prefers-reduced-motion: reduce)').matches;this.controls.dampingFactor=.14;this.controls.rotateSpeed=.55;this.controls.zoomSpeed=.8;this.controls.panSpeed=.7;this.controls.minPolarAngle=.00001;this.controls.maxPolarAngle=Math.PI-.00001;this.controls.addEventListener('change',()=>this.render());
    this.renderer.setAnimationLoop(()=>this.controls?.update());
    this.observer.observe(this.stage);this.get('[data-preview-settings]').removeAttribute('inert');this.rebuild();this.resize();this.fit();
   }catch(error){if(revision!==this.revision||!this.dialog.open)return;this.dispose();this.message('Unable to show 3D preview',error instanceof Error?error.message:'Enable hardware acceleration and try again.');}
@@ -89,19 +89,19 @@ export class Preview3D {
   const oldFit=this.model?this.fitDistance():1;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;
   // Keep the same zoom relative to a fitted view when the viewport changes shape.
   if(this.model&&this.controls){const offset=this.camera.position.clone().sub(this.controls.target);offset.multiplyScalar(this.fitDistance()/oldFit);this.camera.position.copy(this.controls.target).add(offset);}
-  this.camera.updateProjectionMatrix();this.controls?.handleResize();this.controls?.update();this.render();
+  this.camera.updateProjectionMatrix();this.controls?.update();this.render();
  }
- private fit(top=false):void{
+ private fit(top=true):void{
   if(!this.model||!this.controls)return;
+  // Drain inertia before assigning an exact view, so Reset cannot drift afterwards.
+  const damping=this.controls.enableDamping;this.controls.enableDamping=false;this.controls.update();
+  const direction=top?new THREE.Vector3(0,1,.00001):this.camera.position.clone().sub(this.controls.target).normalize();
   this.controls.target.set(0,this.thickness/2,0);this.camera.up.set(0,1,0);
-  const direction=top?new THREE.Vector3(0,1,.00001):new THREE.Vector3(.55,1,1.1).normalize();
-  this.camera.position.copy(this.controls.target).addScaledVector(direction,this.fitDistance());this.updateClipping();this.controls.update();this.render();
+  this.camera.position.copy(this.controls.target).addScaledVector(direction,this.fitDistance());this.updateClipping();this.controls.update();this.controls.enableDamping=damping;this.render();
  }
  private orbit(theta:number,phi:number):void{
   if(!this.controls)return;
-  const offset=this.camera.position.clone().sub(this.controls.target),right=new THREE.Vector3().crossVectors(this.camera.up,offset).normalize();
-  const turn=new THREE.Quaternion().setFromAxisAngle(this.camera.up,theta),tilt=new THREE.Quaternion().setFromAxisAngle(right,phi);turn.premultiply(tilt);
-  offset.applyQuaternion(turn);this.camera.up.applyQuaternion(turn).normalize();this.camera.position.copy(this.controls.target).add(offset);this.controls.update();
+  this.controls.rotateLeft(-theta);this.controls.rotateUp(-phi);
  }
  /** Keep the camera outside the solid and fit its depth range to the whole model. */
  private updateClipping():void{

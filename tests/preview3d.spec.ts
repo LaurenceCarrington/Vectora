@@ -55,16 +55,24 @@ async function previewCameraState(page:any){return page.evaluate(()=>{
  return {y:c.position.y,center:p.thickness/2,near:c.near,far:c.far,minDepth:Math.min(...depths),maxDepth:Math.max(...depths),position:c.position.toArray(),up:c.up.toArray()};
 });}
 
-test('Preview rotates past both poles and keeps the whole solid between clipping planes',async({page})=>{
- await page.goto(DEV);await design(page);await page.getByRole('button',{name:'3D preview',exact:true}).click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true}),canvas=dialog.locator('canvas');await expect(canvas).toBeVisible();await dialog.getByRole('button',{name:'Top view',exact:true}).click();await canvas.focus();
- let underside=false;for(let i=0;i<54;i++){await page.keyboard.press('ArrowDown');const state=await previewCameraState(page);if(state.y<state.center)underside=true;expect(state.minDepth).toBeGreaterThan(state.near);expect(state.maxDepth).toBeLessThan(state.far);}
- expect(underside).toBe(true);const top=await previewCameraState(page);expect(top.y).toBeGreaterThan(top.center);
- // Actual pointer rotation must also reach the underside, not just keyboard rotation.
- await dialog.getByRole('button',{name:'Reset view',exact:true}).click();const box=(await canvas.boundingBox())!;
- await page.mouse.move(box.x+box.width/2,box.y+box.height*.2);await page.mouse.down();await page.mouse.move(box.x+box.width/2,box.y+box.height*.9,{steps:24});await page.mouse.up();await expect.poll(async()=>{const s=await previewCameraState(page);return s.y<s.center;}).toBe(true);
- await dialog.screenshot({path:'test-results/preview3d-underside.png'});
- await canvas.focus();for(let i=0;i<35;i++)await page.keyboard.press('+');for(let i=0;i<26;i++){await page.keyboard.press('ArrowRight');const s=await previewCameraState(page);expect(s.minDepth).toBeGreaterThan(s.near);expect(s.maxDepth).toBeLessThan(s.far);}
+test('Preview opens at the top, turns without roll, and retains clipping protection',async({page})=>{
+ await page.goto(DEV);await design(page);const trigger=page.getByRole('button',{name:'3D preview',exact:true});await trigger.click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true}),canvas=dialog.locator('canvas');await expect(canvas).toBeVisible();
+ const isTop=async()=>page.evaluate(()=>{const p=(window as any).__preview3D;return p.controls.getPolarAngle()<.0001&&Math.abs(p.controls.getAzimuthalAngle())<.0001;});expect(await isTop()).toBe(true);
+ await canvas.focus();for(let i=0;i<24;i++)await page.keyboard.press('ArrowDown');await expect.poll(async()=>{const s=await previewCameraState(page);return s.y<s.center;}).toBe(true);
+ for(let i=0;i<54;i++){await page.keyboard.press('ArrowRight');const state=await previewCameraState(page);expect(state.up).toEqual([0,1,0]);expect(state.minDepth).toBeGreaterThan(state.near);expect(state.maxDepth).toBeLessThan(state.far);}
+ // Reset during movement must discard inertia and remain at the requested top view.
+ await dialog.getByRole('button',{name:'Reset view',exact:true}).click();expect(await isTop()).toBe(true);await page.waitForTimeout(350);expect(await isTop()).toBe(true);
+ const box=(await canvas.boundingBox())!;await page.mouse.move(box.x+box.width/2,box.y+box.height*.85);await page.mouse.down();await page.mouse.move(box.x+box.width/2,box.y+box.height*.15,{steps:24});await page.mouse.up();await expect.poll(async()=>{const s=await previewCameraState(page);return s.y<s.center;}).toBe(true);
+ expect((await previewCameraState(page)).up).toEqual([0,1,0]);await dialog.screenshot({path:'test-results/preview3d-underside.png'});
+ await canvas.focus();for(let i=0;i<35;i++)await page.keyboard.press('+');for(let i=0;i<26;i++){await page.keyboard.press('ArrowLeft');const s=await previewCameraState(page);expect(s.minDepth).toBeGreaterThan(s.near);expect(s.maxDepth).toBeLessThan(s.far);}
  await dialog.getByLabel('Material thickness').fill('100');await canvas.focus();for(let i=0;i<20;i++)await page.keyboard.press('+');const thick=await previewCameraState(page);expect(thick.minDepth).toBeGreaterThan(thick.near);expect(thick.maxDepth).toBeLessThan(thick.far);
+ await dialog.getByRole('button',{name:'Close 3D preview',exact:true}).click();await trigger.click();await expect(canvas).toBeVisible();expect(await isTop()).toBe(true);
+});
+
+test('Equal drags rotate consistently anywhere on the canvas and reduced motion stops inertia',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto(DEV);await design(page);await page.getByRole('button',{name:'3D preview',exact:true}).click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true}),canvas=dialog.locator('canvas');await expect(canvas).toBeVisible();const box=(await canvas.boundingBox())!,angles=[];
+ for(const x of [.2,.8]){await dialog.getByRole('button',{name:'Top view',exact:true}).click();await page.mouse.move(box.x+box.width*x,box.y+box.height*.65);await page.mouse.down();await page.mouse.move(box.x+box.width*x+30,box.y+box.height*.4,{steps:12});await page.mouse.up();angles.push(await page.evaluate(()=>{const p=(window as any).__preview3D;return [p.controls.getPolarAngle(),p.controls.getAzimuthalAngle()];}));}
+ expect(angles[0][0]).toBeCloseTo(angles[1][0],4);expect(angles[0][1]).toBeCloseTo(angles[1][1],4);const before=await previewCameraState(page);await page.waitForTimeout(150);expect((await previewCameraState(page)).position).toEqual(before.position);
 });
 
 test('Short preview windows contain the canvas and keep controls reachable after resizing',async({page})=>{
