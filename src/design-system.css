@@ -99,6 +99,7 @@
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
   --toolbar-radius: 0px;
+  --menu-z-index: 20;
   --toolbar-padding: 4px;
   --toolbar-gap: 2px;
   --toolbar-width: 44px;
@@ -804,3 +805,8 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .layer-name { font-weight:400; }.layer-meta { font-size:11px; line-height:16px; }
 .menu-title { font-size:12px; font-weight:500; letter-spacing:.5px; }
 .shape-option,.dropdown-option { font-size:13px; font-weight:400; }
+
+/* Raise the owning stacking context so flyouts clear other rails and docked panels. */
+.toolbar:has(.file-dropdown:not([hidden]),.shapes-menu:not([hidden])),
+.layers-panel:has(.layer-add-menu:not([hidden])) { z-index:var(--menu-z-index); }
+.node-context-menu,.callout-editor { z-index:var(--menu-z-index); }

@@ -101,6 +101,7 @@
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
   --toolbar-radius: 0px;
+  --menu-z-index: 20;
   --toolbar-padding: 4px;
   --toolbar-gap: 2px;
   --toolbar-width: 44px;
@@ -806,6 +807,11 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .layer-name { font-weight:400; }.layer-meta { font-size:11px; line-height:16px; }
 .menu-title { font-size:12px; font-weight:500; letter-spacing:.5px; }
 .shape-option,.dropdown-option { font-size:13px; font-weight:400; }
+
+/* Raise the owning stacking context so flyouts clear other rails and docked panels. */
+.toolbar:has(.file-dropdown:not([hidden]),.shapes-menu:not([hidden])),
+.layers-panel:has(.layer-add-menu:not([hidden])) { z-index:var(--menu-z-index); }
+.node-context-menu,.callout-editor { z-index:var(--menu-z-index); }
 </style></head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
@@ -1134,7 +1140,7 @@ SOFTWARE.
  </div>
  <div class="menu-guidance">
   <h3>The same menu, opening down.</h3>
-  <p>A charcoal panel sits below the File button, with its left edge aligned to the button. The existing File icon turns blue while its menu is open.</p>
+  <p>A charcoal panel sits below the File button, with its left edge aligned to the button. Open flyouts raise their owning toolbar above all other rails and docked panels, so menu labels and click targets are never obscured. Closing a menu restores the normal stacking order; modal dialogs retain priority. The existing File icon turns blue while its menu is open.</p>
   <dl class="menu-measurements"><div><dt>Panel</dt><dd>280px wide · 12px corners</dd></div><div><dt>Placement</dt><dd>8px below the toolbar · aligned to the trigger</dd></div><div><dt>Rows</dt><dd>36px high · 20px icons · 13px labels</dd></div><div><dt>Groups</dt><dd>2px divider · 8px space above and below</dd></div><div><dt>States</dt><dd>Subtle charcoal hover · visible keyboard focus</dd></div></dl>
   <p class="subtext">Click File to open or close. Use ↑ / ↓, Home, and End to move through the actions; Enter to preview an action; Escape to close. Clicking outside also closes the menu.</p>
   <p class="subtext" style="margin-top:12px">Shortcut labels match the reference. File creation, saving, export, and application shortcuts are illustrative.</p>
@@ -1380,6 +1386,7 @@ SOFTWARE.
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
   --toolbar-radius: 0px;
+  --menu-z-index: 20;
   --toolbar-padding: 4px;
   --toolbar-gap: 2px;
   --toolbar-width: 44px;
