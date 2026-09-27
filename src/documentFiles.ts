@@ -49,6 +49,12 @@ export class DocumentFiles {
    this.filename=filename;this.savedKey=key;this.hasSaved=true;document.title=`${filename} — Vectora`;this.notify(`Downloaded ${filename}. This browser saves a new copy each time.`,'success');
   }
  });}
+ newDocument():Promise<void>{return this.run(async()=>{
+  if(!this.prepare())return;
+  if(this.dirty&&await this.prompt('New document?','The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.','New document')===null)return;
+  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.hasSaved=false;this.savedKey=documentKey(this.editor);
+  document.title='Untitled — Vectora';this.editor.canvas.focus({preventScroll:true});this.notify('New document created.','success');
+ });}
  open():Promise<void>{
   if(this.busy||!this.prepare())return Promise.resolve();
   const api=window as FileWindow;

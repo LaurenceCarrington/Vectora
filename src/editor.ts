@@ -1,6 +1,6 @@
 import paper from 'paper';
 import {regionAt} from './regionFill';
-import {layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
+import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
 import { NodeEditing } from './nodeEditing';
 import { DimensionTools } from './dimensionTools';
 import { dimensionLabel, isDimensionTool } from './dimensions';
@@ -128,6 +128,10 @@ export class CADEditor {
   }
   snapshot():DocumentSnapshot {
     return {artwork:JSON.stringify(this.artwork.children.map(i=>i.exportJSON({precision:12}))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>item.exportJSON({precision:12})))}:{})})))};
+  }
+  newDocument():void {
+    const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
+    this.loadDocument({artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
   }
   loadDocument(snapshot:DocumentSnapshot,view:{zoom:number;center:[number,number]}):void {
     this.cancel();const before=this.snapshot(),oldZoom=paper.view.zoom,oldCenter=paper.view.center.clone();

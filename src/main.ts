@@ -120,7 +120,8 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
   if(button.dataset.arcTool){const tool=button.dataset.arcTool;if(tool==='arc'||tool==='arc-three-point'||tool==='arc-endpoints')button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}
   if(button.dataset.lineTool){const tool=button.dataset.lineTool;if(tool==='line'||tool==='polyline'||tool==='freehand')button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}
   if(button.dataset.fileAction){const action=button.dataset.fileAction;
-    if(action==='Save changes'||action==='Save as…'||action==='Open file…'){button.tabIndex=0;button.onclick=()=>{closeMenus();void(action==='Open file…'?documentFiles.open():documentFiles.save(action==='Save as…'));};}
+    if(action==='New document'){button.tabIndex=0;button.onclick=()=>{closeMenus();void documentFiles.newDocument();};}
+    else if(action==='Save changes'||action==='Save as…'||action==='Open file…'){button.tabIndex=0;button.onclick=()=>{closeMenus();void(action==='Open file…'?documentFiles.open():documentFiles.save(action==='Save as…'));};}
     else if(action==='Export SVG'){button.tabIndex=0;button.onclick=exportDrawingSVG;}else if(action==='Export DXF'){button.tabIndex=0;button.onclick=()=>{closeMenus();setPanel(props,true,true);$('#export-dxf').focus();};}else disable(button);}
 }
 function disable(button:HTMLButtonElement):void {button.disabled=true;button.title=(button.title||button.textContent?.trim()||'This control')+' — not yet available';}
@@ -210,10 +211,10 @@ initializeClipper().then(()=>{ready=true;$('#wasm-status').textContent='Outline 
 document.addEventListener('pointerdown',e=>{if(!(e.target instanceof Element))return;for(const [menu,trigger] of menus)if(!menu.contains(e.target)&&!trigger.contains(e.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});
 document.addEventListener('keydown',event=>{
   const key=event.key.toLowerCase();
-  if(!(event.ctrlKey||event.metaKey)||event.altKey||!['s','o'].includes(key)||document.querySelector('dialog[open]'))return;
+  if(!(event.ctrlKey||event.metaKey)||event.altKey||!['s','o','n'].includes(key)||document.querySelector('dialog[open]'))return;
   const target=event.target as HTMLElement;
   if(target.closest('input,textarea,select,[contenteditable="true"]')&&target.id!=='inline-text')return;
-  event.preventDefault();event.stopPropagation();closeMenus();void(key==='o'?documentFiles.open():documentFiles.save(event.shiftKey));
+  event.preventDefault();event.stopPropagation();closeMenus();void(key==='n'?documentFiles.newDocument():key==='o'?documentFiles.open():documentFiles.save(event.shiftKey));
 },true);
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='e'&&!(e.target as Element)?.closest('input,textarea,select,[contenteditable="true"]')&&!document.querySelector('dialog[open]')){

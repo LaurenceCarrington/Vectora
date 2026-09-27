@@ -58,3 +58,23 @@ test('Invalid document content is rejected before changing the current drawing',
   return {rejected,unchanged:JSON.stringify(e.snapshot())===JSON.stringify(before)};
  });expect(result).toEqual({rejected:5,unchanged:true});
 });
+
+test('New document confirms unsaved changes, resets the drawing and asks for a new save name',async({page})=>{
+ await fallback(page);await page.goto(DEV);await shape(page);
+ await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addDocumentLayer('artwork');e.deleteDocumentLayer('construction');e.setLayerState('artwork','locked',true);e.setLayerState('engrave','visible',false);e.setTool('circle');e.snappingEnabled=false;p.view.zoom=8;p.view.center=new p.Point(-50,30);});
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ await fileAction(page,'New document');const dialog=page.getByRole('dialog',{name:'New document?',exact:true});await expect(dialog).toBeVisible();await expect(dialog.getByRole('button',{name:'Cancel',exact:true})).toBeFocused();await expect(dialog.getByRole('textbox')).toHaveCount(0);
+ await dialog.screenshot({path:'test-results/new-document-dialog.png'});await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ await fileAction(page,'New document');await dialog.getByRole('button',{name:'New document',exact:true}).click();await expect(page).toHaveTitle('Untitled — Vectora');
+ const state=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;return {count:e.objects.length,layers:e.documentLayers.map((l:any)=>({id:l.data.documentId,visible:l.visible,locked:l.locked})),undo:e.canUndo,redo:e.canRedo,selected:e.selectedItems.length,tool:e.tool,zoom:p.view.zoom,center:[p.view.center.x,p.view.center.y],snapping:e.snappingEnabled};});
+ expect(state).toMatchObject({count:0,undo:false,redo:false,selected:0,tool:'select',snapping:false});expect(state.center[0]).toBeCloseTo(100);expect(state.center[1]).toBeCloseTo(70);expect(state.zoom).toBeCloseTo(96/25.4);expect(state.layers.map(l=>l.id).sort()).toEqual(['artwork','construction','cutline','engrave']);expect(state.layers.every(l=>l.visible&&!l.locked)).toBe(true);
+ await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+n');await expect(dialog).not.toBeVisible();await fileAction(page,'Save');const save=page.getByRole('dialog',{name:'Save document',exact:true});await expect(save.getByRole('textbox')).toHaveValue('Untitled.vectora');await save.getByRole('button',{name:'Cancel',exact:true}).click();
+});
+
+test('New document preserves the saved target on cancel and forgets it after confirmation',async({page})=>{
+ await page.addInitScript(()=>{const w=window as any;w.picks=0;w.writes=[];w.showSaveFilePicker=async()=>{const name=`Design ${++w.picks}.vectora`;return {name,createWritable:async()=>({write:async(text:string)=>w.writes.push({name,text}),close:async()=>{},abort:async()=>{}})};};});
+ await page.goto(DEV);await shape(page);await fileAction(page,'Save');await expect(page).toHaveTitle('Design 1.vectora — Vectora');await shape(page);
+ await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+n');const dialog=page.getByRole('dialog',{name:'New document?',exact:true});await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).writes.length)).toBe(2);expect(await page.evaluate(()=>(window as any).picks)).toBe(1);
+ await shape(page);await fileAction(page,'New document');await dialog.getByRole('button',{name:'New document',exact:true}).click();await expect(page).toHaveTitle('Untitled — Vectora');await shape(page);await fileAction(page,'Save');await expect(page).toHaveTitle('Design 2.vectora — Vectora');expect(await page.evaluate(()=>(window as any).picks)).toBe(2);
+ await fileAction(page,'New document');await expect(page).toHaveTitle('Untitled — Vectora');await expect(dialog).not.toBeVisible();
+});
