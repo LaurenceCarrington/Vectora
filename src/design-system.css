@@ -749,3 +749,33 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .raster-dialog .button:disabled { background:var(--menu-hover); color:#AAAAAA; cursor:not-allowed; }
 @media(max-width:800px) { .raster-dialog { max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); }.raster-column { padding:16px; }.raster-preview-surface { height:220px; }.raster-pane-heading { align-content:start; min-height:76px; } }
 @media(max-width:600px) { .raster-body { grid-template-columns:1fr; }.raster-column + .raster-column { border-left:0; border-top:var(--border-width) solid var(--menu-border); }.raster-pane-heading { min-height:40px; }.raster-header { padding:16px; flex-wrap:wrap; }.raster-header-actions { gap:8px; }.raster-footer { padding:16px; flex-wrap:wrap; }.raster-actions { margin-left:auto; } }
+
+
+/* Material preview shares the charcoal modal and field system. */
+.preview3d-dialog { position:fixed; inset:0; margin:auto; padding:0; width:1120px; max-width:calc(100vw - 48px); height:760px; max-height:calc(100dvh - 48px); border:var(--border-width) solid var(--menu-border); border-radius:var(--space-16); box-shadow:var(--menu-shadow); overflow:hidden; }
+.preview3d-dialog[open] { display:flex; flex-direction:column; }
+.preview3d-dialog::backdrop { background:#24242488; backdrop-filter:blur(4px); }
+.preview3d-body { display:grid; grid-template-columns:minmax(0,1fr) 264px; flex:1; min-height:0; }
+.preview3d-view { position:relative; min-width:0; min-height:0; background:#242729; }
+.preview3d-stage { width:100%; height:100%; min-height:300px; }
+.preview3d-stage canvas { display:block; width:100%; height:100%; touch-action:none; outline-offset:-4px; }
+.preview3d-navigation { position:absolute; bottom:16px; left:16px; right:16px; pointer-events:none; color:#c5cacc; text-align:center; font-size:var(--text-xs); }
+.preview3d-settings { padding:24px 20px; overflow:auto; border-left:var(--border-width) solid var(--menu-border); }
+.preview3d-section { display:flex; flex-direction:column; gap:12px; padding-bottom:20px; margin-bottom:20px; border-bottom:var(--border-width) solid var(--menu-border); }
+.preview3d-section h3 { font-size:var(--text-md); color:var(--menu-text); }
+.preview3d-section p,.preview3d-disclaimer { font-size:var(--text-xs); line-height:1.5; color:var(--menu-muted); }
+.preview3d-section .number-input { width:100%; min-width:0; }
+.preview3d-section select.number-input { font-family:inherit; padding:0 12px; }
+.preview3d-section .number-prefix { padding:0 12px; }
+.preview3d-check { display:flex; align-items:center; gap:8px; font-size:var(--text-sm); cursor:pointer; }
+.preview3d-check input { accent-color:white; width:16px; height:16px; }
+.preview3d-view-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.preview3d-view-actions .button { padding:8px 12px; min-height:36px; font-size:var(--text-xs); }
+.preview3d-footer { display:flex; justify-content:space-between; gap:12px; padding:16px 24px; border-top:var(--border-width) solid var(--menu-border); font-size:var(--text-xs); color:var(--menu-muted); }
+.preview3d-empty { min-height:300px; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; padding:40px; text-align:center; }
+.preview3d-empty h3 { color:white; font-size:var(--text-lg); }
+.preview3d-empty p { max-width:380px; color:#c5cacc; font-size:var(--text-sm); line-height:1.6; }
+.preview3d-validation:not([hidden]) { color:var(--color-danger); }
+.preview3d-stage > svg { width:100%; height:100%; }
+@media(max-width:700px) { .preview3d-dialog { height:calc(100dvh - 48px); overflow:auto; }.preview3d-body { display:flex; flex-direction:column; flex:none; }.preview3d-stage { height:320px; }.preview3d-settings { border-left:0; border-top:var(--border-width) solid var(--menu-border); overflow:visible; padding:20px; }.preview3d-footer { flex-direction:column; }.preview3d-dialog .raster-header { padding:16px; } }
+@media(max-width:480px) { .top-toolbar .brand,.top-toolbar .brand + .divider { display:none; }.top-toolbar .tool { width:36px; height:36px; padding:6px; }.top-toolbar { gap:2px; } }

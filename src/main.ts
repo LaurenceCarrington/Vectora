@@ -32,6 +32,15 @@ const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);laye
 const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor);
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
 const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>inlineText.finish(false,false),notify);
+const previewTrigger=$<HTMLButtonElement>('[data-preview-open]');
+let preview:import('./preview3D').Preview3D|undefined,previewLoading=false;
+previewTrigger.addEventListener('click',async()=>{
+  if(previewLoading||!inlineText.finish(false,false))return;
+  editor.cancel();closeMenus();previewLoading=true;
+  try{const {Preview3D}=await import('./preview3D');preview??=new Preview3D($<HTMLDialogElement>('#preview3d-dialog'),editor,previewTrigger);await preview.open();}
+  catch(error){notify(`Could not open 3D preview: ${error instanceof Error?error.message:String(error)}`,true);}
+  finally{previewLoading=false;}
+});
 const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElement>('#text-property-size');
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
