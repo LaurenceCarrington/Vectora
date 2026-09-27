@@ -2,15 +2,15 @@
 :root {
   --color-canvas: #F4F4F2;
   --color-surface: #FFFFFF;
-  --color-toolbar: #383838;
+  --color-toolbar: #2A2B2E;
   --color-hover: #4A4A4A;
-  --menu-background: #383838;
+  --menu-background: #2A2B2E;
   --menu-foreground: #FFFFFF;
   --menu-muted: #D2D2D2;
   --menu-border: #5C5C5C;
   --menu-hover: #4A4A4A;
   --menu-selected: #FFFFFF;
-  --menu-selected-foreground: #383838;
+  --menu-selected-foreground: #2A2B2E;
   --color-on-toolbar-muted: #D2D2D2;
   --color-text: #242424;
   --color-muted: #666666;
