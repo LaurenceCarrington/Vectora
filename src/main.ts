@@ -1,3 +1,4 @@
+import { CanvasRulers } from './rulers';
 import { alignPopoutWithTrigger } from './menuPosition';
 import paper from 'paper';
 import {RasterToVector} from './rasterToVector';
@@ -18,6 +19,7 @@ import { BASE_ZOOM } from './units';
 import type { ToolName } from './types';
 const $=<T extends HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
 const editor=new CADEditor($<HTMLCanvasElement>('#cad-canvas'));
+const rulers=new CanvasRulers(editor.canvas,document.querySelector<SVGSVGElement>('.ruler-left')!,document.querySelector<SVGSVGElement>('.ruler-bottom')!);
 const resetZoom=$<HTMLButtonElement>('[data-reset-zoom]');
 resetZoom.onclick=()=>editor.resetZoom();
 resetZoom.addEventListener('keydown',event=>event.stopPropagation());
@@ -170,6 +172,7 @@ $('#create-outline').onclick=()=>attempt(()=>{editor.outline($<HTMLInputElement>
 $('#export-dxf').onclick=()=>attempt(()=>{downloadDXF(exportDXF(editor.objects,$<HTMLInputElement>('#include-artwork').checked));notify('DXF downloaded in millimetres.','success');});
 function exportDrawingSVG():void {closeMenus();attempt(()=>{downloadSVG(exportSVG(editor.objects));notify('SVG downloaded in millimetres.','success');});}
 function update():void {
+  rulers.update(paper.view.bounds,paper.view.zoom);
   updatePropertiesContent();
   convertTextButton.hidden=!editor.selectedItems.some(item=>item.data.text);
   convertTextButton.disabled=!editor.canConvertText;
