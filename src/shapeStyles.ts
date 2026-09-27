@@ -1,6 +1,11 @@
 import paper from 'paper';
 import type { Shape } from './types';
 
+/** Fill metadata also identifies regions transferred by older versions that cleared the style. */
+export function hasFilledArea(item: Shape): boolean {
+  return !!item.fillColor || !!item.data.regionFill || item.data.rasterTrace?.mode === 'fill';
+}
+
 /** Converted artwork and generated outlines share the same cut-line appearance. */
 export function applyCutlineStyle(item: Shape): void {
   const color = getComputedStyle(document.documentElement).getPropertyValue('--color-cutline').trim();

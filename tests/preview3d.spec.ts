@@ -83,3 +83,39 @@ test('Short preview windows contain the canvas and keep controls reachable after
  }
  await page.setViewportSize({width:1024,height:450});await dialog.screenshot({path:'test-results/preview3d-short.png'});
 });
+
+test('Filled engraving covers interiors, preserves holes and survives layer transfers and undo',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(async()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;
+  const {buildPreviewModel}=await import('/src/previewModel.ts'),{materialCanvas,PREVIEW_MATERIALS}=await import('/src/previewMaterials.ts');
+  e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,100,100]}),'Panel');e.moveSelectionToLayer('cutline');
+  const outer=new p.Path.Rectangle({insert:false,rectangle:[20,20,60,60]}),inner=new p.Path.Rectangle({insert:false,rectangle:[40,40,20,20]});
+  const region=new p.CompoundPath({insert:false,children:[outer,inner],fillRule:'evenodd'});
+  e.addShape(region,'Filled region');region.fillColor='#ff00ff';region.data.regionFill=true;region.data.regionFillColor='#FF00FF';
+  const original=region.pathData;
+  e.moveSelectionToLayer('engrave');
+  const moved={fill:e.selected.fillColor.toCSS(true),stroke:e.selected.strokeColor,path:e.selected.pathData,rule:e.selected.fillRule};
+  e.undo();const undone={role:e.selected.data.role,fill:e.selected.fillColor.toCSS(true)};
+  e.redo();
+  const model=(await buildPreviewModel(e.objects))!,material=PREVIEW_MATERIALS[0];
+  const marked=materialCanvas(model,material,true),plain=materialCanvas(model,material,false);
+  const pixel=(c:HTMLCanvasElement,x:number,y:number)=>Array.from(c.getContext('2d')!.getImageData(Math.floor(x*c.width/100),Math.floor(y*c.height/100),1,1).data);
+  const pixels={area:pixel(marked,30,30),areaBefore:pixel(plain,30,30),hole:pixel(marked,50,50),holeBefore:pixel(plain,50,50),outside:pixel(marked,10,10),outsideBefore:pixel(plain,10,10)};
+  // Older projects retain region metadata even though layer transfer cleared their fill.
+  e.selected.fillColor=null;const legacy=(await buildPreviewModel(e.objects))!.marks[0].fill;
+  e.moveSelectionToLayer('artwork');const restored=e.selected.fillColor.toCSS(true);
+  // Raster Fill has equivalent area semantics; ordinary closed outlines must stay strokes.
+  const trace=new p.Path.Circle({insert:false,center:[30,30],radius:5,fillColor:'#383838'});trace.data.rasterTrace={mode:'fill'};e.addShape(trace,'Trace');e.moveSelectionToLayer('engrave');
+  const traceFill=e.selected.fillColor.toCSS(true);e.selected.fillColor=null;
+  e.addShape(new p.Path.Rectangle({insert:false,rectangle:[60,60,10,10]}),'Outline');e.moveSelectionToLayer('engrave');
+  const kinds=(await buildPreviewModel(e.objects))!.marks.map(mark=>mark.fill);
+  return {original,moved,undone,mark:model.marks[0],pixels,legacy,restored,traceFill,kinds};
+ });
+ expect(result.moved).toEqual({fill:'#0000ff',stroke:null,path:result.original,rule:'evenodd'});
+ expect(result.undone).toEqual({role:'artwork',fill:'#ff00ff'});expect(result.restored).toBe('#ff00ff');
+ expect(result.mark).toMatchObject({fill:true,fillRule:'evenodd'});
+ expect(result.pixels.area).toEqual([80,49,30,255]);expect(result.pixels.area).not.toEqual(result.pixels.areaBefore);
+ expect(result.pixels.hole).toEqual(result.pixels.holeBefore);expect(result.pixels.outside).toEqual(result.pixels.outsideBefore);
+ expect(result.legacy).toBe(true);expect(result.traceFill).toBe('#0000ff');expect(result.kinds).toEqual([true,false]);
+});

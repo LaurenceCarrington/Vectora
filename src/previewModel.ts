@@ -1,4 +1,5 @@
 import paper from 'paper';
+import {hasFilledArea} from './shapeStyles';
 import {flattenInDocument,pathsOf,contains,signedArea} from './geometry';
 import {documentPath} from './deletion';
 import {initializeClipper,previewCutContours} from './clipperService';
@@ -17,7 +18,7 @@ export async function buildPreviewModel(objects:readonly Shape[]):Promise<Previe
    }
   }else{
    const copies=pathsOf(item).map(documentPath);
-   try{marks.push({path:copies.map(p=>p.pathData).join(' '),fill:!!item.fillColor,fillRule:item.fillRule==='evenodd'?'evenodd':'nonzero'});for(const p of copies)extent=extent?extent.unite(p.bounds):p.bounds.clone();}finally{copies.forEach(p=>p.remove());}
+   try{marks.push({path:copies.map(p=>p.pathData).join(' '),fill:hasFilledArea(item),fillRule:item.fillRule==='evenodd'?'evenodd':'nonzero'});for(const p of copies)extent=extent?extent.unite(p.bounds):p.bounds.clone();}finally{copies.forEach(p=>p.remove());}
   }
  }
  if(!cuts.length&&!marks.length)return null;

@@ -1,4 +1,5 @@
 import paper from 'paper';
+import {hasFilledArea} from './shapeStyles';
 import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
 import { NodeEditing } from './nodeEditing';
@@ -207,7 +208,7 @@ export class CADEditor {
     for(const item of items){
       layer.addChild(item);item.data.role=role;
       if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
-      else if(item.data.text||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
+      else if(item.data.text||(role==='engrave'&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
       else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=1.5;item.strokeScaling=false;}
     }
     this.selection=items;this.commit(before);return items.length;
