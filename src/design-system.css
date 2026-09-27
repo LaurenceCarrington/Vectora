@@ -866,3 +866,8 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 :root[data-theme="light"] .preview3d-check input { accent-color:var(--chrome-accent); }
 :root[data-theme="light"] .preferences-shell .vectora-slider:hover:not(:disabled) { --range-fill:var(--chrome-accent); }
+
+.selection-context-menu { position:fixed; z-index:var(--menu-z-index); width:200px; padding:var(--space-8); border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); overflow:auto; }
+.selection-context-menu .node-action { min-height:36px; }
+.selection-context-menu kbd { margin-left:auto; white-space:nowrap; color:var(--menu-muted); font:inherit; font-size:var(--text-xs); }
+.selection-context-specimen { position:relative; inset:auto; }

@@ -8,6 +8,7 @@ import { Alerts, type AlertKind } from './alerts';
 import { CADEditor } from './editor';
 import { LayersPanel } from './layersPanel';
 import { Preferences } from './preferences';
+import { SelectionContextMenu } from './selectionContextMenu';
 import { FloatingSelectionMenu } from './floatingSelectionMenu';
 import { InlineText } from './inlineText';
 import { DIMENSION_NAMES, isDimensionTool } from './dimensions';
@@ -35,6 +36,7 @@ const props=$('#properties-panel'),layers=$('#primary-layers-panel');
 const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersButton=$<HTMLButtonElement>('[aria-label="Layers"]');
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});
 const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor);
+const selectionContextMenu=new SelectionContextMenu(editor,()=>closeMenus());
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
 const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>inlineText.finish(false,false),notify);
 const previewTrigger=$<HTMLButtonElement>('[data-preview-open]');
@@ -95,7 +97,7 @@ function setPanel(panel:HTMLElement,open:boolean,showExport=false):void {
   props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;
   if(panel===layers&&open)layersPanel.open();
   for(const [button,target] of [[propertiesButton,props],[layersButton,layers]] as const){button.classList.toggle('selected',!target.hidden);button.setAttribute('aria-pressed',String(!target.hidden));button.setAttribute('aria-expanded',String(!target.hidden));}
-  selectionMenu.render();
+  selectionMenu.render();selectionContextMenu.refresh();
 }
 setPanel(props,false);
 propertiesButton.setAttribute('aria-controls','properties-panel');
@@ -238,7 +240,7 @@ function update():void {
   document.querySelectorAll<HTMLElement>('[data-dimension-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.dimensionTool===editor.tool)));
   document.querySelectorAll<HTMLElement>('[data-delete-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.deleteTool===editor.tool)));
   layersPanel.render();
-  selectionMenu.render();
+  selectionMenu.render();selectionContextMenu.refresh();
   snappingMaster.checked=editor.snappingEnabled;gridSnapSetting.checked=editor.snapToGridEnabled;gridSnapSetting.disabled=editor.grid.type==='none';
   $('#pref-snap-grid-help').textContent=editor.grid.type==='none'?'Choose a grid type in Grid preferences to enable grid snapping.':'Align to the grid size set in Grid preferences.';
   document.querySelectorAll<HTMLInputElement>('[data-object-snap]').forEach(input=>input.checked=editor.objectSnapModes[input.dataset.objectSnap as ObjectSnapMode]);

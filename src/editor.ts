@@ -33,6 +33,9 @@ export class CADEditor {
   private extraLayers:paper.Layer[]=[];
   readonly overlays:paper.Layer;
   private selection:Shape[]=[];
+  private clipboard:Shape[]=[];
+  private clipboardBounds:paper.Rectangle|null=null;
+  private pasteCount=0;
   private drawingLayerId='artwork';
   private layerSelectionSignature='';
   get activeLayerId():string {return layerId(this.activeLayer??this.artwork);}
@@ -226,6 +229,51 @@ export class CADEditor {
     if(!items.length)return 0;const before=this.snapshot(),role=layerRole(layer);
     for(const item of items){layer.addChild(item);item.data.role=role;this.styleForLayer(item,layer);}
     this.selection=items;this.commit(before);return items.length;
+  }
+  hitObject(point:paper.Point):Shape|null {
+    const candidates=[...this.objects].reverse().filter(object=>this.isEditable(object));
+    // A precise outline hit wins over the generous interior/tolerance target of enclosing paths.
+    let hit:Shape|null=candidates.find(object=>!object.fillColor&&object.hitTest(point,{stroke:true,tolerance:1/paper.view.zoom}))??null;
+    if(!hit)for(const object of candidates) if(object.hitTest(point,{fill:true,stroke:true,segments:true,tolerance:6/paper.view.zoom}) || ((object.data.text||object.data.dimension)&&this.objectBounds(object).contains(point)) || (object.data.role!=='cutline' && (object.data.joined?pathsOf(object).some(path=>path.closed&&path.contains(point)):this.isClosedShape(object)&&object.contains(point)))){hit=object;break;}
+    return hit;
+  }
+  selectForContext(point:paper.Point):void {
+    const hit=this.hitObject(point);
+    if(hit&&!this.selection.includes(hit))this.select(hit);
+  }
+  get canCopySelection():boolean {return this.canFlipSelection;}
+  get canPaste():boolean {return this.clipboard.length>0&&!this.textEditing&&!this.nodes.dragging&&!this.dimensions.active&&!this.interaction&&!this.polyline&&!this.threePointArc;}
+  copySelection():void {
+    if(!this.canCopySelection)return;
+    const copies=this.selection.map(source=>{
+      const copy=source.clone({insert:false}) as Shape;
+      copy.data=structuredClone(source.data);return copy;
+    });
+    this.clipboard.forEach(item=>item.remove());this.clipboard=copies;
+    this.clipboardBounds=this.selectionBounds!.clone();this.pasteCount=0;
+  }
+  pasteSelection(point?:paper.Point):void {
+    if(!this.canPaste)return;
+    const layer=this.drawingLayer(),before=this.snapshot(),copies:Shape[]=[];
+    const destination=point&&(this.gridSnappingActive?this.grid.snap(point):point);
+    const offset=destination?destination.subtract(this.clipboardBounds!.center):new paper.Point(10*(this.pasteCount+1),10*(this.pasteCount+1));
+    const matrix=new paper.Matrix().translate(offset);
+    try{
+      for(const source of this.clipboard){
+        const copy=source.clone({insert:false}) as Shape;copies.push(copy);
+        copy.data={...structuredClone(source.data),uid:crypto.randomUUID()};
+        copy.translate(offset);transformText(copy,matrix);
+        if(copy.data.arc){copy.data.arc.cx+=offset.x;copy.data.arc.cy+=offset.y;}
+        const bounds=this.objectBounds(copy);
+        if(![bounds.left,bounds.top,bounds.right,bounds.bottom].every(validNumber))throw new Error('The pasted objects would exceed ±1,000,000 mm.');
+        if(copy.data.role!==layerRole(layer))this.styleForLayer(copy,layer);
+        copy.data.role=layerRole(layer);
+      }
+    }catch(error){copies.forEach(item=>item.remove());throw error;}
+    this.setTool('select');
+    copies.forEach(copy=>layer.addChild(copy));this.selection=copies;
+    if(!point)this.pasteCount++;
+    this.commit(before);
   }
   select(item:Shape|null,additive=false):void {
     if(this.polyline||this.threePointArc){const uid=item?.data.uid;this.cancel();item=uid?this.objects.find(shape=>shape.data.uid===uid)??null:null;}
@@ -646,10 +694,7 @@ export class CADEditor {
       }else if(handle>=0 && this.selection.length) {
         this.interaction={...base,kind:this.selectedArc?'arc-handle':this.hasEndpointHandles?'endpoint':'resize',arcGeometry:this.selectedArc?{...this.selectedArc}:undefined,items:[...this.selection],bounds:this.selectionBounds!,handle,originals:this.selection.map(item=>item.clone({insert:false}) as Shape)};
       } else {
-        const candidates=[...this.objects].reverse().filter(object=>this.isEditable(object));
-        // A precise outline hit wins over the generous interior/tolerance target of enclosing paths.
-        let hit:Shape|null=candidates.find(object=>!object.fillColor&&object.hitTest(point,{stroke:true,tolerance:1/paper.view.zoom}))??null;
-        if(!hit)for(const object of candidates) if(object.hitTest(point,{fill:true,stroke:true,segments:true,tolerance:6/paper.view.zoom}) || ((object.data.text||object.data.dimension)&&this.objectBounds(object).contains(point)) || (object.data.role!=='cutline' && (object.data.joined?pathsOf(object).some(path=>path.closed&&path.contains(point)):this.isClosedShape(object)&&object.contains(point)))){hit=object;break;}
+        const hit=this.hitObject(point);
         if(hit){
           if(event.shiftKey){this.select(hit,true);return;}
           if(!this.selection.includes(hit))this.selected=hit;
