@@ -297,6 +297,9 @@ export class CADEditor {
     if(this.snappingEnabled===enabled)return;
     this.cancel();this.snappingEnabled=enabled;this.changed();
   }
+  setGridSpacing(value:number):void {
+    this.grid.setSpacingMM(value);this.cancel();this.changed();
+  }
   setSnapToGrid(enabled:boolean):void {
     if(this.snapToGridEnabled===enabled)return;
     this.cancel();this.snapToGridEnabled=enabled;this.changed();

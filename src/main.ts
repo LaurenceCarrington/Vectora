@@ -123,6 +123,15 @@ $('#snap-grid').onclick=()=>editor.setSnappingEnabled(!editor.snappingEnabled);
 const snappingMaster=$<HTMLInputElement>('[data-snapping-master]'),gridSnapSetting=$<HTMLInputElement>('[data-grid-snap-setting]');
 snappingMaster.onchange=()=>editor.setSnappingEnabled(snappingMaster.checked);
 gridSnapSetting.onchange=()=>editor.setSnapToGrid(gridSnapSetting.checked);
+const gridSize=$<HTMLInputElement>('#pref-grid-size');
+gridSize.value=String(editor.grid.spacingMM);
+gridSize.onchange=()=>{
+  const valid=gridSize.value!==''&&gridSize.checkValidity();
+  gridSize.setAttribute('aria-invalid',String(!valid));
+  gridSize.closest('.number-shell')!.classList.toggle('is-invalid',!valid);
+  $('#pref-grid-size-help').textContent=valid?'Distance between grid lines. Major lines appear every five cells.':'Enter a grid size from 0.1 to 1000 mm.';
+  if(valid)editor.setGridSpacing(gridSize.valueAsNumber);
+};
 for(const input of document.querySelectorAll<HTMLInputElement>('[data-object-snap]'))input.onchange=()=>editor.setObjectSnap(input.dataset.objectSnap as ObjectSnapMode,input.checked);
 for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
   if(button.dataset.shape){const tool=button.dataset.shape.toLowerCase();if(tool==='rectangle'||tool==='circle'||tool==='ellipse'||tool==='polygon'){button.tabIndex=0;button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}else disable(button);}

@@ -15,11 +15,11 @@ test('Preferences matches the reference, navigates accessibly and keeps placehol
   await expect(dialog.getByRole('tab',{name:'Snapping',exact:true})).toBeFocused();
   await dialog.getByRole('tab',{name:'Grid',exact:true}).click();
   await expect(dialog.getByRole('tabpanel',{name:'Grid',exact:true})).toBeVisible();
-  await expect(dialog.getByRole('tabpanel',{name:'Grid',exact:true})).toBeEmpty();
-  await expect(dialog.getByRole('status')).toHaveText('Coming soon — settings are placeholders.');
+  await expect(dialog.getByRole('spinbutton',{name:'Grid size'})).toHaveValue('10');
+  await expect(dialog.getByRole('status')).toHaveText('Changes apply immediately.');
   await dialog.getByRole('tab',{name:'Snapping',exact:true}).click();
-  await expect(dialog.locator('input')).toHaveCount(7);
-  expect(await dialog.locator('[role="tabpanel"]').evaluateAll(panels=>panels.length===5&&panels.filter(panel=>panel.id!=='pref-page-snapping').every(panel=>panel.childElementCount===0&&panel.textContent===''))).toBe(true);
+  await expect(dialog.locator('input')).toHaveCount(8);
+  expect(await dialog.locator('[role="tabpanel"]').evaluateAll(panels=>panels.length===5&&panels.filter(panel=>!['pref-page-snapping','pref-page-grid'].includes(panel.id)).every(panel=>panel.childElementCount===0&&panel.textContent===''))).toBe(true);
   await expect(dialog.getByRole('button',{name:'Reset preferences',exact:true})).toHaveCount(0);
   await expect(dialog.getByRole('status')).toHaveText('Changes apply immediately.');
   await page.keyboard.press('ArrowDown');await expect(dialog.getByRole('tab',{name:'Appearance',exact:true})).toHaveAttribute('aria-selected','true');
@@ -46,4 +46,32 @@ test('production Settings opens the placeholder Preferences dialog',async({page}
   const dialog=page.getByRole('dialog',{name:'Preferences',exact:true});await expect(dialog).toBeVisible();
   await dialog.getByRole('tab',{name:'Editing',exact:true}).click();await expect(dialog.getByRole('tabpanel',{name:'Editing',exact:true})).toBeEmpty();
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
+});
+
+test('Grid size stays fixed through zoom, controls snapping and persists without editing the document',async({page})=>{
+  await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
+  const before=await page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()));
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
+  await page.getByRole('tab',{name:'Grid',exact:true}).click();
+  const input=page.getByRole('spinbutton',{name:'Grid size'});
+  await input.fill('2.5');await input.press('Tab');
+  await expect(page.locator('#grid-status')).toHaveText('Grid 2.5 mm');
+  await input.fill('0');await input.press('Tab');
+  await expect(input).toHaveAttribute('aria-invalid','true');
+  expect(await page.evaluate(()=>(window as any).__vectora.grid.spacingMM)).toBe(2.5);
+  await input.fill('2.5');await input.press('Tab');
+  await page.screenshot({path:'test-results/grid-preferences.png'});
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(()=>{
+    const e=(window as any).__vectora,p=(window as any).__paper;
+    for(const zoom of [.1,1,96/25.4,100]){p.view.zoom=zoom;e.setTool('select');if(e.grid.spacingMM!==2.5)throw new Error('Grid interval changed');}
+    e.setGridSpacing(.1);p.view.zoom=.1;e.setTool('select');
+    if(e.grid.layer.children.length>1500)throw new Error('Grid density unbounded');
+    e.setGridSpacing(2.5);return JSON.stringify(e.snapshot());
+  })).toBe(before);
+  await page.reload();await expect(page.locator('#grid-status')).toHaveText('Grid 2.5 mm');
+  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;p.view.center=new p.Point(50,50);e.setTool('rectangle');});
+  const coords=await page.evaluate(()=>{const p=(window as any).__paper;return [[11,11],[31,26]].map(pt=>{const q=p.view.projectToView(new p.Point(pt));const r=document.querySelector('#cad-canvas')!.getBoundingClientRect();return {x:q.x+r.x,y:q.y+r.y};});});
+  await page.mouse.move(coords[0].x,coords[0].y);await page.mouse.down();await page.mouse.move(coords[1].x,coords[1].y);await page.mouse.up();
+  expect(await page.evaluate(()=>{const b=(window as any).__vectora.selected.bounds;return [b.x,b.y,b.width,b.height];})).toEqual([10,10,20,15]);
 });
