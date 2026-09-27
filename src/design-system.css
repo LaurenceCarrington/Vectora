@@ -469,13 +469,13 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 @media (forced-colors: active) { .vectora-slider { appearance: auto; -webkit-appearance: auto; }.vectora-slider::-webkit-slider-thumb { appearance: auto; -webkit-appearance: auto; }.toggle-track { border: 2px solid ButtonText; background: Canvas; box-shadow: none; }.toggle-track::after { background: ButtonText; }.vectora-toggle:checked + .toggle-track { background: Highlight; }.vectora-toggle:checked + .toggle-track::after { background: HighlightText; } }
 
 /* Colour fill uses the shared charcoal pop-out and field styles. */
-.fill-tools { position:relative; }
+.fill-tools { position:relative; --fill-icon-colour:var(--fill-colour,#FF0000); }
+.fill-tools.is-no-fill { --fill-icon-colour:none; }
 .fill-menu { top:0; left:calc(100% + var(--toolbar-padding)); width:248px; max-width:calc(100vw - 120px); }
 .fill-tools > .tool { position:relative; }
-.fill-indicator { position:absolute; width:16px; height:4px; bottom:5px; border-radius:var(--radius-sm); background:var(--fill-colour,#FF0000); border:1px solid white; }
 .fill-swatches { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:var(--space-8); margin-bottom:var(--space-16); }
 .fill-swatch { height:32px; border:1px solid #FFFFFF; border-radius:var(--radius-sm); background:var(--fill-swatch); }
-.fill-swatch-none, .fill-tools.is-no-fill .fill-indicator { background:linear-gradient(135deg,white 46%,var(--color-cutline) 47%,var(--color-cutline) 53%,white 54%); }
+.fill-swatch-none { background:linear-gradient(135deg,white 46%,var(--color-cutline) 47%,var(--color-cutline) 53%,white 54%); }
 .fill-swatch[aria-pressed="true"] { outline:2px solid var(--menu-foreground); outline-offset:3px; }
 .fill-picker-row { display:flex; align-items:center; justify-content:space-between; gap:var(--space-12); font-size:var(--text-sm); margin-bottom:var(--space-12); }
 .fill-picker-row input { width:44px; height:32px; padding:2px; border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-sm); background:var(--menu-hover); cursor:pointer; }
