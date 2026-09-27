@@ -306,9 +306,12 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 /* Dropdowns share the pop-out surface, type, icons, and spacing. */
 .top-toolbar { z-index: 4; }
 .dropdown-anchor { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.dropdown-stage > .toolbar { position:relative; }
+.top-toolbar > .dropdown-anchor,.dropdown-stage > .toolbar > .dropdown-anchor { position:static; }
+.top-toolbar .file-dropdown { top:calc(100% + 1px); left:0; }
 .dropdown-trigger { position: relative; }
 .dropdown-stage { min-width: 304px; min-height: 512px; position: relative; }
-.file-dropdown { position: absolute; z-index: 4; top: calc(100% + var(--toolbar-padding) + var(--menu-offset)); left: 0; width: var(--menu-width-wide); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
+.file-dropdown { position: absolute; z-index: 4; top: 100%; left: 0; width: var(--menu-width-wide); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
 .dropdown-group { display: flex; flex-direction: column; gap: var(--menu-item-gap); }
 .dropdown-option { display: flex; align-items: center; gap: var(--space-12); width: 100%; height: var(--menu-item-height); padding: 0 var(--menu-item-padding); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text); font-size: var(--text-sm); line-height: 20px; font-weight: 500; text-align: left; white-space: nowrap; }
 .dropdown-option svg { width: var(--menu-icon-size); height: var(--menu-icon-size); }
@@ -1140,8 +1143,8 @@ SOFTWARE.
  </div>
  <div class="menu-guidance">
   <h3>The same menu, opening down.</h3>
-  <p>A charcoal panel sits below the File button, with its left edge aligned to the button. Open flyouts raise their owning toolbar above all other rails and docked panels, so menu labels and click targets are never obscured. Closing a menu restores the normal stacking order; modal dialogs retain priority. The existing File icon turns blue while its menu is open.</p>
-  <dl class="menu-measurements"><div><dt>Panel</dt><dd>280px wide · 12px corners</dd></div><div><dt>Placement</dt><dd>8px below the toolbar · aligned to the trigger</dd></div><div><dt>Rows</dt><dd>36px high · 20px icons · 13px labels</dd></div><div><dt>Groups</dt><dd>2px divider · 8px space above and below</dd></div><div><dt>States</dt><dd>Subtle charcoal hover · visible keyboard focus</dd></div></dl>
+  <p>The File panel sits flush against the bottom of the command toolbar and the left workspace edge, with no outer gap. Internal menu padding is retained. Open flyouts raise their owning toolbar above all other rails and docked panels, so menu labels and click targets are never obscured. Closing a menu restores the normal stacking order; modal dialogs retain priority. The existing File icon turns blue while its menu is open.</p>
+  <dl class="menu-measurements"><div><dt>Panel</dt><dd>280px wide · square corners</dd></div><div><dt>Placement</dt><dd>Flush below the toolbar · aligned to the workspace left edge</dd></div><div><dt>Rows</dt><dd>36px high · 20px icons · 13px labels</dd></div><div><dt>Groups</dt><dd>2px divider · 8px space above and below</dd></div><div><dt>States</dt><dd>Subtle charcoal hover · visible keyboard focus</dd></div></dl>
   <p class="subtext">Click File to open or close. Use ↑ / ↓, Home, and End to move through the actions; Enter to preview an action; Escape to close. Clicking outside also closes the menu.</p>
   <p class="subtext" style="margin-top:12px">Shortcut labels match the reference. File creation, saving, export, and application shortcuts are illustrative.</p>
  </div>

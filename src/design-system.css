@@ -304,9 +304,12 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 /* Dropdowns share the pop-out surface, type, icons, and spacing. */
 .top-toolbar { z-index: 4; }
 .dropdown-anchor { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.dropdown-stage > .toolbar { position:relative; }
+.top-toolbar > .dropdown-anchor,.dropdown-stage > .toolbar > .dropdown-anchor { position:static; }
+.top-toolbar .file-dropdown { top:calc(100% + 1px); left:0; }
 .dropdown-trigger { position: relative; }
 .dropdown-stage { min-width: 304px; min-height: 512px; position: relative; }
-.file-dropdown { position: absolute; z-index: 4; top: calc(100% + var(--toolbar-padding) + var(--menu-offset)); left: 0; width: var(--menu-width-wide); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
+.file-dropdown { position: absolute; z-index: 4; top: 100%; left: 0; width: var(--menu-width-wide); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
 .dropdown-group { display: flex; flex-direction: column; gap: var(--menu-item-gap); }
 .dropdown-option { display: flex; align-items: center; gap: var(--space-12); width: 100%; height: var(--menu-item-height); padding: 0 var(--menu-item-padding); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text); font-size: var(--text-sm); line-height: 20px; font-weight: 500; text-align: left; white-space: nowrap; }
 .dropdown-option svg { width: var(--menu-icon-size); height: var(--menu-icon-size); }
