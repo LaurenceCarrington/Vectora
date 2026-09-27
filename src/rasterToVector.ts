@@ -1,3 +1,4 @@
+import {artworkColor} from './shapeStyles';
 import paper from 'paper';
 import type {CADEditor} from './editor';
 import type {Shape} from './types';
@@ -82,7 +83,7 @@ export class RasterToVector {
       this.result=response.result;const result=this.result!,paths=result.paths,path=this.svg.querySelector('path')!;
       this.binaryCanvas.width=response.preview.width;this.binaryCanvas.height=response.preview.height;this.binaryCanvas.getContext('2d')!.putImageData(response.preview,0,0);this.updateInputView();
       this.svg.setAttribute('viewBox',`0 0 ${result.width} ${result.height}`);this.svg.style.aspectRatio=`${result.width} / ${result.height}`;
-      path.setAttribute('d',traceSVGPath(paths));path.setAttribute('fill',result.mode==='fill'?'#383838':'none');path.setAttribute('stroke',result.mode==='fill'?'none':'#383838');
+      path.setAttribute('d',traceSVGPath(paths));path.setAttribute('fill',result.mode==='fill'?artworkColor():'none');path.setAttribute('stroke',result.mode==='fill'?'none':artworkColor());
       this.svg.toggleAttribute('hidden',!paths.length);this.get('#raster-vector-empty').hidden=!!paths.length;this.get('#raster-vector-empty').textContent='No traceable paths';this.get('#raster-vector-surface').setAttribute('aria-busy','false');this.get('#raster-path-count').textContent=`${paths.length} ${paths.length===1?'path':'paths'}`;
       this.status.textContent=paths.length?`${result.foregroundPixels.toLocaleString()} source pixels · ${result.pointCount.toLocaleString()} ${result.mode==='centerline'?'skeleton nodes':'fitted points'} · ${Math.round(response.elapsedMs)} ms`:'No traceable paths. Adjust the image settings or choose another image.';
       this.updateAdd();
@@ -108,7 +109,7 @@ export class RasterToVector {
     // Preserve the original fitted cubic segments as native Paper.js curves.
     const paths=result.paths.map(trace=>{const path=new paper.Path({insert:false,pathData:trace.svg});path.scale(scale,new paper.Point(0,0));path.translate(origin);return path;});
     const items:Shape[]=result.mode==='fill'?[new paper.CompoundPath({insert:false,children:paths,fillRule:'evenodd'})]:paths;
-    items.forEach(item=>{item.fillColor=result.mode==='fill'?new paper.Color('#383838'):null;item.strokeColor=result.mode==='fill'?null:new paper.Color('#383838');item.strokeWidth=1.5;item.strokeScaling=false;item.strokeCap='round';item.strokeJoin='round';item.data.rasterTrace={mode:result.mode,settings:{...this.settings},sourceName:this.filename};});
+    items.forEach(item=>{item.fillColor=result.mode==='fill'?new paper.Color(artworkColor()):null;item.strokeColor=result.mode==='fill'?null:new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;item.strokeCap='round';item.strokeJoin='round';item.data.rasterTrace={mode:result.mode,settings:{...this.settings},sourceName:this.filename};});
     try{this.editor.addTracedShapes(items,`Trace · ${this.filename}`);this.editor.setTool('select');this.dialog.close();this.editor.canvas.focus({preventScroll:true});}
     catch(error){items.forEach(item=>item.remove());this.error.hidden=false;this.error.textContent=(error as Error).message;}
   }

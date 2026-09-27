@@ -65,6 +65,9 @@ for(const [name,url] of [['development',DEV],['production',PREVIEW]])test(`${nam
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
   await draw(page);
+  await expect(page.locator('#workspace')).toHaveCSS('background-color','rgb(32, 34, 38)');
+  if(name==='development')expect(await page.evaluate(()=>(window as any).__vectora.selected.strokeColor.toCSS(true))).toBe('#ffffff');
+  await page.screenshot({path:`test-results/${name}-dark-artwork.png`});
   for(const [field,value] of [['x','10'],['y','20'],['width','100'],['height','50']]){await page.locator('#field-'+field).fill(value);await page.locator('#field-'+field).press('Tab');}
   await expect(page.locator('#field-width')).toHaveValue('100');
   await page.locator('#create-outline').click();await expect(page.locator('#selection-name')).toContainText('Sticker outline');
@@ -1050,7 +1053,7 @@ test('Text converts dotted letters and ligature pairs separately, and production
   const entities=text.split('LWPOLYLINE\n').slice(1);expect(entities.length).toBeGreaterThan(4);for(const entity of entities)expect(entity).toContain('70\n1\n');
 });
 
-test('Typing uses the object selection frame and a constant-width charcoal caret',async({page})=>{
+test('Typing uses the object selection frame and a constant-width blue caret',async({page})=>{
   await page.goto(DEV);await typeCanvasText(page,'Text');
   const readFrame=()=>page.evaluate(()=>{
     const e=(window as any).__vectora,p=(window as any).__paper;
@@ -1066,13 +1069,13 @@ test('Typing uses the object selection frame and a constant-width charcoal caret
   await expect.poll(async()=>{const frame=await readFrame();return frame.bounds.every((n:number,i:number)=>Math.abs(n-selected.bounds[i])<1e-8);}).toBe(true);
   await expect(input).toHaveCSS('outline-style','none');
   const caret=page.locator('.inline-text-caret');
-  await expect(caret).toBeVisible();await expect(caret).toHaveCSS('stroke','rgb(56, 56, 56)');
+  await expect(caret).toBeVisible();await expect(caret).toHaveCSS('stroke','rgb(82, 185, 223)');
   await expect(caret).toHaveCSS('stroke-width','1px');
   await expect(caret.locator('path')).toHaveAttribute('vector-effect','non-scaling-stroke');
   await input.fill('Text\nNew line');
   await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;p.view.zoom*=1.5;e.onChange();});
   const typing=await readFrame();expect(typing.handles).toHaveLength(8);
-  typing.handles.forEach(h=>{expect(h.size).toBeCloseTo(8);expect(h.fill).toBe('#ffffff');expect(h.color).toBe('#383838');});
+  typing.handles.forEach(h=>{expect(h.size).toBeCloseTo(8);expect(h.fill).toBe('#ffffff');expect(h.color).toBe('#52b9df');});
   expect(typing.stroke).toBeCloseTo(1);typing.dash.forEach(n=>expect(n).toBeCloseTo(4));
   await input.press('ArrowLeft');await expect(caret).toBeVisible();
   await input.press('Shift+ArrowLeft');await expect(caret).toBeHidden();
@@ -1087,19 +1090,19 @@ test('Editable text is filled until Convert to path creates individual unfilled 
   await page.goto(DEV);
   await page.getByRole('button',{name:'Text',exact:true}).click();await page.mouse.click(380,330);
   const input=page.getByRole('textbox',{name:'Edit text on canvas',exact:true});
-  await input.fill('BO');await expect(input).toHaveCSS('color','rgb(56, 56, 56)');await expect(input).toHaveCSS('-webkit-text-stroke-width','0px');
+  await input.fill('BO');await expect(input).toHaveCSS('color','rgb(255, 255, 255)');await expect(input).toHaveCSS('-webkit-text-stroke-width','0px');
   await page.screenshot({path:'test-results/plain-text-typing.png'});
   await input.press('Control+Enter');await expect(input).toBeHidden();
   const style=()=>page.evaluate(()=>{const e=(window as any).__vectora;return e.objects.map((s:any)=>({fill:s.fillColor?.toCSS(true)??null,stroke:s.strokeColor?.toCSS(true)??null,text:!!s.data.text}));});
-  expect(await style()).toEqual([{fill:'#383838',stroke:null,text:true}]);
+  expect(await style()).toEqual([{fill:'#ffffff',stroke:null,text:true}]);
   const original=await page.evaluate(()=>(window as any).__vectora.snapshot());
   await page.screenshot({path:'test-results/plain-text-selected.png'});
   await page.getByRole('button',{name:'Convert to path',exact:true}).click();
-  expect(await style()).toEqual(Array(5).fill({fill:null,stroke:'#383838',text:false}));
+  expect(await style()).toEqual(Array(5).fill({fill:null,stroke:'#ffffff',text:false}));
   await page.screenshot({path:'test-results/plain-text-converted.png'});
   await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(original);
   await page.evaluate(()=>{const e=(window as any).__vectora;e.moveSelectionToCutPath();e.onTextRequest(null,e.selected);});
-  await expect(input).toHaveCSS('color','rgb(217, 84, 77)');await input.fill('BOB');await input.press('Control+Enter');await expect(input).toBeHidden();
+  await expect(input).toHaveCSS('color','rgb(255, 0, 0)');await input.fill('BOB');await input.press('Control+Enter');await expect(input).toBeHidden();
   expect(await style()).toEqual([{fill:'#ff0000',stroke:null,text:true}]);
   await page.getByRole('button',{name:'Convert to path',exact:true}).click();
   expect(await style()).toEqual(Array(8).fill({fill:null,stroke:'#ff0000',text:false}));

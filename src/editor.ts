@@ -1,5 +1,5 @@
 import paper from 'paper';
-import {hasFilledArea} from './shapeStyles';
+import {artworkColor,hasFilledArea} from './shapeStyles';
 import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
 import { NodeEditing } from './nodeEditing';
@@ -776,7 +776,7 @@ export class CADEditor {
     if(state.points.length===1){state.points.push(end);this.previewThreePointArc();return;}
     try{
       const item=this.tool==='arc-endpoints'?createEndpointArc(state.points[0],state.points[1],end,shift):createArc(state.points[0],state.points[1],end);
-      item.strokeColor=new paper.Color('#383838');item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
+      item.strokeColor=new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
       item.data={...item.data,role:'artwork',uid:crypto.randomUUID(),name:'Arc'};
       if(this.tool==='arc-endpoints'){this.tool='select';this.updateCursor();}
       state.item.remove();this.threePointArc=null;this.activeObjectSnap=null;this.artwork.addChild(item);this.selected=item;this.commit(state.before);
@@ -789,7 +789,7 @@ export class CADEditor {
     let item:paper.Path|null=null;
     if(points.length===3){try{item=this.tool==='arc-endpoints'?createEndpointArc(points[0],points[1],points[2],shift):createArc(points[0],points[1],points[2]);}catch{/* Keep a guide for invalid preview positions. */}}
     if(!item)item=new paper.Path({segments:angleStep?state.points:points,insert:false,dashArray:[4,4]});
-    item.strokeColor=new paper.Color('#383838');item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
+    item.strokeColor=new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
     state.item.remove();this.overlays.addChild(item);state.item=item;this.changed();
   }
   private segmentEnd(start:paper.Point,point:paper.Point,spacing:number|null,shift:boolean):paper.Point {
@@ -800,7 +800,7 @@ export class CADEditor {
   private addPolylinePoint(point:paper.Point,shift:boolean):void {
     if(!this.polyline){
       const before=this.snapshot(),spacing=this.gridSnappingActive?this.grid.spacingMM:null;
-      const item=new paper.Path({insert:false,closed:false,strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false,fillColor:null});
+      const item=new paper.Path({insert:false,closed:false,strokeColor:artworkColor(),strokeWidth:1.5,strokeScaling:false,fillColor:null});
       this.overlays.addChild(item);this.polyline={points:[this.snapPoint(point,spacing)],item,before,spacing};this.selected=null;
     }else{
       const state=this.polyline,last=state.points[state.points.length-1],end=this.segmentEnd(last,point,state.spacing,shift);
@@ -823,7 +823,7 @@ export class CADEditor {
   private appendFreehand(state:Interaction,point:paper.Point,force=false):void {
     if(![state.start.x,state.start.y,point.x,point.y].every(validNumber))return;
     if(!state.item){
-      state.item=new paper.Path({segments:[state.start],insert:false,closed:false,fillColor:null,strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false,strokeCap:'round',strokeJoin:'round'});
+      state.item=new paper.Path({segments:[state.start],insert:false,closed:false,fillColor:null,strokeColor:artworkColor(),strokeWidth:1.5,strokeScaling:false,strokeCap:'round',strokeJoin:'round'});
       this.overlays.addChild(state.item);
     }
     const path=state.item as paper.Path;
@@ -867,7 +867,7 @@ export class CADEditor {
       });
       item=new paper.Path({segments,closed:true,insert:false});
     }else item=new paper.Path.Circle({center:state.start,radius,insert:false});
-    item.fillColor=null;item.strokeColor=new paper.Color('#383838');item.strokeWidth=1.5;item.strokeScaling=false;
+    item.fillColor=null;item.strokeColor=new paper.Color(artworkColor());item.strokeWidth=1.5;item.strokeScaling=false;
     this.overlays.addChild(item);state.item=item;
   }
   private pointerUp=(event:PointerEvent):void=>{

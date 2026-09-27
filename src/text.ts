@@ -1,3 +1,4 @@
+import {artworkColor} from './shapeStyles';
 import paper from 'paper';
 import { transformDimension } from './dimensions';
 import type { Font, PathCommand } from 'opentype.js';
@@ -63,7 +64,7 @@ export function createTextShape(data:TextData,forConversion=false):paper.Compoun
   if(!data.content.trim()||data.content.length>500)throw new Error('Enter between 1 and 500 characters.');
   if(!Number.isFinite(data.sizeMM)||data.sizeMM<0.1||data.sizeMM>1000)throw new Error('Font size must be between 0.1 and 1000 mm.');
   for(const char of data.content)if(!'\n\r\t'.includes(char)&&!font.charToGlyphIndex(char))throw new Error(`${textFont(fontId).name} does not include “${char}”. Choose another character or font.`);
-  const shape=new paper.CompoundPath({insert:false,fillColor:'#383838',strokeColor:null,strokeWidth:1.5,strokeScaling:false});
+  const shape=new paper.CompoundPath({insert:false,fillColor:artworkColor(),strokeColor:null,strokeWidth:1.5,strokeScaling:false});
   const glyphContours:number[]=[],glyphLabels:string[]=[];
   data.content.replace(/\r\n?/g,'\n').replace(/\t/g,'    ').split('\n').forEach((line,i)=>{
     const characters=Array.from(line),glyphs=characters.map(char=>font.charToGlyph(char));

@@ -1,6 +1,10 @@
 import paper from 'paper';
 import type { Shape } from './types';
 
+export function artworkColor():string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--layer-artwork').trim();
+}
+
 /** Fill metadata also identifies regions transferred by older versions that cleared the style. */
 export function hasFilledArea(item: Shape): boolean {
   return !!item.fillColor || !!item.data.regionFill || item.data.rasterTrace?.mode === 'fill';

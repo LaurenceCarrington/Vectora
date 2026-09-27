@@ -1,3 +1,4 @@
+import {artworkColor} from './shapeStyles';
 import paper from 'paper';
 import type { CADEditor } from './editor';
 import type { Shape } from './types';
@@ -61,7 +62,7 @@ export class InlineText {
     const matrix=new paper.Matrix(...data.transform),origin=paper.view.projectToView(matrix.transform(new paper.Point(0,textBaselineOffset(font.id,size))));
     const [a,b,c,d]=data.transform;
     Object.assign(this.input.style,{fontFamily:`"Vectora ${font.name}"`,fontSize:`${size}px`,lineHeight:'1.2',transform:`matrix(${a*zoom},${b*zoom},${c*zoom},${d*zoom},${origin.x},${origin.y})`});
-    this.input.style.setProperty('--inline-text-color',(active.source?.fillColor??active.source?.strokeColor)?.toCSS(true)??'#383838');
+    this.input.style.setProperty('--inline-text-color',(active.source?.fillColor??active.source?.strokeColor)?.toCSS(true)??artworkColor());
     const measure=document.createElement('canvas').getContext('2d')!;measure.font=`${size}px "Vectora ${font.name}"`;
     const lines=this.input.value.split('\n');
     this.input.style.width=`${Math.max(size*6,...lines.map(line=>measure.measureText(line).width+size))}px`;

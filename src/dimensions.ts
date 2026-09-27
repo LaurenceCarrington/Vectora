@@ -1,3 +1,4 @@
+import {artworkColor} from './shapeStyles';
 import paper from 'paper';
 import type { Shape, ToolName } from './types';
 import { pathsOf } from './geometry';
@@ -42,7 +43,7 @@ export function dimensionLayout(data:DimensionData){
 }
 export function createDimension(data:DimensionData):paper.CompoundPath {
   const layout=dimensionLayout(data);
-  const shape=new paper.CompoundPath({insert:false,children:layout.lines.map(segments=>new paper.Path({insert:false,segments})),strokeColor:'#383838',strokeWidth:1,strokeScaling:false,fillColor:null});
+  const shape=new paper.CompoundPath({insert:false,children:layout.lines.map(segments=>new paper.Path({insert:false,segments})),strokeColor:artworkColor(),strokeWidth:1,strokeScaling:false,fillColor:null});
   shape.transform(layout.matrix);shape.data.dimension=structuredClone(data);return shape;
 }
 export function transformDimension(item:Shape,matrix:paper.Matrix):void {
@@ -59,7 +60,7 @@ export function dimensionTextLayout(data:DimensionData){
 export function dimensionLabel(item:Shape):paper.PointText|null {
   if(!item.data.dimension)return null;
   const layout=dimensionTextLayout(item.data.dimension);
-  const text=new paper.PointText({insert:false,point:layout.position,content:layout.label,fontSize:layout.fontSize,fontFamily:'Arial, sans-serif',fillColor:item.strokeColor??'#383838',justification:layout.centered?'center':'left'});
+  const text=new paper.PointText({insert:false,point:layout.position,content:layout.label,fontSize:layout.fontSize,fontFamily:'Arial, sans-serif',fillColor:item.strokeColor??artworkColor(),justification:layout.centered?'center':'left'});
   text.rotate(layout.angle,layout.position);return text;
 }
 /** Pick true circles and circular arcs; ellipses do not have one radius. */
