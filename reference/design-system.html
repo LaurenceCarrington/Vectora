@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><script>try{document.documentElement.dataset.theme=localStorage.getItem('vectora.theme')==='light'?'light':'dark';}catch{document.documentElement.dataset.theme='dark';}</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Vectora — Design system</title><style>/* Vectora — foundational tokens. All dimensional values use even pixels. */
+<head><script>try{document.documentElement.dataset.theme=localStorage.getItem('vectora.theme')==='light'?'light':'dark';}catch{document.documentElement.dataset.theme='dark';}</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Vectora — Design system</title><link rel="icon" type="image/png" sizes="32x32" href="../favicon.png"><link rel="icon" type="image/svg+xml" sizes="any" href="../favicon.svg"><style>/* Vectora — foundational tokens. All dimensional values use even pixels. */
 :root {
   --color-canvas: #F4F4F2;
   --color-surface: #FFFFFF;
@@ -1100,6 +1100,7 @@ SOFTWARE.
 
  <span class="sr-only" role="status">Layers panel ready.</span>
 </div></div></div>
+<p class="subtext">The browser favicon uses the same blue Vectora diamond as the application header, on a transparent background. SVG is the primary icon with a 32px PNG fallback.</p>
 <p class="subtext">Click the centred project name to type directly in the header, with no input border or box. Focus selects the name without its .vectora extension. Enter or clicking outside applies the name; Escape cancels. Paste is plain text and names remain single-line. Blank names keep the previous name; the .vectora extension is preserved. Save uses the new name; renaming a previously saved project requests a new save destination. Renaming does not change drawing geometry or undo history. The title stays centred and truncates when space is limited.</p>
 <p class="subtext">Thin 20px charcoal millimetre rulers sit along the canvas’s left edge, immediately inside the tool rail, and along the bottom above the status bar. Tick positions share the drawing’s document origin and scale: X increases rightwards, Y downwards, including negative coordinates. Panning, zooming, resizing and zoom reset update both rulers. Labels use readable 1/2/5 intervals with smaller subdivisions; this changes label density only, never the configured grid size. Rulers remain below menus and docked panels, and are display-only guides excluded from exports. The mm corner identifies both scales.</p>
 <p class="subtext">The 28px charcoal status bar spans the full window width at the bottom. Side rails and docked panels end above it. The tool label stays left, the zoom/grid readout stays exactly centred using equal flexible side columns, and the navigation hint stays right (hidden on narrow screens). Click the zoom percentage in the centred footer to reset the view to 100%, or focus it and press Enter or Space. Reset keeps the current canvas centre, artwork and selection, without changing grid spacing or adding an undo step.</p>
