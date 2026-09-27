@@ -298,10 +298,9 @@ SOFTWARE.
 <input type="file" id="open-document-file" accept=".vectora,application/json" hidden>
 <dialog class="delete-dialog menu-surface document-dialog" id="document-dialog" aria-labelledby="document-dialog-title" aria-describedby="document-dialog-message">
  <form method="dialog">
-  <div class="delete-dialog-heading"><h2 id="document-dialog-title" data-document-title>Save document</h2></div>
-  <p id="document-dialog-message" data-document-message>Save an editable Vectora document to your device.</p>
-  <label class="number-shell document-name" data-document-name-row><span class="number-prefix">Name</span><input class="number-input" data-document-name aria-label="Document file name" value="Untitled.vectora" maxlength="120" required spellcheck="false"></label>
-  <div class="delete-dialog-actions"><button class="button" type="submit" value="cancel" data-document-cancel formnovalidate>Cancel</button><button class="button" type="submit" value="confirm" data-document-confirm>Download</button></div>
+  <div class="delete-dialog-heading"><h2 id="document-dialog-title" data-document-title>New document?</h2></div>
+  <p id="document-dialog-message" data-document-message>The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.</p>
+  <div class="delete-dialog-actions"><button class="button" type="submit" value="cancel" data-document-cancel formnovalidate>Cancel</button><button class="button" type="submit" value="confirm" data-document-confirm>New document</button></div>
  </form>
 </dialog>
 </body></html>

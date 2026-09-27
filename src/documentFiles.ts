@@ -11,7 +11,6 @@ export class DocumentFiles {
  private handle:FileHandle|null=null;
  private filename='Untitled.vectora';
  private savedKey:string;
- private hasSaved=false;
  private busy=false;
  constructor(private editor:CADEditor,private dialog:HTMLDialogElement,private input:HTMLInputElement,private prepare:()=>boolean,private notify:(message:string,kind:AlertKind)=>void){
   this.savedKey=documentKey(editor);
@@ -25,13 +24,13 @@ export class DocumentFiles {
   try{await action();}catch(error){if(!(error instanceof DOMException&&error.name==='AbortError'))this.notify(error instanceof Error?error.message:String(error),'error');}
   finally{this.busy=false;}
  }
- private prompt(title:string,message:string,confirm:string,name?:string):Promise<string|null>{
-  const form=this.dialog.querySelector('form')!,field=this.dialog.querySelector<HTMLInputElement>('[data-document-name]')!,row=this.dialog.querySelector<HTMLElement>('[data-document-name-row]')!;
+ private prompt(title:string,message:string,confirm:string):Promise<string|null>{
+  const form=this.dialog.querySelector('form')!;
   this.dialog.querySelector('[data-document-title]')!.textContent=title;this.dialog.querySelector('[data-document-message]')!.textContent=message;
-  this.dialog.querySelector('[data-document-confirm]')!.textContent=confirm;row.hidden=name===undefined;field.required=name!==undefined;field.value=name??'';
-  this.dialog.returnValue='';this.dialog.showModal();(name===undefined?this.dialog.querySelector<HTMLButtonElement>('[data-document-cancel]')!:field).focus();if(name!==undefined)field.select();
+  this.dialog.querySelector('[data-document-confirm]')!.textContent=confirm;
+  this.dialog.returnValue='';this.dialog.showModal();this.dialog.querySelector<HTMLButtonElement>('[data-document-cancel]')!.focus();
   form.onsubmit=event=>{event.preventDefault();const submitter=(event as SubmitEvent).submitter as HTMLButtonElement|null;this.dialog.close(submitter?.value==='cancel'?'cancel':'confirm');};
-  return new Promise(resolve=>this.dialog.addEventListener('close',()=>{resolve(this.dialog.returnValue==='confirm'?(name===undefined?'confirm':field.value):null);this.editor.canvas.focus({preventScroll:true});},{once:true}));
+  return new Promise(resolve=>this.dialog.addEventListener('close',()=>{resolve(this.dialog.returnValue==='confirm'?'confirm':null);this.editor.canvas.focus({preventScroll:true});},{once:true}));
  }
  save(as=false):Promise<void>{return this.run(async()=>{
   if(!this.prepare())return;
@@ -40,19 +39,18 @@ export class DocumentFiles {
   if(api.showSaveFilePicker){
    const handle=as||!this.handle?await api.showSaveFilePicker({suggestedName:this.filename,types:pickerTypes}):this.handle;
    const writable=await handle.createWritable();try{await writable.write(contents);await writable.close();}catch(error){try{await writable.abort();}catch{/* The stream may already be closed. */}throw error;}
-   this.handle=handle;this.filename=handle.name;this.savedKey=key;this.hasSaved=true;
+   this.handle=handle;this.filename=handle.name;this.savedKey=key;
    document.title=`${this.filename} — Vectora`;this.notify(`Saved ${this.filename}.`,'success');
   }else{
-   let filename=this.filename;
-   if(as||!this.hasSaved){const chosen=await this.prompt('Save document','Save an editable Vectora document to your device.','Download',filename);if(chosen===null)return;filename=chosen.trim().replace(/[\\/:*?"<>|\x00-\x1f]/g,'_');if(!filename)throw new Error('Enter a file name.');if(!/\.vectora$/i.test(filename))filename+='.vectora';}
+   const filename=this.filename;
    const url=URL.createObjectURL(new Blob([contents],{type:'application/json'})),anchor=document.createElement('a');anchor.href=url;anchor.download=filename;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-   this.filename=filename;this.savedKey=key;this.hasSaved=true;document.title=`${filename} — Vectora`;this.notify(`Downloaded ${filename}. This browser saves a new copy each time.`,'success');
+   this.filename=filename;this.savedKey=key;document.title=`${filename} — Vectora`;this.notify(`Sent ${filename} to your browser to save.`,'success');
   }
  });}
  newDocument():Promise<void>{return this.run(async()=>{
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('New document?','The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.','New document')===null)return;
-  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.hasSaved=false;this.savedKey=documentKey(this.editor);
+  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.savedKey=documentKey(this.editor);
   document.title='Untitled — Vectora';this.editor.canvas.focus({preventScroll:true});this.notify('New document created.','success');
  });}
  open():Promise<void>{
@@ -67,7 +65,7 @@ export class DocumentFiles {
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('Open document?','The current drawing has unsaved changes. Opening this file will replace them. Cancel to save your drawing first.','Open document')===null)return;
   if(!this.prepare())return;
-  this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);this.hasSaved=true;
+  this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);
   window.document.title=`${this.filename} — Vectora`;this.notify(`Opened ${file.name}.`,'success');
  }
 }

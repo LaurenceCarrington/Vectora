@@ -396,9 +396,6 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .delete-dialog-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--color-danger); color: var(--color-text); }
 .delete-dialog h2 { font-size: var(--text-lg); line-height: 28px; }
 .delete-dialog p { font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); overflow-wrap: anywhere; }
-.document-name { margin-top:var(--space-16); }
-.document-name[hidden] { display:none; }
-.document-name .number-input { min-width:0; width:100%; }
 .delete-dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-8); margin-top: var(--space-24); }
 
 
@@ -1063,7 +1060,7 @@ SOFTWARE.
 <div class="section-heading"><span class="section-number">07</span><h2 id="dropdown-heading">Dropdown menus</h2><span class="section-note">File / below the toolbar</span></div>
 <div class="menu-showcase">
  <div class="menu-stage" data-file-demo>
-  <p class="subtext">New document (Ctrl/Cmd+N) starts an empty Untitled drawing with the four default layers, 100% zoom and the Select tool. Unsaved changes use the shared dark confirmation dialog with Cancel focused; cancelling keeps the drawing and save target. Creating a new document clears selection, undo/redo history and the previous save target while keeping user preferences. The next Save asks for a new file. Save (Ctrl/Cmd+S) writes an editable .vectora document with all layers, shapes, fills, text, dimensions and the current view. Save As (Ctrl/Cmd+Shift+S) chooses a new file. Supported browsers use a native file picker and Save updates the same file; other browsers use the charcoal filename dialog below and download a copy each time. Open file (Ctrl/Cmd+O) restores a .vectora document, including hidden and locked layers and construction paths. Unsaved changes require confirmation before replacement; cancelling a picker or a failed read/write keeps the current document and save target. Opening resets undo history, while saving preserves it. File names appear in the browser tab. Invalid or unsupported files use the standard error toast. The reference Save entries demonstrate the filename dialog.</p>
+  <p class="subtext">New document (Ctrl/Cmd+N) starts an empty Untitled drawing with the four default layers, 100% zoom and the Select tool. Unsaved changes use the shared dark confirmation dialog with Cancel focused; cancelling keeps the drawing and save target. Creating a new document clears selection, undo/redo history and the previous save target while keeping user preferences. The next Save asks for a new file. Save (Ctrl/Cmd+S) writes an editable .vectora document with all layers, shapes, fills, text, dimensions and the current view. Save As (Ctrl/Cmd+Shift+S) chooses a new file. Supported browsers use a native file picker and Save updates the same file; other browsers immediately hand a download to their own save flow. There is no in-app filename dialog. The browser controls whether downloads show the system Save window or use its configured download folder. Open file (Ctrl/Cmd+O) restores a .vectora document, including hidden and locked layers and construction paths. Unsaved changes require confirmation before replacement; cancelling a picker or a failed read/write keeps the current document and save target. Opening resets undo history, while saving preserves it. File names appear in the browser tab. Invalid or unsupported files use the standard error toast. The reference New document entries demonstrate the unsaved-changes confirmation; Save uses browser-owned UI.</p>
 <p class="subtext">File → Export SVG (Ctrl/Cmd+E) downloads vectora.svg directly. Export visible Artwork, Cut Path and Engrave Path layers, including locked objects, in canvas stacking order. Preserve vector curves, fills, holes and colours; text artwork becomes font-independent outline paths. Dimensions and callouts include their labels. Physical width and height use millimetres, with a content-fitted viewBox that includes stroke edges. Zoom, pan and selection do not change the output. Construction guides, hidden objects, the grid and editor controls are excluded. Empty exports show the standard error notification. Export never changes the drawing or undo history.</p>
 <div class="dropdown-stage">
    <div class="toolbar" role="group" aria-label="File dropdown example toolbar">
@@ -2143,20 +2140,14 @@ document.querySelectorAll('[data-search-example]').forEach(example => {
 <input type="file" id="open-document-file" accept=".vectora,application/json" hidden>
 <dialog class="delete-dialog menu-surface document-dialog" id="document-dialog" aria-labelledby="document-dialog-title" aria-describedby="document-dialog-message">
  <form method="dialog">
-  <div class="delete-dialog-heading"><h2 id="document-dialog-title" data-document-title>Save document</h2></div>
-  <p id="document-dialog-message" data-document-message>Save an editable Vectora document to your device.</p>
-  <label class="number-shell document-name" data-document-name-row><span class="number-prefix">Name</span><input class="number-input" data-document-name aria-label="Document file name" value="Untitled.vectora" maxlength="120" required spellcheck="false"></label>
-  <div class="delete-dialog-actions"><button class="button" type="submit" value="cancel" data-document-cancel formnovalidate>Cancel</button><button class="button" type="submit" value="confirm" data-document-confirm>Download</button></div>
+  <div class="delete-dialog-heading"><h2 id="document-dialog-title" data-document-title>New document?</h2></div>
+  <p id="document-dialog-message" data-document-message>The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.</p>
+  <div class="delete-dialog-actions"><button class="button" type="submit" value="cancel" data-document-cancel formnovalidate>Cancel</button><button class="button" type="submit" value="confirm" data-document-confirm>New document</button></div>
  </form>
 </dialog>
 <script>
- document.querySelectorAll('[data-file-action="Save changes"], [data-file-action="Save as…"], [data-file-action="New document"]').forEach(button=>button.addEventListener('click',()=>{
-  const dialog=document.getElementById('document-dialog'),isNew=button.dataset.fileAction==='New document',field=dialog.querySelector('[data-document-name]');
-  dialog.querySelector('[data-document-title]').textContent=isNew?'New document?':'Save document';
-  dialog.querySelector('[data-document-message]').textContent=isNew?'The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.':'Save an editable Vectora document to your device.';
-  dialog.querySelector('[data-document-name-row]').hidden=isNew;field.required=!isNew;
-  dialog.querySelector('[data-document-confirm]').textContent=isNew?'New document':'Download';
-  dialog.showModal();(isNew?dialog.querySelector('[data-document-cancel]'):field).focus();
+ document.querySelectorAll('[data-file-action="New document"]').forEach(button=>button.addEventListener('click',()=>{
+  const dialog=document.getElementById('document-dialog');dialog.showModal();dialog.querySelector('[data-document-cancel]').focus();
  }));
  document.querySelector('#document-dialog form').addEventListener('submit',event=>{event.preventDefault();document.getElementById('document-dialog').close(event.submitter.value);});
  document.getElementById('document-dialog').addEventListener('keydown',event=>event.stopPropagation());
