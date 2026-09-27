@@ -129,6 +129,13 @@ export class CADEditor {
   snapshot():DocumentSnapshot {
     return {artwork:JSON.stringify(this.artwork.children.map(i=>i.exportJSON({precision:12}))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>item.exportJSON({precision:12})))}:{})})))};
   }
+  loadDocument(snapshot:DocumentSnapshot,view:{zoom:number;center:[number,number]}):void {
+    this.cancel();const before=this.snapshot(),oldZoom=paper.view.zoom,oldCenter=paper.view.center.clone();
+    try{
+      this.restore(snapshot);paper.view.zoom=view.zoom;paper.view.center=new paper.Point(...view.center);
+      this.tool='select';this.updateCursor();this.undoStack=[];this.redoStack=[];this.changed();
+    }catch(error){this.restore(before);paper.view.zoom=oldZoom;paper.view.center=oldCenter;this.changed();throw error;}
+  }
   private restore(snapshot:DocumentSnapshot):void {
     this.dimensions.cancel();this.nodes.clear();
     this.selected=null; this.artwork.removeChildren();this.cutlines.removeChildren();

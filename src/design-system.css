@@ -394,6 +394,9 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .delete-dialog-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--color-danger); color: var(--color-text); }
 .delete-dialog h2 { font-size: var(--text-lg); line-height: 28px; }
 .delete-dialog p { font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); overflow-wrap: anywhere; }
+.document-name { margin-top:var(--space-16); }
+.document-name[hidden] { display:none; }
+.document-name .number-input { min-width:0; width:100%; }
 .delete-dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-8); margin-top: var(--space-24); }
 
 

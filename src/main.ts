@@ -12,6 +12,7 @@ import type { ObjectSnapMode } from './objectSnapping';
 import { initializeClipper } from './clipperService';
 import { downloadDXF, exportDXF } from './exportDXF';
 import { downloadSVG, exportSVG } from './exportSVG';
+import { DocumentFiles } from './documentFiles';
 import { BASE_ZOOM } from './units';
 import type { ToolName } from './types';
 const $=<T extends HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
@@ -30,6 +31,7 @@ const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersB
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});
 const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor);
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
+const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>inlineText.finish(false,false),notify);
 const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElement>('#text-property-size');
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
@@ -117,7 +119,9 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
   if(button.dataset.deleteTool){const tool=button.dataset.deleteTool;if(tool==='dissect-delete'||tool==='line-delete')button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}
   if(button.dataset.arcTool){const tool=button.dataset.arcTool;if(tool==='arc'||tool==='arc-three-point'||tool==='arc-endpoints')button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}
   if(button.dataset.lineTool){const tool=button.dataset.lineTool;if(tool==='line'||tool==='polyline'||tool==='freehand')button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}
-  if(button.dataset.fileAction){if(button.dataset.fileAction==='Export SVG'){button.tabIndex=0;button.onclick=exportDrawingSVG;}else if(button.dataset.fileAction==='Export DXF'){button.tabIndex=0;button.onclick=()=>{closeMenus();setPanel(props,true,true);$('#export-dxf').focus();};}else disable(button);}
+  if(button.dataset.fileAction){const action=button.dataset.fileAction;
+    if(action==='Save changes'||action==='Save as…'||action==='Open file…'){button.tabIndex=0;button.onclick=()=>{closeMenus();void(action==='Open file…'?documentFiles.open():documentFiles.save(action==='Save as…'));};}
+    else if(action==='Export SVG'){button.tabIndex=0;button.onclick=exportDrawingSVG;}else if(action==='Export DXF'){button.tabIndex=0;button.onclick=()=>{closeMenus();setPanel(props,true,true);$('#export-dxf').focus();};}else disable(button);}
 }
 function disable(button:HTMLButtonElement):void {button.disabled=true;button.title=(button.title||button.textContent?.trim()||'This control')+' — not yet available';}
 new RasterToVector($<HTMLDialogElement>('#raster-dialog'),editor,$<HTMLButtonElement>('[data-raster-open]'),()=>{editor.cancel();closeMenus();});
@@ -204,6 +208,13 @@ function update():void {
 editor.onChange=update;editor.onMessage=notify;update();
 initializeClipper().then(()=>{ready=true;$('#wasm-status').textContent='Outline engine ready';update();}).catch(error=>{$('#wasm-status').textContent='Outline engine unavailable. Reload to retry.';notify(`Could not load the outline engine: ${error instanceof Error?error.message:String(error)}`,true);});
 document.addEventListener('pointerdown',e=>{if(!(e.target instanceof Element))return;for(const [menu,trigger] of menus)if(!menu.contains(e.target)&&!trigger.contains(e.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});
+document.addEventListener('keydown',event=>{
+  const key=event.key.toLowerCase();
+  if(!(event.ctrlKey||event.metaKey)||event.altKey||!['s','o'].includes(key)||document.querySelector('dialog[open]'))return;
+  const target=event.target as HTMLElement;
+  if(target.closest('input,textarea,select,[contenteditable="true"]')&&target.id!=='inline-text')return;
+  event.preventDefault();event.stopPropagation();closeMenus();void(key==='o'?documentFiles.open():documentFiles.save(event.shiftKey));
+},true);
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='e'&&!(e.target as Element)?.closest('input,textarea,select,[contenteditable="true"]')&&!document.querySelector('dialog[open]')){
     e.preventDefault();e.stopPropagation();exportDrawingSVG();return;

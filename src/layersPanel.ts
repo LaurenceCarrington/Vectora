@@ -195,7 +195,7 @@ export class LayersPanel {
     this.panel.querySelector('[data-layer-count]')!.textContent = String(layers.length);
     if(!layers.length){const empty=document.createElement('p');empty.className='layers-empty';empty.textContent='No layers yet. Add a layer to get started.';this.list.append(empty);}
     for (const role of roles) {
-      const layer = this.editor.documentLayer(role)!, name = layer.name, expanded = this.expanded.has(role);
+      const layer = this.editor.documentLayer(role)!, name = layer.name.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!)), expanded = this.expanded.has(role);
       const entry = document.createElement('div');
       entry.className = 'layer-entry';entry.dataset.layerId = role;entry.dataset.layerType = layerType(layerRole(layer)).type;
       const objectsId = `layer-objects-${role}`;
