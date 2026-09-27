@@ -805,8 +805,6 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 .toolbar .tool:focus-visible,.floating-menu button:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 /* Compact desktop chrome: existing actions, blue active states, quiet separators. */
-.left-toolbar .tool.selected,.left-toolbar .tool[aria-expanded="true"] { box-shadow:inset 2px 0 var(--chrome-accent); }
-.right-toolbar .tool.selected,.right-toolbar .tool[aria-expanded="true"] { box-shadow:inset -2px 0 var(--chrome-accent); }
 :is(.shape-option[aria-checked="true"],.prefs-tab[aria-selected="true"],.layer-row.is-selected,.layer-object[aria-pressed="true"]) svg { color:var(--chrome-accent); }
 .number-prefix { font-weight:500; }
 .layers-panel .button { font-size:13px; font-weight:500; }
@@ -1300,7 +1298,7 @@ SOFTWARE.
 <tr><td>Reset or restore</td><td><code>.button.button--danger</code> — pastel red background with dark text and icons. Applies to every reset or restore button.</td></tr>
 <tr><td>Confirm deletion</td><td><code>.button.button--danger</code> — use in the centred confirmation dialog.</td></tr>
 <tr><td>Trash icon</td><td>Keep the icon neutral. Clicking opens the danger confirmation; the trash trigger itself is not red.</td></tr>
-<tr><td>Toolbar tools</td><td>Muted icons inside the charcoal toolbar. A blue icon and a subtle dark square show selection; active side tools also have a thin blue edge marker.</td></tr>
+<tr><td>Toolbar tools</td><td>Muted icons inside the charcoal toolbar. A blue icon and a subtle dark square show selection, without an edge line.</td></tr>
 <tr><td>Menu rows & categories</td><td>Charcoal rows, lighter charcoal hover, and blue selection. These use their menu or tab component style.</td></tr>
 <tr><td>Close, clear & drag</td><td>Neutral icon controls with a light hover surface; use a white icon when placed on a dark surface.</td></tr>
 <tr><td>Disabled</td><td>Grey background and muted text. Preserve the disabled state rather than relying on colour alone.</td></tr>

@@ -803,8 +803,6 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 .toolbar .tool:focus-visible,.floating-menu button:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 /* Compact desktop chrome: existing actions, blue active states, quiet separators. */
-.left-toolbar .tool.selected,.left-toolbar .tool[aria-expanded="true"] { box-shadow:inset 2px 0 var(--chrome-accent); }
-.right-toolbar .tool.selected,.right-toolbar .tool[aria-expanded="true"] { box-shadow:inset -2px 0 var(--chrome-accent); }
 :is(.shape-option[aria-checked="true"],.prefs-tab[aria-selected="true"],.layer-row.is-selected,.layer-object[aria-pressed="true"]) svg { color:var(--chrome-accent); }
 .number-prefix { font-weight:500; }
 .layers-panel .button { font-size:13px; font-weight:500; }
