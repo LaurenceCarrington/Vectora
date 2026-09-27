@@ -196,7 +196,7 @@ section { margin-top: var(--space-32); }
 .preview-caption { position: absolute; color: var(--color-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
 .top-caption { top: 0; left: 50%; transform: translateX(-50%); }
 .toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
-.top-toolbar { position: absolute; top: var(--workspace-edge-inset); left: 50%; transform: translateX(-50%); }
+.top-toolbar { position:absolute; top:var(--workspace-edge-inset); left:0; right:0; width:100%; justify-content:center; }
 .brand { font-size: var(--text-xl); font-weight: 650; display: flex; gap: 10px; align-items: center; padding: 0 12px; }
 svg { width: var(--icon-lg); height: var(--icon-lg); stroke: currentColor; fill: none; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .brand svg { width: 24px; height: 24px; }
