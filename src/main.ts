@@ -133,6 +133,7 @@ const gridType=$<HTMLSelectElement>('#pref-grid-type'),gridAngle=$<HTMLSelectEle
 gridType.value=editor.grid.type;gridAngle.value=String(editor.grid.angleDegrees);
 function updateGridSettings():void {
   $('#pref-grid-angle-field').hidden=editor.grid.type!=='polar';
+  $('#pref-grid-size-field').hidden=editor.grid.type==='none';
   $('#pref-grid-size-help').textContent=gridSize.value!==''&&gridSize.validity.valid?GRID_HELP[editor.grid.type]:'Enter a grid size from 0.1 to 1000 mm.';
 }
 gridType.onchange=()=>{editor.setGridType(gridType.value as GridType);updateGridSettings();};
@@ -228,7 +229,7 @@ function update():void {
   if(isDimensionTool(editor.tool))$('#tool-status').textContent=`${DIMENSION_NAMES[editor.tool]}${editor.tool==='dimension-aligned'?' · D':''} · ${editor.dimensions.hint}`;
   const snapButton=$('#snap-grid');snapButton.classList.toggle('selected',editor.snappingEnabled);snapButton.setAttribute('aria-pressed',String(editor.snappingEnabled));snapButton.title=`Snapping (S) · ${editor.snappingEnabled?'On':'Off'}`;
   resetZoom.textContent=`${Math.round(editor.zoom/BASE_ZOOM*100)}%`;
-  $('#grid-status').textContent=`${editor.grid.type==='square'?'Grid':GRID_NAMES[editor.grid.type]} ${editor.grid.spacingMM} mm${editor.grid.type==='polar'?` · ${editor.grid.angleDegrees}°`:''}`;
+  $('#grid-status').textContent=editor.grid.type==='none'?'No grid':`${editor.grid.type==='square'?'Grid':GRID_NAMES[editor.grid.type]} ${editor.grid.spacingMM} mm${editor.grid.type==='polar'?` · ${editor.grid.angleDegrees}°`:''}`;
   for(const [button,active] of [[$('[aria-label="Select"]'),editor.tool==='select'],[$('[data-shape-trigger]'),['rectangle','circle','ellipse','polygon'].includes(editor.tool)],[$('[data-line-trigger]'),editor.tool==='line'||editor.tool==='polyline'||editor.tool==='freehand'],[$('[data-arc-trigger]'),editor.tool==='arc'||editor.tool==='arc-three-point'||editor.tool==='arc-endpoints'],[$('[data-delete-trigger]'),editor.isDeleteTool],[$('[data-dimension-trigger]'),isDimensionTool(editor.tool)]] as const){button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active));}
   document.querySelectorAll<HTMLElement>('[data-shape]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.shape?.toLowerCase()===editor.tool)));
   document.querySelectorAll<HTMLElement>('[data-line-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.lineTool===editor.tool)));
@@ -237,7 +238,8 @@ function update():void {
   document.querySelectorAll<HTMLElement>('[data-delete-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.deleteTool===editor.tool)));
   layersPanel.render();
   selectionMenu.render();
-  snappingMaster.checked=editor.snappingEnabled;gridSnapSetting.checked=editor.snapToGridEnabled;
+  snappingMaster.checked=editor.snappingEnabled;gridSnapSetting.checked=editor.snapToGridEnabled;gridSnapSetting.disabled=editor.grid.type==='none';
+  $('#pref-snap-grid-help').textContent=editor.grid.type==='none'?'Choose a grid type in Grid preferences to enable grid snapping.':'Align to the grid size set in Grid preferences.';
   document.querySelectorAll<HTMLInputElement>('[data-object-snap]').forEach(input=>input.checked=editor.objectSnapModes[input.dataset.objectSnap as ObjectSnapMode]);
 }
 editor.onChange=update;editor.onMessage=notify;

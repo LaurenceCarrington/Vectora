@@ -1,7 +1,7 @@
-export const GRID_TYPES = ['square','isometric','polar','hexagonal','triangular','dot'] as const;
+export const GRID_TYPES = ['square','isometric','polar','hexagonal','triangular','dot','none'] as const;
 export type GridType = typeof GRID_TYPES[number];
-export const GRID_NAMES: Record<GridType,string> = {square:'Square',isometric:'Isometric',polar:'Polar (Radial)',hexagonal:'Hexagonal',triangular:'Triangular',dot:'Dot (Step)'};
-export const GRID_HELP:Record<GridType,string>={square:'Distance between grid lines. Major lines appear every five cells.',isometric:'Edge length in millimetres. Snap to intersections along the 30° axes.',polar:'Distance between rings. Snap to ring/spoke crossings and the origin.',hexagonal:'Hexagon side length in millimetres. Snap to hexagon corners.',triangular:'Triangle side length in millimetres. Snap to triangle corners.',dot:'Distance between dots in millimetres. Snap to each dot.'};
+export const GRID_NAMES: Record<GridType,string> = {none:'No grid',square:'Square',isometric:'Isometric',polar:'Polar (Radial)',hexagonal:'Hexagonal',triangular:'Triangular',dot:'Dot (Step)'};
+export const GRID_HELP:Record<GridType,string>={none:'Grid and grid snapping are off. Object snapping remains available.',square:'Distance between grid lines. Major lines appear every five cells.',isometric:'Edge length in millimetres. Snap to intersections along the 30° axes.',polar:'Distance between rings. Snap to ring/spoke crossings and the origin.',hexagonal:'Hexagon side length in millimetres. Snap to hexagon corners.',triangular:'Triangle side length in millimetres. Snap to triangle corners.',dot:'Distance between dots in millimetres. Snap to each dot.'};
 export interface GridConfig { type:GridType; spacing:number; angle:number }
 export interface XY { x:number; y:number }
 export interface GridBounds { left:number; right:number; top:number; bottom:number }
@@ -20,6 +20,7 @@ function hexVertex(center:XY,n:number,s:number):XY {const a=n*Math.PI/3;return {
 
 /** Nearest actual vertex/intersection, including negative document coordinates. */
 export function snapGridPoint(point:XY,config:GridConfig):XY {
+  if(config.type==='none')return {...point};
   const s=config.spacing;
   if(config.type==='square'||config.type==='dot')return {x:Math.round(point.x/s)*s,y:Math.round(point.y/s)*s};
   let best:XY={x:0,y:0},distance=Infinity;
@@ -46,6 +47,7 @@ export function snapGridPoint(point:XY,config:GridConfig):XY {
 
 /** Render only true grid geometry. Hide overcrowded details instead of changing spacing. */
 export function gridMarks(bounds:GridBounds,zoom:number,config:GridConfig):GridMark[] {
+  if(config.type==='none')return [];
   const s=config.spacing,marks:GridMark[]=[],corners=[{x:bounds.left,y:bounds.top},{x:bounds.right,y:bounds.top},{x:bounds.right,y:bounds.bottom},{x:bounds.left,y:bounds.bottom}];
   const line=(a:XY,b:XY,major=false)=>marks.push({kind:'line',a,b,major});
   const infiniteLine=(anchor:XY,direction:XY,major:boolean)=>{

@@ -61,7 +61,7 @@ export class CADEditor {
   noFill=true;
   snappingEnabled=true;
   snapToGridEnabled=true;
-  get gridSnappingActive():boolean {return this.snappingEnabled&&this.snapToGridEnabled;}
+  get gridSnappingActive():boolean {return this.snappingEnabled&&this.snapToGridEnabled&&this.grid.type!=='none';}
   readonly objectSnapModes:SnapModes={intersection:false,nearest:false,centre:false,tangent:false,perpendicular:false};
   activeObjectSnap:ObjectSnap|null=null;
   polygonSides=6;

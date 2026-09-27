@@ -11,7 +11,7 @@ test('Every pattern snaps to its nearest visible intersections or vertices',asyn
  const report=await page.evaluate(async()=>{
   const {snapGridPoint,gridMarks,GRID_TYPES}=await import('/src/gridGeometry.ts');
   const reports=[];
-  for(const type of GRID_TYPES){
+  for(const type of GRID_TYPES.filter(t=>t!=='none')){
    const config={type,spacing:10,angle:30},points:{x:number;y:number}[]=[];
    for(let i=-12;i<=12;i++)for(let j=-12;j<=12;j++){
     if(type==='square'||type==='dot')points.push({x:i*10,y:j*10});
@@ -108,4 +108,23 @@ test('Reference grid previews match the available controls in both themes',async
  await page.setViewportSize({width:390,height:750});
  expect(await page.locator('#preferences-shell').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  expect(errors).toEqual([]);
+});
+
+
+test('No grid hides guides, bypasses grid snapping and remembers the choice',async({page})=>{
+ await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
+ await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('tab',{name:'Grid',exact:true}).click();
+ await page.locator('#pref-grid-type').selectOption('none');
+ await expect(page.locator('#pref-grid-size-field')).toBeHidden();await expect(page.locator('#pref-grid-angle-field')).toBeHidden();
+ await expect(page.locator('#grid-status')).toHaveText('No grid');
+ await page.getByRole('tab',{name:'Snapping',exact:true}).click();await expect(page.locator('[data-grid-snap-setting]')).toBeDisabled();
+ await page.keyboard.press('Escape');
+ expect(await page.evaluate(()=>{const e=(window as any).__vectora;return {count:e.grid.layer.children.length,grid:e.gridSnappingActive,master:e.snappingEnabled};})).toEqual({count:0,grid:false,master:true});
+ await page.evaluate(()=>(window as any).__vectora.setTool('line'));await drag(page,[21.2,32.3],[63.4,54.7]);
+ const points=await page.evaluate(()=>(window as any).__vectora.selected.segments.map((s:any)=>[s.point.x,s.point.y]));
+ for(let i=0;i<2;i++)for(let j=0;j<2;j++)expect(points[i][j]).toBeCloseTo([[21.2,32.3],[63.4,54.7]][i][j],5);
+ await page.reload();await expect(page.locator('#grid-status')).toHaveText('No grid');
+ await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('tab',{name:'Grid',exact:true}).click();await expect(page.locator('#pref-grid-type')).toHaveValue('none');
+ await page.locator('#pref-grid-type').selectOption('square');await expect(page.locator('#pref-grid-size-field')).toBeVisible();
+ expect(await page.evaluate(()=>(window as any).__vectora.gridSnappingActive)).toBe(true);
 });
