@@ -1,3 +1,4 @@
+import { ToolSearch, type SearchTool } from './toolSearch';
 import { GRID_NAMES, GRID_HELP, type GridType } from './gridGeometry';
 import { initializeThemeControls } from './theme';
 import { CanvasRulers } from './rulers';
@@ -270,5 +271,69 @@ document.addEventListener('keydown',e=>{
     if(menu){const buttons=[...menu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')],index=buttons.indexOf(document.activeElement as HTMLButtonElement);e.preventDefault();e.stopPropagation();const next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+(e.key==='ArrowDown'?1:buttons.length-1))%buttons.length;buttons[next]?.focus();}
   }
 });
+// Keep search actions connected to the same controls as the menus and toolbars.
+const searchTools:SearchTool[]=[];
+function searchButton(id:string,label:string,group:string,selector:string,keywords='',shortcut='',reason='Unavailable for the current selection',before?:()=>void):void {
+  const button=$<HTMLButtonElement>(selector),icon=button.querySelector('use')?.getAttribute('href')?.replace('#i-','')??'select';
+  searchTools.push({id,label,group,keywords,shortcut,icon,unavailable:()=>button.disabled?reason:undefined,run:()=>{before?.();button.click();if(!document.querySelector('dialog[open]')&&!document.activeElement?.closest('.menu-surface,input,select,textarea'))editor.canvas.focus({preventScroll:true});}});
+}
+for(const [attribute,group] of [['data-shape','Shapes'],['data-line-tool','Lines'],['data-arc-tool','Arcs'],['data-dimension-tool','Dimensions and callouts'],['data-delete-tool','Delete tools'],['data-file-action','File']] as const){
+  document.querySelectorAll<HTMLButtonElement>(`[${attribute}]`).forEach(button=>{
+    const label=button.querySelector('span')?.textContent?.trim()??button.textContent!.trim();
+    searchButton(`${attribute}-${button.getAttribute(attribute)!.replace(/[^a-z0-9]/gi,'-')}`,label,group,`[${attribute}="${button.getAttribute(attribute)}"]`,group==='File'?'document project download':'' ,button.querySelector('kbd')?.textContent?.trim());
+  });
+}
+for(const [id,label,selector,keywords,shortcut] of [
+  ['select','Select','[aria-label="Select"]','move resize rotate objects','V'],
+  ['nodes','Node editing','[data-node-tool]','move add delete nodes adjust curve bezier handles tangents break split paths smooth corner point type','N'],
+  ['text','Text','[data-text-tool]','type lettering font','T'],
+  ['fill','Colour fill','[data-fill-trigger]','color paint bucket enclosed area no fill remove fill','B'],
+  ['raster','Raster to vector','[data-raster-open]','image trace outline center centre line bitmap fill png jpg'],
+  ['snap','Snapping','[data-snap-grid]','magnet snap on off','S'],
+  ['preview','3D preview','[data-preview-open]','material thickness cut engrave orbit pan zoom'],
+  ['settings','Settings','[data-open-preferences]','preferences'],
+  ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
+  ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],
+] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');
+searchTools.push({id:'layers',label:'Layers',group:'Panels',icon:'layers',keywords:'artwork cut engrave construction visibility lock move objects',run:()=>{setPanel(layers,true);layersButton.focus();}},
+ {id:'properties',label:'Properties',group:'Panels',icon:'sliders',keywords:'position size width height rotation radius',run:()=>{setPanel(props,true);propertiesButton.focus();}});
+for(const [id,label,selector,keywords,reason] of [
+ ['close-path','Close path','#selection-menu [aria-label="Close path"]','close shape nearest endpoints','Select an open path that can be closed'],
+ ['join','Join','#selection-menu [aria-label="Join"]','group combine shapes','Select two or more objects on the same layer'],
+ ['explode','Explode','#selection-menu [aria-label="Explode"]','ungroup separate contours','Select a joined shape or compound path'],
+ ['flip-h','Flip horizontal','[data-flip="horizontal"]','mirror left right','Select an object'],
+ ['flip-v','Flip vertical','[data-flip="vertical"]','mirror top bottom','Select an object'],
+ ['convert','Convert to path','#convert-text','text outline letters contours','Select text to convert'],
+ ['edit-text','Edit text','#edit-text','font type lettering','Select a text object'],
+ ['outline','Sticker outline','#create-outline','offset contour border cut','Select one closed shape'],
+] as const){
+ searchButton(id,label,'Selection',selector,keywords,'',reason);
+ if(id==='edit-text')searchTools.at(-1)!.unavailable=()=>editor.selected?.data.text&&!$<HTMLButtonElement>('#edit-text').disabled?undefined:reason;
+}
+const needsSelection=()=>editor.canCopySelection?undefined:'Select one or more objects';
+for(const [id,label,icon,field,keywords] of [['move','Move / position','select','x','translate coordinates'],['resize','Resize','width','width','scale size width height'],['rotate','Rotate','rotate','rotation','angle rotation']] as const)searchTools.push({id,label,group:'Properties',icon,keywords,unavailable:()=>editor.selectedItems.length?undefined:'Select one or more objects',run:()=>{setPanel(props,true);$<HTMLInputElement>(`#field-${field}`).focus();}});
+for(const [id,label,selector,keywords] of [['arc-semicircle','Semicircle 180°','#arc-semicircle','arc half circle'],['arc-flip','Flip arc','#arc-flip','reverse arc sweep']] as const){
+ searchButton(id,label,'Arc properties',selector,keywords);
+ searchTools.at(-1)!.unavailable=()=>editor.selectedArc?undefined:'Select a circular arc';
+}
+searchTools.push({id:'edit-callout',label:'Edit callout',group:'Selection',icon:'leader',keywords:'leader label annotation text',unavailable:()=>editor.selected?.data.dimension?.kind==='leader'?undefined:'Select a leader callout',run:()=>editor.dimensions.editSelected()});
+
+searchTools.push(
+ {id:'copy',label:'Copy',group:'Selection',icon:'copy',keywords:'clipboard',unavailable:needsSelection,run:()=>{editor.copySelection();editor.canvas.focus();}},
+ {id:'paste',label:'Paste',group:'Selection',icon:'paste',keywords:'clipboard',unavailable:()=>editor.canPaste?undefined:'Copy an object first',run:()=>{editor.pasteSelection();editor.canvas.focus();}},
+ {id:'duplicate',label:'Duplicate',group:'Selection',icon:'copy',keywords:'copy clone',unavailable:needsSelection,run:()=>{editor.duplicateSelection();editor.canvas.focus();}},
+ {id:'delete-selection',label:'Delete selection',group:'Selection',icon:'delete',shortcut:'Delete',keywords:'remove objects',unavailable:needsSelection,run:()=>{editor.deleteSelection();editor.canvas.focus();}});
+for(const [tab,label,keywords] of [
+ ['grid','Grid settings','square isometric polar radial hexagonal triangular dot step no grid spacing size mm angle'],
+ ['snapping','Snapping settings','intersection nearest centre center tangent perpendicular object snap grid'],
+ ['appearance','Appearance','theme dark light mode'],
+] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
+searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});
+searchButton('add-layer','Add layer','Layers','[data-layer-add]','artwork cut engrave construction','','',()=>{setPanel(layers,true);});
+searchButton('delete-layer','Delete layer','Layers','[data-layer-delete]','remove layer','','Unlock the active layer before deleting it',()=>{setPanel(layers,true);});
+new ToolSearch($<HTMLButtonElement>('[data-tool-search]'),searchTools,()=>{
+  if(!inlineText.finish(false,false))return false;
+  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
+},message=>notify(message,true));
 // Explicit test harness only; no application state is exposed in normal builds.
 if(import.meta.env.MODE==='test')Object.assign(window,{__vectora:editor,__paper:paper});
