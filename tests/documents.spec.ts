@@ -87,3 +87,27 @@ test('Save success waits for the native file write to finish',async({page})=>{
  await page.goto(DEV);await shape(page);const title=await page.title();await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).writing)).toBe(true);await expect(page.locator('.toast-success')).toHaveCount(0);await expect(page).toHaveTitle(title);
  await page.evaluate(()=>(window as any).finishSave());await expect(page.locator('.toast-success')).toContainText('Saved Confirmed.vectora.');await expect(page).toHaveTitle('Confirmed.vectora — Vectora');await expect(page.locator('[data-document-name]')).toHaveText('Confirmed.vectora');
 });
+
+test('Click-to-rename title is borderless, isolates shortcuts and saves the new name',async({page})=>{
+ await fallback(page);await page.goto(DEV);await shape(page);
+ const title=page.getByRole('textbox',{name:'Project name',exact:true});
+ const before=await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:e.snapshot(),tool:e.tool,snapping:e.snappingEnabled};});
+ await title.click();await page.keyboard.type('Laser sign');
+ await expect(title).toHaveCSS('border-top-width','0px');await expect(title).toHaveCSS('outline-style','none');await expect(title).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+ await page.keyboard.press('Enter');await expect(title).toHaveText('Laser sign.vectora');await expect(page).toHaveTitle('Laser sign.vectora — Vectora');
+ expect(await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:e.snapshot(),tool:e.tool,snapping:e.snappingEnabled};})).toEqual(before);
+ await title.click();await page.keyboard.type('Cancelled');await page.keyboard.press('Escape');await expect(title).toHaveText('Laser sign.vectora');
+ await title.fill('');await page.getByRole('button',{name:'File',exact:true}).click();await expect(title).toHaveText('Laser sign.vectora');await page.keyboard.press('Escape');
+ await title.click();await page.keyboard.type('Final design');
+ const pending=page.waitForEvent('download');await page.keyboard.press('Control+s');expect((await pending).suggestedFilename()).toBe('Final design.vectora');
+ await expect(title).toHaveText('Final design.vectora');await page.screenshot({path:'test-results/project-name.png'});
+});
+
+test('Renaming a saved project requests a new destination and retains its name after cancellation',async({page})=>{
+ await page.addInitScript(()=>{const w=window as any;w.names=[];w.cancelSave=false;w.showSaveFilePicker=async(options:any)=>{w.names.push(options.suggestedName);if(w.cancelSave)throw new DOMException('Cancelled','AbortError');return {name:options.suggestedName,createWritable:async()=>({write:async()=>{},close:async()=>{},abort:async()=>{}})};};});
+ await page.goto(DEV);await shape(page);await fileAction(page,'Save');await expect(page).toHaveTitle('Untitled.vectora — Vectora');
+ const title=page.getByRole('textbox',{name:'Project name',exact:true});await title.click();await page.keyboard.type('Renamed project');await page.keyboard.press('Enter');
+ await page.evaluate(()=>{(window as any).cancelSave=true;});await fileAction(page,'Save');await expect(title).toHaveText('Renamed project.vectora');
+ await page.evaluate(()=>{(window as any).cancelSave=false;});await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).names)).toEqual(['Untitled.vectora','Renamed project.vectora','Renamed project.vectora']);
+ await fileAction(page,'Save');expect(await page.evaluate(()=>(window as any).names.length)).toBe(3);
+});

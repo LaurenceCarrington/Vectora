@@ -1,3 +1,4 @@
+import {DocumentName} from './documentName';
 import type {CADEditor} from './editor';
 import {encodeDocument,decodeDocument,documentKey,MAX_DOCUMENT_BYTES} from './documentFormat';
 import type {AlertKind} from './alerts';
@@ -12,17 +13,22 @@ export class DocumentFiles {
  private filename='Untitled.vectora';
  private savedKey:string;
  private busy=false;
+ private renamed=false;
+ private nameControl:DocumentName;
  constructor(private editor:CADEditor,private dialog:HTMLDialogElement,private input:HTMLInputElement,private prepare:()=>boolean,private notify:(message:string,kind:AlertKind)=>void){
-  this.savedKey=documentKey(editor);this.updateName();
+  this.savedKey=documentKey(editor);
+  this.nameControl=new DocumentName(document.querySelector<HTMLElement>('[data-document-name]')!,name=>{
+   this.filename=name;this.handle=null;this.renamed=true;document.title=`${name} — Vectora`;
+  },()=>{if(this.busy||!this.prepare())return false;this.editor.cancel();return true;},as=>{void this.save(as);});
+  this.updateName();
   dialog.addEventListener('keydown',event=>event.stopPropagation());
   input.addEventListener('change',()=>{const file=input.files?.[0];input.value='';if(file)void this.run(()=>this.load(file,null));});
   window.addEventListener('beforeunload',event=>{if(this.dirty||editor.textEditing){event.preventDefault();event.returnValue='';}});
  }
  private updateName():void {
-  const label=window.document.querySelector<HTMLElement>('[data-document-name]');
-  if(label){label.textContent=this.filename;label.title=this.filename;}
+  this.nameControl.setName(this.filename);
  }
- private get dirty():boolean{return documentKey(this.editor)!==this.savedKey;}
+ private get dirty():boolean{return this.renamed||documentKey(this.editor)!==this.savedKey;}
  private async run(action:()=>Promise<void>):Promise<void>{
   if(this.busy)return;this.busy=true;
   try{await action();}catch(error){if(!(error instanceof DOMException&&error.name==='AbortError'))this.notify(error instanceof Error?error.message:String(error),'error');}
@@ -43,7 +49,7 @@ export class DocumentFiles {
   if(api.showSaveFilePicker){
    const handle=as||!this.handle?await api.showSaveFilePicker({suggestedName:this.filename,types:pickerTypes}):this.handle;
    const writable=await handle.createWritable();try{await writable.write(contents);await writable.close();}catch(error){try{await writable.abort();}catch{/* The stream may already be closed. */}throw error;}
-   this.handle=handle;this.filename=handle.name;this.savedKey=key;this.updateName();
+   this.handle=handle;this.filename=handle.name;this.savedKey=key;this.renamed=false;this.updateName();
    document.title=`${this.filename} — Vectora`;this.notify(`Saved ${this.filename}.`,'success');
   }else{
    const filename=this.filename;
@@ -54,7 +60,7 @@ export class DocumentFiles {
  newDocument():Promise<void>{return this.run(async()=>{
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('New document?','The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.','New document')===null)return;
-  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.savedKey=documentKey(this.editor);this.updateName();
+  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.savedKey=documentKey(this.editor);this.renamed=false;this.updateName();
   document.title='Untitled — Vectora';this.editor.canvas.focus({preventScroll:true});this.notify('New document created.','success');
  });}
  open():Promise<void>{
@@ -69,7 +75,7 @@ export class DocumentFiles {
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('Open document?','The current drawing has unsaved changes. Opening this file will replace them. Cancel to save your drawing first.','Open document')===null)return;
   if(!this.prepare())return;
-  this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);this.updateName();
+  this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);this.renamed=false;this.updateName();
   window.document.title=`${this.filename} — Vectora`;this.notify(`Opened ${file.name}.`,'success');
  }
 }
