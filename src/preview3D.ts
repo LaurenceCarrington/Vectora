@@ -41,7 +41,7 @@ export class Preview3D {
   try{
    const model=await buildPreviewModel(this.editor.objects);if(revision!==this.revision||!this.dialog.open)return;
    this.model=model;if(!model){this.message('Nothing to preview yet','Move closed outlines to Cut Path or drawing paths to Engrave Path. Artwork and Construction Path stay in the editor.');return;}
-   this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor('#242729');this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+   this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor(getComputedStyle(this.stage).getPropertyValue('--preview-background').trim());this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
    const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','3D material preview. Drag to rotate 360 degrees, scroll to zoom. Arrow keys rotate; plus and minus zoom.');canvas.setAttribute('role','img');
    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!this.dialog.open||this.renderer?.domElement!==canvas)return;this.message('3D preview was interrupted','Close and reopen the preview to try again.');});
    this.stage.replaceChildren(canvas);this.stage.setAttribute('aria-busy','false');
