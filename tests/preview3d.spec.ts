@@ -48,3 +48,30 @@ test('Unavailable WebGL reports a recoverable error without changing the documen
 test('Production build opens the preview without source-only modules',async({page})=>{
  await page.goto('http://127.0.0.1:4173');await page.getByRole('button',{name:'3D preview',exact:true}).click();await expect(page.getByRole('dialog',{name:'3D preview',exact:true})).toContainText('Nothing to preview yet');
 });
+
+async function previewCameraState(page:any){return page.evaluate(()=>{
+ const p=(window as any).__preview3D,c=p.camera,b=p.model.bounds,e=c.matrixWorldInverse.elements,depths=[];
+ for(const x of [-b.width/2,b.width/2])for(const y of [0,p.thickness])for(const z of [-b.height/2,b.height/2])depths.push(-(e[2]*x+e[6]*y+e[10]*z+e[14]));
+ return {y:c.position.y,center:p.thickness/2,near:c.near,far:c.far,minDepth:Math.min(...depths),maxDepth:Math.max(...depths),position:c.position.toArray(),up:c.up.toArray()};
+});}
+
+test('Preview rotates past both poles and keeps the whole solid between clipping planes',async({page})=>{
+ await page.goto(DEV);await design(page);await page.getByRole('button',{name:'3D preview',exact:true}).click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true}),canvas=dialog.locator('canvas');await expect(canvas).toBeVisible();await dialog.getByRole('button',{name:'Top view',exact:true}).click();await canvas.focus();
+ let underside=false;for(let i=0;i<54;i++){await page.keyboard.press('ArrowDown');const state=await previewCameraState(page);if(state.y<state.center)underside=true;expect(state.minDepth).toBeGreaterThan(state.near);expect(state.maxDepth).toBeLessThan(state.far);}
+ expect(underside).toBe(true);const top=await previewCameraState(page);expect(top.y).toBeGreaterThan(top.center);
+ // Actual pointer rotation must also reach the underside, not just keyboard rotation.
+ await dialog.getByRole('button',{name:'Reset view',exact:true}).click();const box=(await canvas.boundingBox())!;
+ await page.mouse.move(box.x+box.width/2,box.y+box.height*.2);await page.mouse.down();await page.mouse.move(box.x+box.width/2,box.y+box.height*.9,{steps:24});await page.mouse.up();await expect.poll(async()=>{const s=await previewCameraState(page);return s.y<s.center;}).toBe(true);
+ await dialog.screenshot({path:'test-results/preview3d-underside.png'});
+ await canvas.focus();for(let i=0;i<35;i++)await page.keyboard.press('+');for(let i=0;i<26;i++){await page.keyboard.press('ArrowRight');const s=await previewCameraState(page);expect(s.minDepth).toBeGreaterThan(s.near);expect(s.maxDepth).toBeLessThan(s.far);}
+ await dialog.getByLabel('Material thickness').fill('100');await canvas.focus();for(let i=0;i<20;i++)await page.keyboard.press('+');const thick=await previewCameraState(page);expect(thick.minDepth).toBeGreaterThan(thick.near);expect(thick.maxDepth).toBeLessThan(thick.far);
+});
+
+test('Short preview windows contain the canvas and keep controls reachable after resizing',async({page})=>{
+ await page.setViewportSize({width:1024,height:450});await page.goto(DEV);await design(page);await page.getByRole('button',{name:'3D preview',exact:true}).click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true});await expect(dialog.locator('canvas')).toBeVisible();
+ for(const viewport of [{width:1024,height:450},{width:760,height:390},{width:1200,height:800}]){
+  await page.setViewportSize(viewport);await expect.poll(async()=>dialog.evaluate(el=>{const canvas=el.querySelector('canvas')!.getBoundingClientRect(),header=el.querySelector('header')!.getBoundingClientRect(),footer=el.querySelector('footer')!.getBoundingClientRect(),view=el.querySelector('.preview3d-view')!.getBoundingClientRect();return canvas.top>=header.bottom-1&&Math.abs(canvas.bottom-footer.top)<1&&Math.abs(canvas.height-view.height)<1;})).toBe(true);
+  await dialog.getByRole('button',{name:'Top view',exact:true}).click();await expect(dialog.getByRole('button',{name:'Close 3D preview',exact:true})).toBeInViewport();expect(await dialog.evaluate(el=>el.scrollTop)).toBe(0);
+ }
+ await page.setViewportSize({width:1024,height:450});await dialog.screenshot({path:'test-results/preview3d-short.png'});
+});

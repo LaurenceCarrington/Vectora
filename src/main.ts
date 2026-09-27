@@ -37,7 +37,7 @@ let preview:import('./preview3D').Preview3D|undefined,previewLoading=false;
 previewTrigger.addEventListener('click',async()=>{
   if(previewLoading||!inlineText.finish(false,false))return;
   editor.cancel();closeMenus();previewLoading=true;
-  try{const {Preview3D}=await import('./preview3D');preview??=new Preview3D($<HTMLDialogElement>('#preview3d-dialog'),editor,previewTrigger);await preview.open();}
+  try{const {Preview3D}=await import('./preview3D');preview??=new Preview3D($<HTMLDialogElement>('#preview3d-dialog'),editor,previewTrigger);if(import.meta.env.MODE==='test')(window as any).__preview3D=preview;await preview.open();}
   catch(error){notify(`Could not open 3D preview: ${error instanceof Error?error.message:String(error)}`,true);}
   finally{previewLoading=false;}
 });

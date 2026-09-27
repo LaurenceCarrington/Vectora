@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {TrackballControls} from 'three/addons/controls/TrackballControls.js';
 import type {CADEditor} from './editor';
 import {buildPreviewModel,type PreviewModel} from './previewModel';
 import {PREVIEW_MATERIALS,materialCanvas} from './previewMaterials';
@@ -8,7 +8,7 @@ export class Preview3D {
  private renderer:THREE.WebGLRenderer|null=null;
  private scene=new THREE.Scene();
  private camera=new THREE.PerspectiveCamera(38,1,.01,10000);
- private controls:OrbitControls|null=null;
+ private controls:TrackballControls|null=null;
  private model:PreviewModel|null=null;
  private assembly=new THREE.Group();
  private observer:ResizeObserver;
@@ -42,15 +42,16 @@ export class Preview3D {
    const model=await buildPreviewModel(this.editor.objects);if(revision!==this.revision||!this.dialog.open)return;
    this.model=model;if(!model){this.message('Nothing to preview yet','Move closed outlines to Cut Path or drawing paths to Engrave Path. Artwork and Construction Path stay in the editor.');return;}
    this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor('#242729');this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-   const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','3D material preview. Drag to orbit, scroll to zoom. Arrow keys rotate; plus and minus zoom.');canvas.setAttribute('role','img');
+   const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','3D material preview. Drag to rotate 360 degrees, scroll to zoom. Arrow keys rotate; plus and minus zoom.');canvas.setAttribute('role','img');
    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!this.dialog.open||this.renderer?.domElement!==canvas)return;this.message('3D preview was interrupted','Close and reopen the preview to try again.');});
    this.stage.replaceChildren(canvas);this.stage.setAttribute('aria-busy','false');
    this.scene=new THREE.Scene();this.scene.add(new THREE.HemisphereLight('#ffffff','#697481',2));
    const span=Math.max(model.bounds.width,model.bounds.height,10),light=new THREE.DirectionalLight('#fff3df',3.5);light.position.set(-span,span*2,span);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-span,right:span,top:span,bottom:-span,near:.1,far:span*6});light.shadow.bias=-.0001;this.scene.add(light);
    const fill=new THREE.DirectionalLight('#cfdeff',1.3);fill.position.set(span,span*.7,-span);this.scene.add(fill);
-   const floor=new THREE.Mesh(new THREE.PlaneGeometry(span*20,span*20),new THREE.MeshStandardMaterial({color:'#303538',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.08;floor.receiveShadow=true;this.scene.add(floor);
+   const underside=new THREE.DirectionalLight('#e4eaff',2);underside.position.set(span,-span*2,-span);this.scene.add(underside);
    this.assembly=new THREE.Group();this.assembly.rotation.x=-Math.PI/2;this.scene.add(this.assembly);
-   this.controls=new OrbitControls(this.camera,canvas);this.controls.enableDamping=false;this.controls.maxPolarAngle=Math.PI*.49;this.controls.minDistance=span*.15;this.controls.maxDistance=span*15;this.controls.addEventListener('change',()=>this.render());
+   this.controls=new TrackballControls(this.camera,canvas);this.controls.staticMoving=true;this.controls.rotateSpeed=3;this.controls.keys=['','',''];this.controls.addEventListener('change',()=>this.render());
+   this.renderer.setAnimationLoop(()=>this.controls?.update());
    this.observer.observe(this.stage);this.get('[data-preview-settings]').removeAttribute('inert');this.rebuild();this.resize();this.fit();
   }catch(error){if(revision!==this.revision||!this.dialog.open)return;this.dispose();this.message('Unable to show 3D preview',error instanceof Error?error.message:'Enable hardware acceleration and try again.');}
  }
@@ -67,25 +68,51 @@ export class Preview3D {
   const b=model.bounds,toPoints=(index:number)=>model.contours[index].points.map(p=>new THREE.Vector2(p.x-b.x-b.width/2,-(p.y-b.y-b.height/2)));
   const shapes:THREE.Shape[]=[];model.contours.forEach((_,i)=>{if(model.depths[i]%2)return;const shape=new THREE.Shape(toPoints(i));model.parents.forEach((parent,j)=>{if(parent===i)shape.holes.push(new THREE.Path(toPoints(j)));});shapes.push(shape);});
   const texture=new THREE.CanvasTexture(materialCanvas(model,this.material,this.get<HTMLInputElement>('#preview-engraving').checked));texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());
+  const backTexture=new THREE.CanvasTexture(materialCanvas(model,this.material,false));backTexture.colorSpace=THREE.SRGBColorSpace;backTexture.anisotropy=texture.anisotropy;
+  const back=new THREE.MeshStandardMaterial({map:backTexture,side:THREE.BackSide,roughness:this.material.roughness,metalness:this.material.metalness,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
   const surface=new THREE.MeshStandardMaterial({map:texture,roughness:this.material.roughness,metalness:this.material.metalness,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
   const edges=new THREE.MeshStandardMaterial({color:this.material.edge,roughness:Math.min(1,this.material.roughness+.15),metalness:this.material.metalness});
   for(const shape of shapes){
    const solid=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:this.thickness,bevelEnabled:false,steps:1}),edges);solid.castShadow=true;solid.receiveShadow=true;this.assembly.add(solid);
    const geometry=new THREE.ShapeGeometry(shape),position=geometry.getAttribute('position'),uv=geometry.getAttribute('uv');for(let i=0;i<position.count;i++)uv.setXY(i,(position.getX(i)+b.width/2)/b.width,(position.getY(i)+b.height/2)/b.height);
    const face=new THREE.Mesh(geometry,surface);face.position.z=this.thickness;face.receiveShadow=true;this.assembly.add(face);
+   const underside=new THREE.Mesh(geometry,back);underside.receiveShadow=true;this.assembly.add(underside);
   }
   this.get('[data-preview-summary]').textContent=`${Number(b.width.toFixed(2))} × ${Number(b.height.toFixed(2))} × ${this.thickness} mm · ${model.parts} ${model.parts===1?'piece':'pieces'} · ${model.holes} ${model.holes===1?'hole':'holes'}`;
   this.get('[data-preview-note]').textContent=[model.stock?'No closed cut outline: showing engraving on a fitted rectangular blank.':'Nested cut outlines create through-holes; separate outlines create separate pieces.',model.openCuts?`${model.openCuts} open cut ${model.openCuts===1?'path is':'paths are'} omitted. Close them to preview a cut-through shape.`:''].filter(Boolean).join(' ');
   this.render();
  }
- private resize():void{if(!this.renderer)return;const width=this.stage.clientWidth,height=this.stage.clientHeight;if(!width||!height)return;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;this.camera.updateProjectionMatrix();this.render();}
- private fit(top=false):void{
-  if(!this.model||!this.controls)return;const b=this.model.bounds,size=Math.max(b.width,b.height,this.thickness),radius=Math.hypot(b.width,b.height,this.thickness)/2;
-  const fov=THREE.MathUtils.degToRad(this.camera.fov),distance=radius/Math.sin(Math.min(fov,2*Math.atan(Math.tan(fov/2)*this.camera.aspect))/2)*1.2;
-  this.controls.target.set(0,this.thickness/2,0);const direction=top?new THREE.Vector3(0,1,.00001):new THREE.Vector3(.55,1,1.1).normalize();this.camera.position.copy(this.controls.target).addScaledVector(direction,distance);this.camera.near=Math.max(.001,size/10000);this.camera.far=Math.max(10000,distance*20);this.camera.updateProjectionMatrix();this.controls.update();this.render();
+ private radius():number {const b=this.model!.bounds;return Math.hypot(b.width,b.height,this.thickness)/2;}
+ private fitDistance():number {const fov=THREE.MathUtils.degToRad(this.camera.fov);return this.radius()/Math.sin(Math.min(fov,2*Math.atan(Math.tan(fov/2)*this.camera.aspect))/2)*1.2;}
+ private resize():void{
+  if(!this.renderer)return;const width=this.stage.clientWidth,height=this.stage.clientHeight;if(!width||!height)return;
+  const oldFit=this.model?this.fitDistance():1;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;
+  // Keep the same zoom relative to a fitted view when the viewport changes shape.
+  if(this.model&&this.controls){const offset=this.camera.position.clone().sub(this.controls.target);offset.multiplyScalar(this.fitDistance()/oldFit);this.camera.position.copy(this.controls.target).add(offset);}
+  this.camera.updateProjectionMatrix();this.controls?.handleResize();this.controls?.update();this.render();
  }
- private orbit(theta:number,phi:number):void{if(!this.controls)return;const offset=this.camera.position.clone().sub(this.controls.target),spherical=new THREE.Spherical().setFromVector3(offset);spherical.theta+=theta;spherical.phi=THREE.MathUtils.clamp(spherical.phi+phi,.01,Math.PI*.49);this.camera.position.copy(this.controls.target).add(new THREE.Vector3().setFromSpherical(spherical));this.controls.update();}
+ private fit(top=false):void{
+  if(!this.model||!this.controls)return;
+  this.controls.target.set(0,this.thickness/2,0);this.camera.up.set(0,1,0);
+  const direction=top?new THREE.Vector3(0,1,.00001):new THREE.Vector3(.55,1,1.1).normalize();
+  this.camera.position.copy(this.controls.target).addScaledVector(direction,this.fitDistance());this.updateClipping();this.controls.update();this.render();
+ }
+ private orbit(theta:number,phi:number):void{
+  if(!this.controls)return;
+  const offset=this.camera.position.clone().sub(this.controls.target),right=new THREE.Vector3().crossVectors(this.camera.up,offset).normalize();
+  const turn=new THREE.Quaternion().setFromAxisAngle(this.camera.up,theta),tilt=new THREE.Quaternion().setFromAxisAngle(right,phi);turn.premultiply(tilt);
+  offset.applyQuaternion(turn);this.camera.up.applyQuaternion(turn).normalize();this.camera.position.copy(this.controls.target).add(offset);this.controls.update();
+ }
+ /** Keep the camera outside the solid and fit its depth range to the whole model. */
+ private updateClipping():void{
+  if(!this.model||!this.controls)return;
+  const radius=this.radius(),center=new THREE.Vector3(0,this.thickness/2,0),offset=this.camera.position.clone().sub(center),safe=radius*1.05;
+  this.controls.minDistance=safe;this.controls.maxDistance=Math.max(radius*30,this.fitDistance()*5);
+  if(offset.length()<safe){if(offset.lengthSq()===0)offset.set(0,0,1);this.camera.position.copy(center).add(offset.setLength(safe));this.camera.lookAt(this.controls.target);}
+  const distance=this.camera.position.distanceTo(center);
+  this.camera.near=Math.max(radius*1e-6,(distance-radius)*.25);this.camera.far=distance+radius*4;this.camera.updateProjectionMatrix();
+ }
  private zoom(scale:number):void{if(!this.controls)return;const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*scale,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();}
- private render():void{if(this.renderer&&this.dialog.open)this.renderer.render(this.scene,this.camera);}
- private dispose():void{this.observer.disconnect();this.controls?.dispose();this.controls=null;this.clearMeshes(this.scene);this.renderer?.dispose();this.renderer?.forceContextLoss();this.renderer=null;this.model=null;this.stage.replaceChildren();}
+ private render():void{if(this.renderer&&this.dialog.open){this.updateClipping();this.renderer.render(this.scene,this.camera);}}
+ private dispose():void{this.observer.disconnect();this.renderer?.setAnimationLoop(null);this.controls?.dispose();this.controls=null;this.clearMeshes(this.scene);this.renderer?.dispose();this.renderer?.forceContextLoss();this.renderer=null;this.model=null;this.stage.replaceChildren();}
 }
