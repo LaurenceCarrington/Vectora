@@ -23,9 +23,12 @@
   --color-selection: #383838;
   --color-selection-area: #ADD2F026;
   --color-grid-background: #F7FAFC;
-  --preview-background: #F7FAFC;
-  --preview-foreground: #383838;
-  --preview-muted: #666666;
+  --preview-background: #202226;
+  --preview-foreground: #F1F1F1;
+  --preview-muted: #C3C7CD;
+  --preview-grid-minor: #3B3F46;
+  --preview-grid-major: #555C66;
+  --preview-grid-axis: #798694;
   --color-grid-minor: #E7EDF3;
   --color-grid-major: #CAD6E3;
   --color-danger: #F2A7A0;

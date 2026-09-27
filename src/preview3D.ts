@@ -11,6 +11,7 @@ export class Preview3D {
  private controls:OrbitControls|null=null;
  private model:PreviewModel|null=null;
  private assembly=new THREE.Group();
+ private gridRadius=0;
  private observer:ResizeObserver;
  private revision=0;
  private material=PREVIEW_MATERIALS[0] as typeof PREVIEW_MATERIALS[number];
@@ -49,7 +50,7 @@ export class Preview3D {
    const span=Math.max(model.bounds.width,model.bounds.height,10),light=new THREE.DirectionalLight('#fff3df',3.5);light.position.set(-span,span*2,span);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-span,right:span,top:span,bottom:-span,near:.1,far:span*6});light.shadow.bias=-.0001;this.scene.add(light);
    const fill=new THREE.DirectionalLight('#cfdeff',1.3);fill.position.set(span,span*.7,-span);this.scene.add(fill);
    const underside=new THREE.DirectionalLight('#e4eaff',2);underside.position.set(span,-span*2,-span);this.scene.add(underside);
-   this.assembly=new THREE.Group();this.assembly.rotation.x=-Math.PI/2;this.scene.add(this.assembly);
+   this.assembly=new THREE.Group();this.assembly.rotation.x=-Math.PI/2;this.scene.add(this.assembly);this.addGrid(span);
    this.controls=new OrbitControls(this.camera,canvas);this.controls.enableDamping=!matchMedia('(prefers-reduced-motion: reduce)').matches;this.controls.dampingFactor=.22;this.controls.zoomSpeed=.8;this.controls.mouseButtons.MIDDLE=THREE.MOUSE.PAN;this.navigationSensitivity();this.controls.minPolarAngle=.00001;this.controls.maxPolarAngle=Math.PI-.00001;this.controls.addEventListener('change',()=>this.render());
    // Keep modifier gestures familiar without changing OrbitControls internals.
    canvas.addEventListener('pointerdown',event=>{if(this.controls&&event.pointerType==='mouse')this.controls.mouseButtons.LEFT=event.ctrlKey||event.metaKey?THREE.MOUSE.DOLLY:THREE.MOUSE.ROTATE;},true);
@@ -63,7 +64,21 @@ export class Preview3D {
   const box=document.createElement('div');box.className='preview3d-empty';const heading=document.createElement('h3'),text=document.createElement('p');heading.textContent=title;text.textContent=detail;box.append(heading,text);this.stage.append(box);this.get('[data-preview-summary]').textContent='';this.get('[data-preview-note]').textContent='';
  }
  private clearMeshes(root:THREE.Object3D):void{
-  const materials=new Set<THREE.Material>(),textures=new Set<THREE.Texture>();root.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose();if(object instanceof THREE.Mesh){object.geometry.dispose();for(const m of Array.isArray(object.material)?object.material:[object.material]){materials.add(m);if(m instanceof THREE.MeshStandardMaterial&&m.map)textures.add(m.map);}}});textures.forEach(t=>t.dispose());materials.forEach(m=>m.dispose());root.clear();
+  const materials=new Set<THREE.Material>(),textures=new Set<THREE.Texture>();root.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose();if(object instanceof THREE.Mesh||object instanceof THREE.LineSegments){object.geometry.dispose();for(const m of Array.isArray(object.material)?object.material:[object.material]){materials.add(m);if(m instanceof THREE.MeshStandardMaterial&&m.map)textures.add(m.map);}}});textures.forEach(t=>t.dispose());materials.forEach(m=>m.dispose());root.clear();
+ }
+ /** A real XZ work plane: visible through cut-outs, with no solid floor hiding the underside. */
+ private addGrid(span:number):void {
+  const style=getComputedStyle(this.stage),colour=(token:string)=>style.getPropertyValue(token).trim();
+  const step=10**Math.floor(Math.log10(span/10));
+  const divisions=Math.ceil(span*6/step/10)*10,size=divisions*step;
+  this.gridRadius=Math.SQRT2*size/2;
+  const grid=new THREE.Group();grid.name='preview-grid';grid.position.y=-Math.max(.01,span*.0005);
+  for(const [count,token] of [[divisions,'--preview-grid-minor'],[divisions/5,'--preview-grid-major']] as const){
+   const lines=new THREE.GridHelper(size,count,colour('--preview-grid-axis'),colour(token));
+   lines.material.transparent=true;lines.material.opacity=.65;lines.material.depthWrite=false;lines.material.toneMapped=false;
+   grid.add(lines);
+  }
+  this.scene.add(grid);
  }
  private rebuild():void{
   const model=this.model;if(!model||!this.renderer)return;
@@ -120,9 +135,9 @@ export class Preview3D {
   this.controls.minDistance=safe;this.controls.maxDistance=Math.max(radius*30,this.fitDistance()*5);
   if(offset.length()<safe){if(offset.lengthSq()===0)offset.set(0,0,1);this.camera.position.copy(center).add(offset.setLength(safe));this.camera.lookAt(this.controls.target);}
   const distance=this.camera.position.distanceTo(center);
-  this.camera.near=Math.max(radius*1e-6,(distance-radius)*.25);this.camera.far=distance+radius*4;this.camera.updateProjectionMatrix();
+  this.camera.near=Math.max(radius*1e-6,(distance-radius)*.25);this.camera.far=distance+Math.max(radius*4,this.gridRadius*1.1);this.camera.updateProjectionMatrix();
  }
  private zoom(scale:number):void{if(!this.controls)return;const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*scale,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();}
  private render():void{if(this.renderer&&this.dialog.open){this.updateClipping();this.renderer.render(this.scene,this.camera);}}
- private dispose():void{this.observer.disconnect();this.renderer?.setAnimationLoop(null);this.controls?.dispose();this.controls=null;this.clearMeshes(this.scene);this.renderer?.dispose();this.renderer?.forceContextLoss();this.renderer=null;this.model=null;this.stage.replaceChildren();}
+ private dispose():void{this.observer.disconnect();this.renderer?.setAnimationLoop(null);this.controls?.dispose();this.controls=null;this.clearMeshes(this.scene);this.renderer?.dispose();this.renderer?.forceContextLoss();this.renderer=null;this.gridRadius=0;this.model=null;this.stage.replaceChildren();}
 }

@@ -138,3 +138,20 @@ test('Viewer gestures pan, zoom and fit consistently without changing the design
  await drag('right',50,25);const panned=await state();await canvas.focus();await page.keyboard.press('f');const fitted=await state();expect(fitted.target).toEqual([0,1.5,0]);expect(fitted.phi).toBeCloseTo(panned.phi,5);expect(fitted.theta).toBeCloseTo(panned.theta,5);
  await dialog.getByRole('button',{name:'Close 3D preview',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
 });
+
+test('Dark preview uses a world-space grid that stays below the model and disposes on close',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto(DEV);await design(page);
+ await page.getByRole('button',{name:'3D preview',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'3D preview',exact:true}),canvas=dialog.locator('canvas');await expect(canvas).toBeVisible();
+ const grid=await page.evaluate(()=>{
+  const p=(window as any).__preview3D,g=p.scene.getObjectByName('preview-grid');
+  (window as any).gridDisposals=0;for(const line of g.children){line.geometry.addEventListener('dispose',()=>{(window as any).gridDisposals++;});line.material.addEventListener('dispose',()=>{(window as any).gridDisposals++;});}
+  return {background:p.renderer.getClearColor(g.children[0].material.color.clone()).getHexString(),y:g.position.y,lines:g.children.length,parent:g.parent===p.scene,depthWrite:g.children.map((l:any)=>l.material.depthWrite)};
+ });
+ expect(grid).toMatchObject({background:'202226',lines:2,parent:true,depthWrite:[false,false]});expect(grid.y).toBeLessThan(0);
+ await canvas.focus();for(let i=0;i<8;i++)await page.keyboard.press('ArrowDown');for(let i=0;i<3;i++)await page.keyboard.press('ArrowRight');
+ expect(await page.evaluate(()=>(window as any).__preview3D.scene.getObjectByName('preview-grid').position.y)).toBe(grid.y);
+ await dialog.screenshot({path:'test-results/preview3d-dark-grid.png'});
+ await dialog.getByRole('button',{name:'Close 3D preview',exact:true}).click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).gridDisposals)).toBe(4);
+});
