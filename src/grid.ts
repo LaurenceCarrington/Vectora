@@ -1,6 +1,6 @@
 import paper from 'paper';
 import { GRID_BASE_SPACING_MM } from './units';
-import { GRID_TYPES, gridMarks, snapGridPoint, type GridType } from './gridGeometry';
+import { GRID_TYPES, gridMarks, snapGridPoint, type GridType, type GridMark } from './gridGeometry';
 
 const STORAGE_KEY = 'vectora.gridSpacingMM';
 function validSpacing(value: number): boolean {
@@ -13,6 +13,7 @@ export class MillimetreGrid {
   type:GridType = 'square';
   angleDegrees = 15;
   private lastView = '';
+  private dots?: paper.Raster;
   private colors: { minor: string; major: string };
 
   constructor() {
@@ -60,10 +61,17 @@ export class MillimetreGrid {
   }
   update(view: paper.View): void {
     const bounds = view.bounds;
-    const key = [bounds.x,bounds.y,bounds.width,bounds.height,view.zoom,this.spacingMM,this.type,this.angleDegrees].join(',');
+    const key = [bounds.x,bounds.y,bounds.width,bounds.height,view.zoom,view.pixelRatio,this.spacingMM,this.type,this.angleDegrees].join(',');
     if(key===this.lastView)return;
-    this.lastView=key;this.layer.removeChildren();
-    for(const mark of gridMarks(bounds,view.zoom,{type:this.type,spacing:this.spacingMM,angle:this.angleDegrees})){
+    this.lastView=key;
+    const marks=gridMarks(bounds,view.zoom,{type:this.type,spacing:this.spacingMM,angle:this.angleDegrees});
+    if(this.type==='dot'){
+      this.drawDots(view,marks);
+      return;
+    }
+    this.layer.removeChildren();
+    this.dots=undefined;
+    for(const mark of marks){
       const style={insert:false,guide:true,data:{role:'grid'},strokeScaling:false,strokeWidth:1};
       const color=this.colors[mark.major?'major':'minor'];
       const path=mark.kind==='line'
@@ -71,5 +79,43 @@ export class MillimetreGrid {
         :new paper.Shape.Circle({...style,center:[mark.center.x,mark.center.y],radius:mark.kind==='circle'?mark.radius:(mark.major?1.5:1)/view.zoom,...(mark.kind==='dot'?{fillColor:color}:{strokeColor:color})});
       this.layer.addChild(path);
     }
+  }
+
+  private drawDots(view: paper.View, marks: GridMark[]): void {
+    // One cached image avoids traversing and drawing thousands of Paper items
+    // on every pointer move. Grid geometry and snapping remain in millimetres.
+    if(!this.dots){
+      this.layer.removeChildren();
+      this.dots=new paper.Raster({insert:false,guide:true,data:{role:'grid'}});
+      this.layer.addChild(this.dots);
+    }
+    const raster=this.dots;
+    raster.visible=marks.length>0;
+    if(!raster.visible)return;
+    const ratio=view.pixelRatio,zoom=view.zoom,bounds=view.bounds;
+    const width=Math.ceil(view.viewSize.width*ratio),height=Math.ceil(view.viewSize.height*ratio);
+    if(raster.width!==width||raster.height!==height){
+      const canvas=document.createElement('canvas');
+      canvas.width=width;canvas.height=height;
+      raster.canvas=canvas;
+    }
+    const context=raster.context;
+    context.resetTransform();
+    raster.clear();
+    context.scale(ratio,ratio);
+    for(const major of [false,true]){
+      const radius=major?1.5:1;
+      context.beginPath();
+      for(const mark of marks){
+        if(mark.kind!=='dot'||mark.major!==major)continue;
+        const x=(mark.center.x-bounds.left)*zoom,y=(mark.center.y-bounds.top)*zoom;
+        context.moveTo(x+radius,y);
+        context.arc(x,y,radius,0,Math.PI*2);
+      }
+      context.fillStyle=this.colors[major?'major':'minor'];
+      context.fill();
+    }
+    const scale=1/(ratio*zoom);
+    raster.matrix=new paper.Matrix(scale,0,0,scale,bounds.left+width*scale/2,bounds.top+height*scale/2);
   }
 }

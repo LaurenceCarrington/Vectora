@@ -86,7 +86,9 @@ test('Patterns remain fixed and bounded at extreme zoom and never export',async(
   if(JSON.stringify(e.snapshot())!==before)throw new Error('Grid settings changed document');
   e.setGridSpacing(10);p.view.zoom=4;e.setGridType('hexagonal');
   e.addShape(new p.Path.Rectangle({rectangle:[0,0,10,10],insert:false}),'Rectangle');
-  const dxf=exportDXF([...e.grid.layer.children,...e.objects],true);if((dxf.match(/LWPOLYLINE/g)||[]).length!==1)throw new Error('Grid exported');
+  for(const type of ['hexagonal','dot']){
+   e.setGridType(type);const dxf=exportDXF([...e.grid.layer.children,...e.objects],true);if((dxf.match(/LWPOLYLINE/g)||[]).length!==1)throw new Error('Grid exported');
+  }
  });
 });
 
