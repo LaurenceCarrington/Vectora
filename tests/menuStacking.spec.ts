@@ -28,3 +28,30 @@ test('Open menus stay above rails and docked panels and restore their stacking o
  await shapes.getByRole('menuitemradio',{name:/Rectangle/}).click();await expect(shapes).toBeHidden();expect(await page.locator('.left-toolbar').evaluate(el=>getComputedStyle(el).zIndex)).toBe('4');
  await expect(page.locator('#primary-layers-panel')).toBeVisible();
 });
+
+
+test('Every drawing popout stays flush with its rail and follows its own icon on resize',async({page})=>{
+ await page.goto(DEV);
+ for(const size of [{width:1280,height:900},{width:390,height:600}]){
+  await page.setViewportSize(size);
+  for(const tool of ['shape','line','arc','delete','dimension','image','fill']){
+   const trigger=page.locator(`[data-${tool}-trigger]`);
+   await trigger.click();
+   const menu=page.locator('#'+await trigger.getAttribute('aria-controls'));
+   await expect(menu).toBeVisible();
+   const check=async()=>expect(async()=>{
+    const rail=(await page.locator('.left-toolbar').boundingBox())!,button=(await trigger.boundingBox())!,box=(await menu.boundingBox())!;
+    const height=page.viewportSize()!.height;
+    expect(box.x).toBeCloseTo(rail.x+rail.width,3);
+    expect(box.y).toBeCloseTo(Math.max(rail.y,Math.min(button.y,height-box.height)),3);
+    expect(box.y+box.height).toBeLessThanOrEqual(height+0.1);
+    expect(box.x+box.width).toBeLessThanOrEqual(page.viewportSize()!.width+0.1);
+   }).toPass({timeout:1000});
+   await check();
+   await page.setViewportSize({width:size.width,height:size.height-80});await check();
+   await page.setViewportSize(size);await check();
+   if(tool==='shape'&&size.width===1280)await page.screenshot({path:'test-results/shapes-menu-position.png'});
+   await page.keyboard.press('Escape');await expect(menu).toBeHidden();
+  }
+ }
+});

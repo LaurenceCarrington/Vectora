@@ -1,3 +1,4 @@
+import { alignPopoutWithTrigger } from './menuPosition';
 import paper from 'paper';
 import {RasterToVector} from './rasterToVector';
 import { Alerts, type AlertKind } from './alerts';
@@ -99,7 +100,8 @@ $('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus
 const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu');
 const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')]] as const;
 function closeMenus():void {for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}
-function toggleMenu(menu:HTMLElement,trigger:HTMLElement):void {const open=menu.hidden;closeMenus();menu.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(menu===dimensionMenu||menu===imageMenu||menu===fillMenu){menu.style.top='0px';const bounds=menu.getBoundingClientRect();menu.style.top=`${Math.max(24-bounds.top,Math.min(0,window.innerHeight-24-bounds.bottom))}px`;}(menu.querySelector<HTMLButtonElement>('button:not(:disabled)')??menu).focus({preventScroll:true});}}
+function toggleMenu(menu:HTMLElement,trigger:HTMLElement):void {const open=menu.hidden;closeMenus();menu.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);(menu.querySelector<HTMLButtonElement>('button:not(:disabled)')??menu).focus({preventScroll:true});}}
+window.addEventListener('resize',()=>{for(const [menu,trigger] of menus)if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);});
 $('[data-shape-trigger]').onclick=()=>toggleMenu(shapeMenu,$('[data-shape-trigger]'));
 $('[data-image-trigger]').onclick=()=>toggleMenu(imageMenu,$('[data-image-trigger]'));
 $('[data-fill-trigger]').onclick=()=>{editor.setTool('fill');toggleMenu(fillMenu,$('[data-fill-trigger]'));};

@@ -141,7 +141,7 @@
   --menu-padding: 8px;
   --menu-item-height: 36px;
   --menu-item-padding: 12px;
-  --menu-offset: 8px;
+  --menu-offset: 0px;
   --menu-header-height: 32px;
   --menu-icon-size: 20px;
   --menu-item-gap: 4px;
@@ -252,7 +252,7 @@ table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: va
 .menu-showcase { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-24); align-items: center; }
 .menu-stage { padding: var(--space-24); border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background:var(--menu-hover); overflow-x: auto; }
 .menu-anchor { position: relative; min-width: 308px; min-height: 280px; }
-.shapes-menu { position: absolute; z-index: 2; top: 0; left: calc(var(--toolbar-width) + var(--menu-offset)); width: var(--menu-width); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
+.shapes-menu { overflow-y:auto; position: absolute; z-index: 2; top: 0; left: calc(var(--toolbar-width) + var(--menu-offset)); width: var(--menu-width); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
 /* Popout top offsets are measured from their trigger buttons when opened. */
 .menu-title { display: flex; align-items: center; height: var(--menu-header-height); padding: 0 var(--menu-item-padding); margin-bottom: var(--space-4); font-size: var(--text-xs); line-height: 16px; font-weight: 600; color: var(--color-muted); letter-spacing: 2px; }
 .shape-options { display: flex; flex-direction: column; gap: var(--menu-item-gap); }
@@ -467,7 +467,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 /* Colour fill uses the shared charcoal pop-out and field styles. */
 .fill-tools { position:relative; }
-.fill-menu { top:0; width:248px; max-width:calc(100vw - 120px); }
+.fill-menu { top:0; left:calc(100% + var(--toolbar-padding)); width:248px; max-width:calc(100vw - 120px); }
 .fill-tools > .tool { position:relative; }
 .fill-indicator { position:absolute; width:16px; height:4px; bottom:5px; border-radius:var(--radius-sm); background:var(--fill-colour,#FF0000); border:1px solid white; }
 .fill-swatches { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:var(--space-8); margin-bottom:var(--space-16); }
