@@ -20,7 +20,8 @@ button:disabled:hover { background:transparent; }
 
 .editor-layers { overflow:hidden; }
 
-.editor-selection-menu { z-index:2; }
+.editor-selection-menu { z-index:2; overflow:auto; min-width:0; overscroll-behavior:contain; }
+.editor-selection-menu.is-over-dock { z-index:7; }
 
 #duplicate-selection { z-index:1; }
 #duplicate-selection::before { display:none; }

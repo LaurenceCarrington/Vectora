@@ -24,6 +24,7 @@ export class FloatingSelectionMenu {
     this.grip.addEventListener('pointerdown', event => {
       if (event.button !== 0 || !event.isPrimary) return;
       event.preventDefault();
+      this.place();
       this.grip.focus({ preventScroll: true });
       this.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: menu.offsetLeft, top: menu.offsetTop, positioned: this.positioned };
       this.grip.setPointerCapture(event.pointerId);
@@ -51,7 +52,12 @@ export class FloatingSelectionMenu {
       this.moveTo(menu.offsetLeft + direction[0] * distance, menu.offsetTop + direction[1] * distance);
       this.status.textContent = 'Selection menu moved.';
     });
-    new ResizeObserver(() => this.place()).observe(this.stage);
+    const observer = new ResizeObserver(() => this.place());
+    observer.observe(this.stage);observer.observe(this.menu);
+    for(const element of this.stage.querySelectorAll<HTMLElement>('.top-toolbar,.left-toolbar,.right-toolbar,.ruler-left,.ruler-bottom,.workspace-footer,.layers-panel')) observer.observe(element);
+    window.addEventListener('resize',()=>this.place());
+    window.visualViewport?.addEventListener('resize',()=>this.place());
+    window.visualViewport?.addEventListener('scroll',()=>this.place());
   }
 
   render(): void {
@@ -67,16 +73,41 @@ export class FloatingSelectionMenu {
   }
 
   private place(): void {
-    if (this.menu.hidden || this.drag) return;
-    if (this.positioned) this.moveTo(this.menu.offsetLeft, this.menu.offsetTop);
+    if (this.menu.hidden) return;
+    if (this.drag || this.positioned) this.moveTo(this.menu.offsetLeft, this.menu.offsetTop);
     else this.moveTo((this.stage.clientWidth - this.menu.offsetWidth) / 2, this.stage.clientHeight - this.menu.offsetHeight - 64);
   }
 
   private moveTo(x: number, y: number): void {
-    const maxX = Math.max(this.inset, this.stage.clientWidth - this.menu.offsetWidth - this.inset);
-    const maxY = Math.max(this.inset, this.stage.clientHeight - this.menu.offsetHeight - this.inset);
-    this.menu.style.left = `${Math.min(maxX, Math.max(this.inset, Math.round(x / this.step) * this.step))}px`;
-    this.menu.style.top = `${Math.min(maxY, Math.max(this.inset, Math.round(y / this.step) * this.step))}px`;
+    const stage=this.stage.getBoundingClientRect(),viewport=window.visualViewport;
+    const originX=stage.left+this.stage.clientLeft,originY=stage.top+this.stage.clientTop;
+    let left=Math.max(0,(viewport?.offsetLeft??0)-originX),top=Math.max(0,(viewport?.offsetTop??0)-originY);
+    let right=Math.min(this.stage.clientWidth,(viewport?viewport.offsetLeft+viewport.width:window.innerWidth)-originX);
+    let bottom=Math.min(this.stage.clientHeight,(viewport?viewport.offsetTop+viewport.height:window.innerHeight)-originY);
+    // The Paper canvas extends behind the chrome; only the exposed drawing area is usable.
+    for(const element of this.stage.querySelectorAll<HTMLElement>('.top-toolbar,.left-toolbar,.right-toolbar,.ruler-left,.ruler-bottom,.workspace-footer')){
+      const rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
+      if(element.matches('.left-toolbar,.ruler-left'))left=Math.max(left,rect.right-originX);
+      if(element.matches('.right-toolbar'))right=Math.min(right,rect.left-originX);
+      if(element.matches('.top-toolbar'))top=Math.max(top,rect.bottom-originY);
+      if(element.matches('.workspace-footer,.ruler-bottom'))bottom=Math.min(bottom,rect.top-originY);
+    }
+    let overDock=false;
+    for(const panel of this.stage.querySelectorAll<HTMLElement>('.layers-panel:not([hidden])')){
+      const edge=panel.getBoundingClientRect().left-originX;
+      // On narrow screens a dock can cover almost the entire canvas. Keep the menu reachable above it.
+      if(edge-left>=220+2*this.inset)right=Math.min(right,edge);else overDock=true;
+    }
+    this.menu.classList.toggle('is-over-dock',overDock);
+    const gapX=Math.min(this.inset,Math.max(0,(right-left-80)/2));
+    const gapY=Math.min(this.inset,Math.max(0,(bottom-top-40)/2));
+    left+=gapX;right-=gapX;top+=gapY;bottom-=gapY;
+    this.menu.style.maxWidth=`${Math.max(0,right-left)}px`;
+    this.menu.style.maxHeight=`${Math.max(0,bottom-top)}px`;
+    const maxX=Math.max(left,right-this.menu.offsetWidth),maxY=Math.max(top,bottom-this.menu.offsetHeight);
+    const clamp=(value:number,min:number,max:number)=>Math.min(max,Math.max(min,Math.round(value/this.step)*this.step));
+    this.menu.style.left=`${clamp(x,left,maxX)}px`;
+    this.menu.style.top=`${clamp(y,top,maxY)}px`;
   }
 
   private finishDrag(cancel = false): void {
@@ -85,6 +116,7 @@ export class FloatingSelectionMenu {
     if (cancel) { this.positioned = drag.positioned;this.moveTo(drag.left, drag.top); }
     this.menu.classList.remove('is-dragging');
     if (this.grip.hasPointerCapture(drag.id)) this.grip.releasePointerCapture(drag.id);
+    this.place();
     this.status.textContent = cancel ? 'Menu move cancelled.' : 'Selection menu moved.';
   }
 }

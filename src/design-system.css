@@ -300,7 +300,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .drag-handle:focus-visible, .floating-action:focus-visible { outline: var(--border-width) solid var(--color-surface); outline-offset: -4px; }
 .floating-menu.is-dragging .drag-handle { cursor: grabbing; background: var(--color-hover); color: var(--color-surface); }
 .floating-menu.is-dragging { user-select: none; }
-.selection-count { padding: 0 var(--space-4); color: var(--color-on-toolbar-muted); font-size: var(--text-xs); line-height: 16px; white-space: nowrap; }
+.selection-count { max-width:100%; overflow:hidden; text-overflow:ellipsis; padding: 0 var(--space-4); color: var(--color-on-toolbar-muted); font-size: var(--text-xs); line-height: 16px; white-space: nowrap; }
 .floating-menu .floating-action { min-height:var(--floating-control-height); height:var(--floating-control-height); width:var(--floating-control-height); flex:0 0 var(--floating-control-height); padding:var(--space-4); gap:var(--floating-gap); font-size:var(--text-xs); line-height:16px; white-space:nowrap; }
 .floating-menu .floating-action svg { width:var(--icon-sm); height:var(--icon-sm); }
 .floating-menu .divider { height:20px; margin:0 var(--space-4); }

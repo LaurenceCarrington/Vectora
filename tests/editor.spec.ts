@@ -757,7 +757,7 @@ test('floating selection menu follows selection and supports bounded accessible 
   await expect(menu.locator('.selection-count')).toHaveText('2 selected');
   await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);await page.mouse.down();
   await page.mouse.move(8,100,{steps:4});await page.mouse.up();
-  const moved=(await menu.boundingBox())!;expect(moved.x).toBe(16);
+  const moved=(await menu.boundingBox())!;expect(moved.x).toBe(80);
   expect(await page.evaluate(()=>(window as any).__vectora.snapshot().artwork)).toBe(geometry);
   await page.locator('#cad-canvas').focus();await page.keyboard.press('Escape');await expect(menu).toBeHidden();
   await page.evaluate(()=>{const e=(window as any).__vectora;e.select(e.objects[0]);});
@@ -768,7 +768,7 @@ test('floating selection menu follows selection and supports bounded accessible 
   await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('artwork','locked',false);e.select(e.objects[0]);});
   await page.setViewportSize({width:390,height:750});
   await expect(menu).toBeVisible();
-  await expect.poll(async()=>{const b=(await menu.boundingBox())!;return b.x>=16&&b.x+b.width<=374&&b.y>=16&&b.y+b.height<=734;}).toBe(true);
+  await expect.poll(async()=>{const b=(await menu.boundingBox())!;return b.x>=80&&b.x+b.width<=330&&b.y>=104&&b.y+b.height<=686;}).toBe(true);
   await page.screenshot({path:'test-results/floating-selection-mobile.png'});
   await page.setViewportSize({width:1280,height:900});
   await page.evaluate(()=>{const e=(window as any).__vectora;e.select(e.objects[1],true);});

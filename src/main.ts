@@ -95,6 +95,7 @@ function setPanel(panel:HTMLElement,open:boolean,showExport=false):void {
   props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;
   if(panel===layers&&open)layersPanel.open();
   for(const [button,target] of [[propertiesButton,props],[layersButton,layers]] as const){button.classList.toggle('selected',!target.hidden);button.setAttribute('aria-pressed',String(!target.hidden));button.setAttribute('aria-expanded',String(!target.hidden));}
+  selectionMenu.render();
 }
 setPanel(props,false);
 propertiesButton.setAttribute('aria-controls','properties-panel');
