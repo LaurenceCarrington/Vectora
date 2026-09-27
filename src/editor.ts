@@ -9,7 +9,7 @@ import { createDeletePlan, disposeDeletePlan, documentPath, type DeletePlan } fr
 import { pathsOf } from './geometry';
 import { closeNearestPaths } from './closePath';
 import { createTextShape, isStrokeFont, transformText, type TextData } from './text';
-import { createArc, arcPoint, createCircularArc, updateCircularArc, snapArcAngle, type ArcGeometry } from './arc';
+import { createArc, createEndpointArc, arcPoint, createCircularArc, updateCircularArc, snapArcAngle, type ArcGeometry } from './arc';
 import { MillimetreGrid } from './grid';
 import { findObjectSnap, SNAP_LABELS, type ObjectSnap, type ObjectSnapMode, type SnapModes } from './objectSnapping';
 import { createStickerOutline } from './clipperService';
@@ -60,6 +60,13 @@ export class CADEditor {
   private polyline:{points:paper.Point[];item:paper.Path;before:DocumentSnapshot;spacing:number|null}|null=null;
   private threePointArc:{points:paper.Point[];item:paper.Path;before:DocumentSnapshot;spacing:number|null}|null=null;
   get threePointArcHint():string {return this.threePointArc?.points.length===2?'Click end':this.threePointArc?'Click curve point':'Click start';}
+  get endpointArcHint():string {
+    const state=this.threePointArc;
+    if(!state)return 'Click start';
+    if(state.points.length===1)return 'Click end';
+    const sweep=state.item.data.arc?.sweep;
+    return `Click to set angle${sweep?` · ${Number(Math.abs(sweep).toFixed(1))}°`:''} · Shift: 15°`;
+  }
   get selectedArc():ArcGeometry|null {return this.selected?.data.arc??null;}
   get arcHint():string {return 'Drag from centre · Semicircle · Shift: 15°';}
   private deletionPreview:DeletePlan|null=null;
@@ -530,6 +537,12 @@ export class CADEditor {
     }
     if(this.tool==='nodes'){this.nodes.draw();this.drawSnapMarker();return;}
     for(const point of [...(this.polyline?.points??[]),...(this.threePointArc?.points??[])]){const marker=new paper.Path.Circle({center:point,radius:3/paper.view.zoom,insert:false,fillColor:'white',strokeColor:this.selectionColor,strokeWidth:1/paper.view.zoom});marker.data.role='overlay';this.overlays.addChild(marker);}
+    if(this.tool==='arc-endpoints'&&this.threePointArc?.points.length===2){
+      const [from,to]=this.threePointArc.points,arc=this.threePointArc.item.data.arc as ArcGeometry|undefined;
+      const guide=new paper.Path({segments:[from,to],insert:false,strokeColor:this.selectionColor,strokeWidth:1/paper.view.zoom,dashArray:[4/paper.view.zoom,4/paper.view.zoom]});
+      guide.data.role='overlay';this.overlays.addChild(guide);
+      if(arc){const label=new paper.PointText({point:arcPoint(arc,arc.start+arc.sweep/2).add([12/paper.view.zoom,-12/paper.view.zoom]),content:`${Number(Math.abs(arc.sweep).toFixed(1))}°`,insert:false,fontSize:11/paper.view.zoom,fillColor:this.selectionColor});label.data.role='overlay';this.overlays.addChild(label);}
+    }
     const state=this.interaction;
     if(state?.kind==='marquee'&&state.bounds){
       const marquee=new paper.Path.Rectangle({rectangle:state.bounds,insert:false,strokeColor:this.selectionColor,fillColor:this.selectionArea,strokeWidth:1/paper.view.zoom,dashArray:[4/paper.view.zoom,4/paper.view.zoom]});
@@ -583,7 +596,7 @@ export class CADEditor {
     else if(this.tool==='fill'){try{this.fillAt(point);}catch(error){this.onMessage((error as Error).message,true);}return;}
     else if(this.tool==='text'){this.onTextRequest(this.snapPoint(point,base.snapSpacing),null);return;}
     else if(this.isDeleteTool){this.deleteAt(point);return;}
-    else if(this.tool==='arc-three-point'){this.addThreePointArcPoint(point);return;}
+    else if(this.tool==='arc-three-point'||this.tool==='arc-endpoints'){this.addThreePointArcPoint(point,event.shiftKey);return;}
     else if(this.tool==='polyline'){this.addPolylinePoint(point,event.shiftKey);return;}
     else if(this.tool!=='select') {
       this.selected=null;this.interaction={...base,start:this.tool==='freehand'?point:this.snapPoint(point,base.snapSpacing),kind:'draw'};
@@ -618,7 +631,7 @@ export class CADEditor {
     const state=this.interaction;
     if(!state&&isDimensionTool(this.tool)){this.dimensions.move(paper.view.viewToProject(this.screen(event)));return;}
     if(!state&&this.isDeleteTool){if(this.space)this.clearDeletePreview();else this.previewDelete(paper.view.viewToProject(this.screen(event)));this.changed();return;}
-    if(!state&&this.threePointArc){this.previewThreePointArc(paper.view.viewToProject(this.screen(event)));return;}
+    if(!state&&this.threePointArc){this.previewThreePointArc(paper.view.viewToProject(this.screen(event)),event.shiftKey);return;}
     if(!state&&this.polyline){this.previewPolyline(paper.view.viewToProject(this.screen(event)),event.shiftKey);return;}
     if(!state){
       if(!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&this.tool!=='fill'&&this.tool!=='freehand'&&!this.isDeleteTool)this.snapPoint(paper.view.viewToProject(this.screen(event)),null);
@@ -737,8 +750,10 @@ export class CADEditor {
     }catch(error){this.onMessage((error as Error).message,true);}
     finally{disposeDeletePlan(plan);}
   }
-  private addThreePointArcPoint(point:paper.Point):void {
-    const spacing=this.threePointArc?this.threePointArc.spacing:this.gridSnappingActive?this.grid.spacingMM:null,end=this.snapPoint(point,spacing);
+  private addThreePointArcPoint(point:paper.Point,shift=false):void {
+    const angleStep=this.tool==='arc-endpoints'&&this.threePointArc?.points.length===2;
+    const spacing=this.threePointArc?this.threePointArc.spacing:this.gridSnappingActive?this.grid.spacingMM:null,end=angleStep?point:this.snapPoint(point,spacing);
+    if(angleStep)this.activeObjectSnap=null;
     if(!validNumber(end.x)||!validNumber(end.y)){this.onMessage('Arc points must be within the document coordinate limits.',true);return;}
     if(!this.threePointArc){
       const before=this.snapshot(),item=new paper.Path({insert:false});this.overlays.addChild(item);
@@ -748,17 +763,20 @@ export class CADEditor {
     if(state.points.some(point=>point.getDistance(end)<MIN_DIMENSION_MM)){this.onMessage('Choose three different points for the arc.',true);return;}
     if(state.points.length===1){state.points.push(end);this.previewThreePointArc();return;}
     try{
-      const item=createArc(state.points[0],state.points[1],end);
+      const item=this.tool==='arc-endpoints'?createEndpointArc(state.points[0],state.points[1],end,shift):createArc(state.points[0],state.points[1],end);
       item.strokeColor=new paper.Color('#383838');item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
-      item.data={role:'artwork',uid:crypto.randomUUID(),name:'Arc'};
+      item.data={...item.data,role:'artwork',uid:crypto.randomUUID(),name:'Arc'};
+      if(this.tool==='arc-endpoints'){this.tool='select';this.updateCursor();}
       state.item.remove();this.threePointArc=null;this.activeObjectSnap=null;this.artwork.addChild(item);this.selected=item;this.commit(state.before);
     }catch(error){this.onMessage((error as Error).message,true);}
   }
-  private previewThreePointArc(point?:paper.Point):void {
-    const state=this.threePointArc!,points=point?[...state.points,this.snapPoint(point,state.spacing)]:state.points;
+  private previewThreePointArc(point?:paper.Point,shift=false):void {
+    const state=this.threePointArc!,angleStep=this.tool==='arc-endpoints'&&state.points.length===2;
+    const points=point?[...state.points,angleStep?point:this.snapPoint(point,state.spacing)]:state.points;
+    if(angleStep)this.activeObjectSnap=null;
     let item:paper.Path|null=null;
-    if(points.length===3){try{item=createArc(points[0],points[1],points[2]);}catch{/* Keep a guide for invalid preview positions. */}}
-    if(!item)item=new paper.Path({segments:points,insert:false,dashArray:[4,4]});
+    if(points.length===3){try{item=this.tool==='arc-endpoints'?createEndpointArc(points[0],points[1],points[2],shift):createArc(points[0],points[1],points[2]);}catch{/* Keep a guide for invalid preview positions. */}}
+    if(!item)item=new paper.Path({segments:angleStep?state.points:points,insert:false,dashArray:[4,4]});
     item.strokeColor=new paper.Color('#383838');item.strokeWidth=1.5;item.strokeScaling=false;item.fillColor=null;
     state.item.remove();this.overlays.addChild(item);state.item=item;this.changed();
   }
