@@ -44,7 +44,7 @@ export class DocumentFiles {
   }else{
    const filename=this.filename;
    const url=URL.createObjectURL(new Blob([contents],{type:'application/json'})),anchor=document.createElement('a');anchor.href=url;anchor.download=filename;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-   this.filename=filename;this.savedKey=key;document.title=`${filename} — Vectora`;this.notify(`Sent ${filename} to your browser to save.`,'success');
+   // Downloads have no reliable completion/cancellation callback. Keep unsaved-change protection and do not claim success.
   }
  });}
  newDocument():Promise<void>{return this.run(async()=>{

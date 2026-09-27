@@ -29,7 +29,8 @@ test('Fallback Save, Save As, Open and invalid files preserve the drawing approp
  await fallback(page);await page.goto(DEV);await shape(page);
  let pending=page.waitForEvent('download');await fileAction(page,'Save');let download=await pending;expect(download.suggestedFilename()).toBe('Untitled.vectora');await expect(page.locator('#document-dialog')).not.toBeVisible();const contents=await readFile((await download.path())!,'utf8');
  await shape(page);pending=page.waitForEvent('download');await fileAction(page,'Save');download=await pending;expect(download.suggestedFilename()).toBe('Untitled.vectora');
- pending=page.waitForEvent('download');await fileAction(page,'Save as…');expect((await pending).suggestedFilename()).toBe('Untitled.vectora');await expect(page.locator('#document-dialog')).not.toBeVisible();
+ pending=page.waitForEvent('download');await fileAction(page,'Save as…');expect((await pending).suggestedFilename()).toBe('Untitled.vectora');await expect(page.locator('#document-dialog')).not.toBeVisible();await expect(page.locator('.toast-success')).toHaveCount(0);
+ await fileAction(page,'New document');await page.getByRole('dialog',{name:'New document?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();
  await shape(page);const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
  await openFile(page,{name:'Design one.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});
  await page.getByRole('dialog',{name:'Open document?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
@@ -76,4 +77,13 @@ test('New document preserves the saved target on cancel and forgets it after con
  await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+n');const dialog=page.getByRole('dialog',{name:'New document?',exact:true});await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).writes.length)).toBe(2);expect(await page.evaluate(()=>(window as any).picks)).toBe(1);
  await shape(page);await fileAction(page,'New document');await dialog.getByRole('button',{name:'New document',exact:true}).click();await expect(page).toHaveTitle('Untitled — Vectora');await shape(page);await fileAction(page,'Save');await expect(page).toHaveTitle('Design 2.vectora — Vectora');expect(await page.evaluate(()=>(window as any).picks)).toBe(2);
  await fileAction(page,'New document');await expect(page).toHaveTitle('Untitled — Vectora');await expect(dialog).not.toBeVisible();
+});
+
+
+test('Save success waits for the native file write to finish',async({page})=>{
+ await page.addInitScript(()=>{
+  const w=window as any;w.writing=false;w.showSaveFilePicker=async()=>({name:'Confirmed.vectora',createWritable:async()=>({write:async()=>{},close:()=>new Promise<void>(resolve=>{w.writing=true;w.finishSave=resolve;}),abort:async()=>{}})});
+ });
+ await page.goto(DEV);await shape(page);const title=await page.title();await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).writing)).toBe(true);await expect(page.locator('.toast-success')).toHaveCount(0);await expect(page).toHaveTitle(title);
+ await page.evaluate(()=>(window as any).finishSave());await expect(page.locator('.toast-success')).toContainText('Saved Confirmed.vectora.');await expect(page).toHaveTitle('Confirmed.vectora — Vectora');
 });
