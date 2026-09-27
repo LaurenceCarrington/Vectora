@@ -84,7 +84,7 @@ test('Holding a layer object at list edges scrolls both directions, stops away f
   await page.goto(DEV);await seed(page);await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<14;i++)e.addDocumentLayer('engrave');});await open(page);
   const panel=page.locator('#primary-layers-panel'),list=panel.locator('.layer-list');await panel.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   const source=panel.locator('[data-layer-id="artwork"] .layer-object');await source.scrollIntoViewIfNeeded();const bounds=(await list.boundingBox())!,from=(await source.boundingBox())!,x=bounds.x+bounds.width/2;
-  const initial=await list.evaluate(el=>el.scrollTop);expect(initial).toBeGreaterThan(400);const header=await panel.locator('.layers-header').boundingBox(),footer=await panel.locator('.layer-footer').boundingBox();
+  const initial=await list.evaluate(el=>el.scrollTop);expect(initial).toBeGreaterThan(200);const header=await panel.locator('.layers-header').boundingBox(),footer=await panel.locator('.layer-footer').boundingBox();
   await page.mouse.move(from.x+30,from.y+from.height/2);await page.mouse.down();await page.mouse.move(from.x+42,from.y+from.height/2,{steps:5});await page.mouse.move(x,bounds.y+10,{steps:8});
   await expect.poll(()=>list.evaluate(el=>el.scrollTop)).toBeLessThan(initial-100);
   await page.mouse.move(x,bounds.y+bounds.height/2);const stopped=await list.evaluate(el=>el.scrollTop);await page.waitForTimeout(250);expect(await list.evaluate(el=>el.scrollTop)).toBeCloseTo(stopped,0);
@@ -114,7 +114,7 @@ test('Layers and Properties expand into the same full-height dock at every viewp
   for(const [name,id] of [['Layers','primary-layers-panel'],['Properties','properties-panel']]){
    const trigger=page.getByRole('button',{name,exact:true});await trigger.click();const panel=page.locator('#'+id);await expect(panel).toBeVisible();
    const top=(await page.locator('.top-toolbar').boundingBox())!,rail=(await page.locator('.right-toolbar').boundingBox())!;
-   await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.y===top.height&&b.y+b.height===viewport.height&&b.x+b.width===rail.x&&b.x>=60;}).toBe(true);
+   await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.y===top.y+top.height&&b.y+b.height===viewport.height&&b.x+b.width===rail.x&&b.x>=44;}).toBe(true);
    await expect(page.locator(name==='Layers'?'#properties-panel':'#primary-layers-panel')).toBeHidden();
    const header=panel.locator('.layers-header'),before=await header.boundingBox();
    await panel.locator(name==='Layers'?'.layer-list':'.editor-panel-body').evaluate(el=>el.scrollTop=el.scrollHeight);

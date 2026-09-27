@@ -13,10 +13,14 @@ export class DocumentFiles {
  private savedKey:string;
  private busy=false;
  constructor(private editor:CADEditor,private dialog:HTMLDialogElement,private input:HTMLInputElement,private prepare:()=>boolean,private notify:(message:string,kind:AlertKind)=>void){
-  this.savedKey=documentKey(editor);
+  this.savedKey=documentKey(editor);this.updateName();
   dialog.addEventListener('keydown',event=>event.stopPropagation());
   input.addEventListener('change',()=>{const file=input.files?.[0];input.value='';if(file)void this.run(()=>this.load(file,null));});
   window.addEventListener('beforeunload',event=>{if(this.dirty||editor.textEditing){event.preventDefault();event.returnValue='';}});
+ }
+ private updateName():void {
+  const label=window.document.querySelector<HTMLElement>('[data-document-name]');
+  if(label){label.textContent=this.filename;label.title=this.filename;}
  }
  private get dirty():boolean{return documentKey(this.editor)!==this.savedKey;}
  private async run(action:()=>Promise<void>):Promise<void>{
@@ -39,7 +43,7 @@ export class DocumentFiles {
   if(api.showSaveFilePicker){
    const handle=as||!this.handle?await api.showSaveFilePicker({suggestedName:this.filename,types:pickerTypes}):this.handle;
    const writable=await handle.createWritable();try{await writable.write(contents);await writable.close();}catch(error){try{await writable.abort();}catch{/* The stream may already be closed. */}throw error;}
-   this.handle=handle;this.filename=handle.name;this.savedKey=key;
+   this.handle=handle;this.filename=handle.name;this.savedKey=key;this.updateName();
    document.title=`${this.filename} — Vectora`;this.notify(`Saved ${this.filename}.`,'success');
   }else{
    const filename=this.filename;
@@ -50,7 +54,7 @@ export class DocumentFiles {
  newDocument():Promise<void>{return this.run(async()=>{
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('New document?','The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.','New document')===null)return;
-  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.savedKey=documentKey(this.editor);
+  this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.savedKey=documentKey(this.editor);this.updateName();
   document.title='Untitled — Vectora';this.editor.canvas.focus({preventScroll:true});this.notify('New document created.','success');
  });}
  open():Promise<void>{
@@ -65,7 +69,7 @@ export class DocumentFiles {
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('Open document?','The current drawing has unsaved changes. Opening this file will replace them. Cancel to save your drawing first.','Open document')===null)return;
   if(!this.prepare())return;
-  this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);
+  this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);this.updateName();
   window.document.title=`${this.filename} — Vectora`;this.notify(`Opened ${file.name}.`,'success');
  }
 }

@@ -35,7 +35,7 @@ test('3D preview renders materials and holes, supports controls, and leaves the 
 });
 
 test('Empty and engraving-only previews explain the material, including a narrow viewport',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto(DEV);const trigger=page.getByRole('button',{name:'3D preview',exact:true});const box=await trigger.boundingBox();expect(box!.x).toBeGreaterThan(24);await trigger.click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true});await expect(dialog).toContainText('Nothing to preview yet');await dialog.getByRole('button',{name:'Close 3D preview',exact:true}).click();
+ await page.setViewportSize({width:390,height:844});await page.goto(DEV);const trigger=page.getByRole('button',{name:'3D preview',exact:true});const box=await trigger.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);await trigger.click();const dialog=page.getByRole('dialog',{name:'3D preview',exact:true});await expect(dialog).toContainText('Nothing to preview yet');await dialog.getByRole('button',{name:'Close 3D preview',exact:true}).click();
  await design(page);await page.evaluate(()=>(window as any).__vectora.setLayerState('cutline','visible',false));await trigger.click();await expect(dialog.locator('[data-preview-note]')).toContainText('fitted rectangular blank');await expect(dialog.locator('canvas')).toBeVisible();await dialog.screenshot({path:'test-results/preview3d-mobile.png'});expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 

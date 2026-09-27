@@ -5,14 +5,14 @@
   --color-canvas: #F4F4F2;
   --color-surface: #FFFFFF;
   --color-toolbar: #2A2B2E;
-  --color-hover: #4A4A4A;
+  --color-hover: #35373C;
   --menu-background: #2A2B2E;
   --menu-foreground: #FFFFFF;
   --menu-muted: #D2D2D2;
-  --menu-border: #5C5C5C;
-  --menu-hover: #4A4A4A;
-  --menu-selected: #FFFFFF;
-  --menu-selected-foreground: #2A2B2E;
+  --menu-border: #414349;
+  --menu-hover: #35373C;
+  --menu-selected: #35373C;
+  --menu-selected-foreground: #FFFFFF;
   --color-on-toolbar-muted: #D2D2D2;
   --color-text: #242424;
   --color-muted: #666666;
@@ -68,12 +68,12 @@
   --search-width: 360px;
   --search-icon-size: 20px;
   --search-clear-size: 32px;
-  --input-height: 44px;
+  --input-height: 36px;
   --input-padding: 12px;
   --input-radius: 0px;
   --input-border-color: #383838;
   --input-icon-color: #383838;
-  --input-prefix-width: 44px;
+  --input-prefix-width: 36px;
   --input-prefix-background: var(--color-toolbar);
   --input-prefix-foreground: var(--color-surface);
   --input-label-gap: 6px;
@@ -86,8 +86,8 @@
   --toggle-height: 28px;
   --toggle-thumb-size: 20px;
   --toggle-inset: 4px;
-  --tool-size: 44px;
-  --button-height: 40px;
+  --tool-size: 36px;
+  --button-height: 32px;
   --button-padding-x: 12px;
   --button-gap: 8px;
   --button-radius: 0px;
@@ -101,15 +101,19 @@
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
   --toolbar-radius: 0px;
-  --toolbar-padding: 8px;
-  --toolbar-gap: 4px;
-  --toolbar-width: 60px;
-  --top-toolbar-height: 60px;
+  --toolbar-padding: 4px;
+  --toolbar-gap: 2px;
+  --toolbar-width: 44px;
+  --top-toolbar-height: 88px;
+  --application-header-height: 48px;
+  --commandbar-background: #35373C;
+  --chrome-accent: #52B9DF;
+  --chrome-selected: #232528;
   --workspace-edge-inset: 0px;
   --workspace-footer-inset: 24px;
   --menu-width: 240px;
   --menu-width-wide: 280px;
-  --panel-width: 360px;
+  --panel-width: 300px;
   --preferences-width: 960px;
   --preferences-height: 680px;
   --preferences-sidebar-width: 200px;
@@ -119,11 +123,11 @@
   --dialog-width: 400px;
   --dialog-padding: 24px;
   --panel-height: 488px;
-  --panel-padding: 16px;
-  --layer-row-height: 64px;
+  --panel-padding: 12px;
+  --layer-row-height: 52px;
   --layer-drag-scroll-edge: 40px;
   --layer-drag-scroll-speed: 360;
-  --panel-control-size: 32px;
+  --panel-control-size: 28px;
   --alert-width: 440px;
   --alert-offset: 24px;
   --alert-gap: 8px;
@@ -136,13 +140,13 @@
   --alert-motion-gutter: 16px;
   --menu-divider-gap: 8px;
   --menu-padding: 8px;
-  --menu-item-height: 40px;
+  --menu-item-height: 36px;
   --menu-item-padding: 12px;
   --menu-offset: 8px;
   --menu-header-height: 32px;
   --menu-icon-size: 20px;
   --menu-item-gap: 4px;
-  --menu-shadow: 0 8px 24px #24242414;
+  --menu-shadow: 0 4px 16px #00000020;
   --floating-control-height: 32px;
   --floating-padding: 4px;
   --floating-gap: 4px;
@@ -153,8 +157,8 @@
   --radius-sm: 0px;
   --radius-menu: 0px;
   --radius-pill: 1000px;
-  --border-width: 2px;
-  --icon-stroke: 2;
+  --border-width: 1px;
+  --icon-stroke: 1.5;
 }
 
 * { box-sizing: border-box; }
@@ -171,7 +175,7 @@ section { margin-top: var(--space-32); }
 .section-heading { display: flex; align-items: baseline; gap: var(--space-12); margin-bottom: var(--space-16); }
 .section-number { color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
 .section-note { color: var(--color-muted); margin-left: auto; font-size: var(--text-xs); }
-.preview { background: #EAEAE7; border-radius: 24px; border: var(--border-width) solid var(--color-line); padding: 0; overflow-x: auto; }
+.preview { background:var(--menu-hover); border-radius: 24px; border: var(--border-width) solid var(--color-line); padding: 0; overflow-x: auto; }
 /* Static 100% specimen: 10 mm visible cells, 1 document mm = 96 / 25.4 CSS px. The editor
    draws these same colors in Paper document coordinates, anchored to (0, 0). */
 .mm-grid-preview {
@@ -199,24 +203,26 @@ section { margin-top: var(--space-32); }
 .preview-caption { position: absolute; color: var(--color-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
 .top-caption { top: 0; left: 50%; transform: translateX(-50%); }
 .toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
-.top-toolbar { position:absolute; top:var(--workspace-edge-inset); left:0; right:0; width:100%; height:var(--top-toolbar-height); justify-content:center; }
-.brand { font-size: var(--text-xl); font-weight: 650; display: flex; gap: 10px; align-items: center; padding: 0 12px; }
+.application-header { position:absolute; z-index:4; top:0; left:0; right:0; height:var(--application-header-height); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr) minmax(0,1fr); align-items:center; padding:0 16px; background:var(--menu-background); color:var(--menu-foreground); border-bottom:1px solid var(--menu-border); }
+.document-name { justify-self:center; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:14px; font-weight:400; color:var(--menu-muted); }
+.top-toolbar { position:absolute; top:var(--application-header-height); left:0; right:0; width:100%; height:calc(var(--top-toolbar-height) - var(--application-header-height)); padding:2px 12px; justify-content:flex-start; background:var(--commandbar-background); border-bottom:1px solid var(--menu-border); }
+.brand { justify-self:start; font-size:18px; font-weight:500; display:flex; gap:8px; align-items:center; padding:0; min-width:0; }
 svg { width: var(--icon-lg); height: var(--icon-lg); stroke: currentColor; fill: none; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-.brand svg { width: 24px; height: 24px; }
+.brand svg { width:26px; height:26px; color:var(--chrome-accent); }
 /* Optical alignment: centre the lowercase v on the diamond’s right corner. */
 .brand-wordmark { display: block; transform: translateY(calc(-1 * var(--space-2))); }
 button { font-family: inherit; cursor: pointer; }
-.tool { width: var(--tool-size); height: var(--tool-size); padding: 10px; border: 0; background: transparent; color: white; border-radius:var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.tool:hover { background: var(--color-hover); }
-.tool.selected { background: var(--color-surface); color: var(--color-toolbar); }
-.tool.selected:hover { background: #EAEAE7; }
+.tool { width: var(--tool-size); height: var(--tool-size); padding:6px; border:0; background:transparent; color:var(--menu-muted); border-radius:var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tool:hover { background:var(--color-hover); color:var(--menu-foreground); }
+.tool.selected,.tool[aria-expanded="true"] { background:var(--chrome-selected); color:var(--chrome-accent); }
+.tool.selected:hover,.tool[aria-expanded="true"]:hover { background:var(--menu-hover); color:var(--chrome-accent); }
 button:focus-visible, summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
-.divider { display: block; width: 2px; height: 24px; background: #666666; margin: 0 4px; flex-shrink: 0; }
+.divider { display:block; width:1px; height:24px; background:var(--menu-border); margin:0 6px; flex-shrink:0; }
 .vertical { flex-direction: column; width: var(--toolbar-width); }
 .left-toolbar, .right-toolbar { position:absolute; top:var(--top-toolbar-height); bottom:0; justify-content:flex-start; }
-.left-toolbar { left: var(--workspace-edge-inset); }
-.right-toolbar { right: var(--workspace-edge-inset); }
-.vertical .divider { width: 24px; height: 2px; margin: 4px 0; }
+.left-toolbar { left:var(--workspace-edge-inset); box-shadow:inset -1px 0 var(--menu-border); }
+.right-toolbar { right:var(--workspace-edge-inset); box-shadow:inset 1px 0 var(--menu-border); }
+.vertical .divider { width:24px; height:1px; margin:6px 0; }
 .left-caption, .right-caption { top: 98px; }.left-caption { left: 0; }.right-caption { right: 0; }
 .preview-foot { display: flex; gap: 24px; flex-wrap: wrap; margin: 12px 0 0; color: var(--color-muted); font-size: var(--text-xs); }
 .preview-foot span::before { content: ''; width: 8px; height: 8px; display: inline-block; background: var(--color-toolbar); border-radius: 50%; margin-right: 8px; }
@@ -245,7 +251,7 @@ table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: va
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 2px; height: 2px; padding: 0; margin: -2px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .menu-showcase { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-24); align-items: center; }
-.menu-stage { padding: var(--space-24); border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background: #EAEAE7; overflow-x: auto; }
+.menu-stage { padding: var(--space-24); border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background:var(--menu-hover); overflow-x: auto; }
 .menu-anchor { position: relative; min-width: 308px; min-height: 280px; }
 .shapes-menu { position: absolute; z-index: 2; top: 0; left: calc(var(--toolbar-width) + var(--menu-offset)); width: var(--menu-width); padding: var(--menu-padding); border: var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); text-align: left; }
 /* Popout top offsets are measured from their trigger buttons when opened. */
@@ -255,8 +261,8 @@ table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: va
 .shape-option svg { width: var(--menu-icon-size); height: var(--menu-icon-size); }
 .shape-option kbd { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 16px; font-weight: 400; color: var(--color-muted); }
 .shape-option:hover { background: var(--color-canvas); }
-.shape-option[aria-checked="true"] { background: var(--color-toolbar); color: var(--color-surface); }
-.shape-option[aria-checked="true"] kbd { color: var(--color-surface); }
+.shape-option[aria-checked="true"] { background: var(--color-toolbar); color:var(--menu-foreground); }
+.shape-option[aria-checked="true"] kbd { color:var(--menu-foreground); }
 .shape-option[aria-checked="true"]:hover { background: var(--color-hover); }
 .shape-option:focus-visible { outline: var(--border-width) solid var(--color-focus); outline-offset: var(--space-2); }
 .menu-status { margin-top: var(--space-16); color: var(--color-muted); font-size: var(--text-xs); line-height: 16px; min-width: 308px; }
@@ -274,7 +280,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 @media print { main { max-width: none; padding: 0; }.preview { zoom: 0.7; }.two-cols { grid-template-columns: 1fr 1fr; } section, .panel { break-inside: avoid; } details { display: none; } }
 
 /* Floating selection menu: the grip is the only drag target. */
-.floating-stage-wrap { overflow-x: auto; border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background: #EAEAE7; }
+.floating-stage-wrap { overflow-x: auto; border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background:var(--menu-hover); }
 .floating-stage { position: relative; min-width: 600px; height: 240px; }
 .floating-menu { position: absolute; top: 64px; left: 24px; display: flex; align-items: center; gap: var(--floating-gap); padding: var(--floating-padding); width: max-content; background: var(--color-toolbar); color: var(--color-surface); border-radius: var(--toolbar-radius); box-shadow: var(--menu-shadow); }
 .drag-handle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 var(--drag-handle-width); width: var(--drag-handle-width); height: var(--floating-control-height); padding: 0; border: 0; border-radius:var(--radius-sm); background: transparent; color: var(--color-on-toolbar-muted); cursor: grab; touch-action: none; user-select: none; }
@@ -314,28 +320,28 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 /* Layers and Properties expand inward from the right rail as full-height docked panels. */
 .layers-showcase { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-24); align-items: center; }
-.layers-stage-wrap { border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background: #EAEAE7; overflow-x: auto; }
+.layers-stage-wrap { border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background:var(--menu-hover); overflow-x: auto; }
 .layers-stage { position: relative; min-width: 460px; height: 552px; }
 .layers-example-rail { position:absolute; right:0; top:0; bottom:0; justify-content:flex-start; }
 .layers-panel { position: absolute; top:var(--top-toolbar-height); bottom:0; right:var(--toolbar-width); z-index: 5; display: flex; flex-direction: column; width:min(var(--panel-width),calc(100% - 2 * var(--toolbar-width))); height:auto; min-height:0; padding: var(--panel-padding); border:0; border-left:var(--border-width) solid var(--color-line); border-radius: var(--radius-menu); background: var(--color-surface); color: var(--color-text); box-shadow:none; text-align: left; }
 .layers-stage .layers-panel { top:0; right:var(--toolbar-width); }
-.layers-header { display: flex; align-items: center; gap: var(--space-8); padding-bottom: var(--space-12); border-bottom: var(--border-width) solid var(--color-line); margin-bottom: var(--space-12); flex: 0 0 76px; }
+.layers-header { display: flex; align-items: center; gap: var(--space-8); padding-bottom: var(--space-12); border-bottom: var(--border-width) solid var(--color-line); margin-bottom: var(--space-12); flex:0 0 52px; }
 .layer-heading { flex:1; min-width:0; padding:var(--space-4); }
-.panel-eyebrow { display: block; color: var(--color-muted); font-size: var(--text-xs); line-height: 16px; letter-spacing: 2px; }
-.panel-title { display: flex; align-items: baseline; gap: var(--space-8); font-size: var(--text-xl); line-height: 32px; font-weight: 600; }
+.panel-eyebrow { display:none; color: var(--color-muted); font-size: var(--text-xs); line-height: 16px; letter-spacing: 2px; }
+.panel-title { display: flex; align-items: baseline; gap: var(--space-8); font-size:18px; line-height:24px; font-weight:500; }
 .panel-title [data-layer-count] { color: var(--color-muted); font-size: var(--text-xs); font-weight: 500; }
 .panel-icon { width: var(--panel-control-size); height: var(--panel-control-size); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: inherit; }
 .panel-icon svg { width: var(--icon-sm); height: var(--icon-sm); }.panel-icon:hover { background: var(--color-canvas); }
 .layer-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4); margin: 0 -4px; }
 .layer-entry + .layer-entry { margin-top: var(--space-4); }
 .layer-row { display: flex; gap: var(--space-4); align-items: center; min-height: var(--layer-row-height); padding: var(--space-4); border-radius: var(--radius-sm); }
-.layer-row:hover { background: var(--color-canvas); }.layer-row.is-selected { background: var(--color-toolbar); color: var(--color-surface); }
+.layer-row:hover { background: var(--color-canvas); }.layer-row.is-selected { background: var(--color-toolbar); color:var(--menu-foreground); }
 .layer-row.is-selected .panel-icon:hover { background: var(--color-hover); }
 .layer-select { display: flex; align-items: center; gap: var(--space-8); flex: 1; min-width: 0; padding: var(--space-4) 0; border: 0; background: transparent; color: inherit; text-align: left; border-radius:var(--radius-sm); }
 .layer-dot { width: var(--space-12); height: var(--space-12); flex-shrink: 0; background: var(--layer-color, var(--layer-raster)); border: 1px solid #FFFFFF; border-radius:var(--radius-sm); box-sizing: border-box; }
 .layer-name { display: block; font-size: var(--text-sm); line-height: 20px; font-weight: 600; overflow-wrap: anywhere; }
-.layer-meta { display: block; font-size: var(--text-xs); line-height: 16px; color: var(--color-muted); }
-.is-selected .layer-meta { color: var(--color-on-toolbar-muted); }
+.layer-meta { display:block; font-size: var(--text-xs); line-height: 16px; color: var(--color-muted); }
+.is-selected .layer-meta { color:var(--menu-muted); }
 .layer-expand svg { transform: rotate(-90deg); }.layer-expand[aria-expanded="true"] svg { transform: none; }
 .layer-objects { padding: var(--space-8) var(--space-12) var(--space-12) var(--space-48); font-size: var(--text-xs); line-height: 16px; color: var(--color-muted); }
 .layer-object { display:flex; align-items:center; gap:var(--space-8); width:100%; min-height:var(--panel-control-size); padding:var(--space-6) var(--space-8); border:0; border-radius:var(--radius-sm); background:transparent; color:var(--color-text); font-size:var(--text-xs); text-align:left; }
@@ -348,7 +354,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .layers-panel .layer-entry.is-drop-target > .layer-row .layer-meta { color: var(--menu-muted); }
 
 .layer-object:hover { background:var(--color-canvas); }
-.layer-object[aria-pressed="true"] { background:var(--color-toolbar); color:var(--color-surface); }
+.layer-object[aria-pressed="true"] { background:var(--color-toolbar); color:var(--menu-foreground); }
 .layer-object:disabled { opacity:0.4; cursor:not-allowed; }
 .layer-row.is-hidden .layer-name { text-decoration: line-through; }
 .layer-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); border-top: var(--border-width) solid var(--color-line); padding-top: var(--space-12); margin-top: var(--space-12); }
@@ -364,7 +370,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .toast-warning { --alert-accent: var(--color-warning); }
 .toast-error { --alert-accent: var(--color-danger); }
 .toast-information { --alert-accent: var(--color-information); }
-.toast-stage { display: flex; justify-content: flex-end; align-items: flex-end; min-height: 520px; min-width: 0; padding: var(--alert-offset); background: #EAEAE7; border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); }
+.toast-stage { display: flex; justify-content: flex-end; align-items: flex-end; min-height: 520px; min-width: 0; padding: var(--alert-offset); background:var(--menu-hover); border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); }
 .toast-samples, .toast-stack { display: flex; flex-direction: column; gap: var(--alert-gap); width: var(--alert-width); max-width: 100%; }
 .toast-card { display: flex; gap: var(--space-8); align-items: flex-start; flex-shrink: 0; width: 100%; padding: var(--alert-padding); border: var(--border-width) solid var(--menu-border); border-left: var(--alert-accent-width) solid var(--alert-accent); border-radius: var(--radius-menu); background: var(--menu-background); color: var(--menu-foreground); box-shadow: var(--menu-shadow); }
 .toast-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 24px; height: 24px; border-radius: var(--radius-sm); background: var(--alert-accent); color: var(--menu-background); }
@@ -477,7 +483,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .number-shell { display: flex; align-items: center; gap: 0; height: var(--input-height); padding: 0; overflow: hidden; border: var(--border-width) solid var(--input-border-color); border-radius: var(--input-radius); background: var(--color-surface); }
 .number-shell:hover { border-color: var(--input-border-color); }
 .number-shell:focus-within { border-color: var(--color-toolbar); outline: var(--border-width) solid var(--color-focus); outline-offset: var(--space-2); }
-.number-input { flex: 1; width: 100%; min-width: 0; height: 100%; padding: 0 var(--input-padding); margin: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: var(--color-text); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 20px; font-variant-numeric: tabular-nums; color-scheme: light; }
+.number-input { flex: 1; width: 100%; min-width: 0; height: 100%; padding: 0 var(--input-padding); margin: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: var(--color-text); font-family: var(--font-mono); font-size:13px; line-height: 20px; font-variant-numeric: tabular-nums; color-scheme: light; }
 .number-unit { margin-right: var(--input-padding); flex-shrink: 0; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); line-height: 16px; user-select: none; }
 .number-input::-webkit-inner-spin-button { opacity: 0; }
 .number-shell:hover .number-input::-webkit-inner-spin-button, .number-shell:focus-within .number-input::-webkit-inner-spin-button { opacity: 1; }
@@ -512,7 +518,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 /* Large settings menus: fixed category rail, independently scrolling content. */
 .prefs-open { margin-left: auto; }
 
-.preferences-preview { display: grid; place-items: center; min-height: calc(var(--preferences-height) + var(--space-48)); padding: var(--space-24); border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background: #EAEAE7; }
+.preferences-preview { display: grid; place-items: center; min-height: calc(var(--preferences-height) + var(--space-48)); padding: var(--space-24); border: var(--border-width) solid var(--color-line); border-radius: var(--space-16); background:var(--menu-hover); }
 .preferences-shell .prefs-reset:disabled { opacity:0.4; }
 .preferences-placeholder { color: var(--color-muted); font-size: var(--text-sm); text-align: center; }
 .preferences-shell { display: flex; flex-direction: column; width: 100%; max-width: var(--preferences-width); height: var(--preferences-height); overflow: hidden; border: var(--border-width) solid var(--color-line); border-radius:var(--radius-sm); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); }
@@ -525,7 +531,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .preferences-sidebar [role="tablist"] { display: flex; flex-direction: column; gap: var(--space-4); }
 .prefs-tab { display: flex; align-items: center; gap: var(--space-8); width: 100%; min-height: var(--tool-size); padding: var(--space-10) var(--space-12); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text); font-size: var(--text-sm); line-height: 20px; text-align: left; font-weight: 500; }
 .prefs-tab svg { width: var(--icon-sm); height: var(--icon-sm); }.prefs-tab:hover { background: var(--color-line); }
-.prefs-tab[aria-selected="true"] { background: var(--color-toolbar); color: var(--color-surface); }.prefs-tab[aria-selected="true"]:hover { background: var(--color-hover); }
+.prefs-tab[aria-selected="true"] { background: var(--color-toolbar); color:var(--menu-foreground); }.prefs-tab[aria-selected="true"]:hover { background: var(--color-hover); }
 .prefs-tab:focus-visible { outline-offset: var(--space-2); }
 .preferences-content { min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--preferences-content-padding); }
 .prefs-page:empty { min-height:100%; }
@@ -544,7 +550,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .prefs-segments { display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; gap: var(--space-4); margin-top: var(--space-12); padding: var(--space-4); border-radius: var(--radius-sm); background: var(--color-canvas); }
 .prefs-segments label { position: relative; cursor: pointer; }.prefs-segments input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 .prefs-segments span { display: flex; align-items: center; justify-content: center; min-height: var(--button-height); padding: var(--space-8) var(--space-12); border-radius:var(--radius-sm); font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); }
-.prefs-segments input:checked + span { background: var(--color-toolbar); color: var(--color-surface); }
+.prefs-segments input:checked + span { background: var(--color-toolbar); color:var(--menu-foreground); }
 .prefs-segments input:focus-visible + span { outline: var(--border-width) solid var(--color-focus); outline-offset: var(--space-2); }
 .preferences-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); flex: 0 0 var(--preferences-footer-height); padding: var(--space-12) var(--preferences-content-padding); border-top: var(--border-width) solid var(--color-line); background: var(--color-surface); }
 .prefs-save-status { color: var(--color-muted); font-size: var(--text-xs); line-height: 16px; }
@@ -589,7 +595,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 @media (forced-colors: active) { .button { border-color: ButtonText; } }
 
 /* Attached field labels are part of the input, not separate action buttons. */
-.number-prefix { display: flex; align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0; min-width: var(--input-prefix-width); padding: 0 var(--space-12); margin: 0; background: var(--input-prefix-background); color: var(--input-prefix-foreground); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 20px; font-weight: 600; cursor: text; user-select: none; }
+.number-prefix { display: flex; align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0; min-width: var(--input-prefix-width); padding: 0 var(--space-12); margin: 0; background: var(--input-prefix-background); color: var(--input-prefix-foreground); font-family: var(--font-mono); font-size:12px; line-height: 20px; font-weight: 600; cursor: text; user-select: none; }
 .number-shell.is-invalid .number-prefix { background: var(--color-danger); color: var(--color-text); }
 .number-field.is-disabled .number-prefix { background: var(--color-muted); color: var(--color-surface); cursor: not-allowed; }
 @media (forced-colors: active) { .number-prefix { background: ButtonText; color: ButtonFace; } }
@@ -603,7 +609,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
   --color-line: var(--menu-border);
   --color-canvas: var(--menu-hover);
   --color-toolbar: var(--menu-selected);
-  --color-on-toolbar-muted: #666666;
+  --color-on-toolbar-muted: var(--menu-muted);
   --color-focus: var(--menu-foreground);
   --input-border-color: var(--menu-border);
   --input-icon-color: var(--menu-foreground);
@@ -611,7 +617,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
   --input-prefix-foreground: var(--menu-foreground);
   --button-background: var(--menu-selected);
   --button-foreground: var(--menu-selected-foreground);
-  --button-hover-background: #EAEAE7;
+  --button-hover-background: #45484F;
   --button-disabled-background: var(--menu-hover);
   --button-disabled-foreground: #AAAAAA;
   background: var(--menu-background);
@@ -620,11 +626,11 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
   color-scheme: dark;
 }
 :is(.layers-panel, .preferences-shell, .menu-surface) .number-input { color-scheme: dark; }
-:is(.shape-option[aria-checked="true"]:hover, .prefs-tab[aria-selected="true"]:hover) { background: #EAEAE7; }
-.layer-row.is-selected .panel-icon:hover { background: #EAEAE7; }
+:is(.shape-option[aria-checked="true"]:hover, .prefs-tab[aria-selected="true"]:hover) { background:var(--menu-hover); }
+.layer-row.is-selected .panel-icon:hover { background:var(--menu-hover); }
 .layer-row.is-selected button:focus-visible { outline-color: var(--menu-selected-foreground); }
 .layer-object[aria-pressed="true"]:focus-visible { outline-color: var(--menu-foreground); }
-.preferences-shell .vectora-toggle:hover:not(:disabled):checked + .toggle-track { background: #EAEAE7; }
+.preferences-shell .vectora-toggle:hover:not(:disabled):checked + .toggle-track { background:var(--menu-hover); }
 .preferences-shell .vectora-slider:hover:not(:disabled) { --range-fill: #EAEAE7; }
 :is(.delete-dialog-icon, .number-error svg, .number-shell.is-invalid .number-prefix) { color: #242424; }
 
@@ -787,7 +793,19 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .preview3d-validation:not([hidden]) { color:var(--color-danger); }
 .preview3d-stage > svg { width:100%; height:100%; }
 @media(max-width:700px) { .preview3d-dialog { height:calc(100dvh - 48px); overflow:auto; }.preview3d-body { display:flex; flex-direction:column; flex:none; overflow:visible; }.preview3d-stage { height:320px; }.preview3d-settings { border-left:0; border-top:var(--border-width) solid var(--menu-border); overflow:visible; padding:20px; }.preview3d-footer { flex-direction:column; }.preview3d-dialog .raster-header { padding:16px; } }
-@media(max-width:480px) { :root { --top-toolbar-height:52px; } .top-toolbar .brand,.top-toolbar .brand + .divider { display:none; }.top-toolbar .tool { width:36px; height:36px; padding:6px; }.top-toolbar { gap:2px; } }
+@media(max-width:480px) { .application-header { grid-template-columns:80px minmax(0,1fr) 80px; padding:0 12px; }.application-header .brand-wordmark { display:none; }.document-name { font-size:12px; }.top-toolbar { padding-left:4px; } }
+
+.toolbar .tool:focus-visible,.floating-menu button:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
+/* Compact desktop chrome: existing actions, blue active states, quiet separators. */
+.left-toolbar .tool.selected,.left-toolbar .tool[aria-expanded="true"] { box-shadow:inset 2px 0 var(--chrome-accent); }
+.right-toolbar .tool.selected,.right-toolbar .tool[aria-expanded="true"] { box-shadow:inset -2px 0 var(--chrome-accent); }
+:is(.shape-option[aria-checked="true"],.prefs-tab[aria-selected="true"],.layer-row.is-selected,.layer-object[aria-pressed="true"]) svg { color:var(--chrome-accent); }
+.number-prefix { font-weight:500; }
+.layers-panel .button { font-size:13px; font-weight:500; }
+.layers-panel .panel-title { letter-spacing:0; }
+.layer-name { font-weight:400; }.layer-meta { font-size:11px; line-height:16px; }
+.menu-title { font-size:12px; font-weight:500; letter-spacing:.5px; }
+.shape-option,.dropdown-option { font-size:13px; font-weight:400; }
 </style></head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
@@ -1012,9 +1030,9 @@ SOFTWARE.
   <path d="m2 6 3-3 3 3" />
   <path d="m18 16 3 3-3 3" /></symbol><symbol id="i-dimensions" viewBox="0 0 24 24"><path d="M4 3v18m16-18v18M4 12h16m-12-4-4 4 4 4m8-8 4 4-4 4"/></symbol><symbol id="i-dimension-aligned" viewBox="0 0 24 24"><path d="m3 17 4 4M17 3l4 4M5 19 19 5M5 14v5h5m4-14h5v5"/></symbol><symbol id="i-dimension-linear" viewBox="0 0 24 24"><path d="M4 5v14m16-14v14M4 12h16m-12-4-4 4 4 4m8-8 4 4-4 4"/></symbol><symbol id="i-dimension-radial" viewBox="0 0 24 24"><circle cx="10" cy="14" r="7"/><path d="m10 14 11-11m-5 0h5v5"/><circle cx="10" cy="14" r="1"/></symbol><symbol id="i-dimension-diameter" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5 19 14-14M5 14v5h5m4-14h5v5"/></symbol><symbol id="i-leader" viewBox="0 0 24 24"><path d="m3 19 8-10h10M3 14v5h5M14 4h7"/></symbol><symbol id="i-arc-endpoints" viewBox="0 0 24 24"><path d="M4 17a8 8 0 0 1 16 0"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/><path d="M8 19h8" stroke-dasharray="2 2"/></symbol><symbol id="i-arc-three-point" viewBox="0 0 24 24"><path d="M3 17a9 9 0 0 1 18 0"/><circle cx="3" cy="17" r="1.5"/><circle cx="12" cy="8" r="1.5"/><circle cx="21" cy="17" r="1.5"/></symbol><symbol id="i-dissect-delete" viewBox="0 0 24 24"><path d="M3 12h4m10 0h4M7 5v14M17 5v14m-7-9 4 4m0-4-4 4"/></symbol><symbol id="i-line-delete" viewBox="0 0 24 24"><path d="M3 17 17 3m-3 11 7 7m0-7-7 7"/></symbol><symbol id="i-freehand" viewBox="0 0 24 24"><path d="M3 17c2-9 5-12 7-10s-6 10-3 12 7-14 10-12-3 9 0 10c1 .5 2-.5 4-3"/></symbol></defs></svg>
 <main>
-<header class="intro"><div><div class="eyebrow">Vectora / Design system</div><h1>Simple tools. Clear focus.</h1><p>Charcoal toolbars and menus, white selection, and a consistent even-pixel rhythm. The foundations for the next Vectora interface.</p></div><span class="version">01 — Foundations</span></header>
-<section aria-labelledby="toolbars-heading"><div class="section-heading"><span class="section-number">01</span><h2 id="toolbars-heading">Toolbars</h2><span class="section-note">44px tools · 24px icons · 8px shell padding · 0px workspace edge inset</span></div>
-<div class="preview" tabindex="0" role="region" aria-label="Toolbar layout preview. Scroll horizontally on smaller screens."><div class="preview-inner mm-grid-preview" data-layers-stage><div class="workspace-footer"><span>Select · V</span><span><button type="button" class="zoom-reset" data-reset-zoom aria-label="Reset zoom to 100%" title="Reset zoom to 100%">100%</button> · <span>Grid 10 mm</span></span><span>Space + drag to pan · Scroll to zoom</span></div><div class="toolbar top-toolbar" role="group" aria-label="Top toolbar visual examples"><span class="brand"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-diamond"/></svg><span class="brand-wordmark">vectora</span></span><span class="divider"></span><div class="dropdown-anchor" data-file-demo><button type="button" class="tool dropdown-trigger" aria-label="File" title="File" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-file-menu" data-file-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-folder"/></svg></button><div class="file-dropdown" id="primary-file-menu" hidden>
+<header class="intro"><div><div class="eyebrow">Vectora / Design system</div><h1>Simple tools. Clear focus.</h1><p>Charcoal toolbars and menus, blue selection, and a consistent even-pixel rhythm. The foundations for the next Vectora interface.</p></div><span class="version">01 — Foundations</span></header>
+<section aria-labelledby="toolbars-heading"><div class="section-heading"><span class="section-number">01</span><h2 id="toolbars-heading">Toolbars</h2><span class="section-note">36px tools · 24px icons · 44px side rails · 48px header + 40px command strip</span></div>
+<div class="preview" tabindex="0" role="region" aria-label="Toolbar layout preview. Scroll horizontally on smaller screens."><div class="preview-inner mm-grid-preview" data-layers-stage><div class="workspace-footer"><span>Select · V</span><span><button type="button" class="zoom-reset" data-reset-zoom aria-label="Reset zoom to 100%" title="Reset zoom to 100%">100%</button> · <span>Grid 10 mm</span></span><span>Space + drag to pan · Scroll to zoom</span></div><header class="application-header"><span class="brand"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-diamond"/></svg><span class="brand-wordmark">vectora</span></span><span class="document-name" data-document-name title="Untitled.vectora">Untitled.vectora</span><span aria-hidden="true"></span></header><div class="toolbar top-toolbar" role="group" aria-label="Top toolbar visual examples"><div class="dropdown-anchor" data-file-demo><button type="button" class="tool dropdown-trigger" aria-label="File" title="File" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-file-menu" data-file-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-folder"/></svg></button><div class="file-dropdown" id="primary-file-menu" hidden>
  <div class="menu-title" id="primary-file-menu-title">File</div>
  <div role="menu" aria-labelledby="primary-file-menu-title" aria-orientation="vertical"><div class="dropdown-group" role="group" aria-label="Document"><button type="button" class="dropdown-option" role="menuitem" tabindex="0" data-file-action="New document" title="Start a new editable document"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-new-document"/></svg><span>New document</span><kbd aria-hidden="true">⌘ N</kbd></button><button type="button" class="dropdown-option" role="menuitem" tabindex="-1" data-file-action="Open file…" title="Open an editable .vectora document"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-folder"/></svg><span>Open file…</span><kbd aria-hidden="true">⌘ O</kbd></button></div><div class="dropdown-divider" role="separator"></div><div class="dropdown-group" role="group" aria-label="Save"><button type="button" class="dropdown-option" role="menuitem" tabindex="-1" data-file-action="Save changes" title="Save the editable Vectora document"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-save"/></svg><span>Save</span><kbd aria-hidden="true">⌘ S</kbd></button><button type="button" class="dropdown-option" role="menuitem" tabindex="-1" data-file-action="Save as…" title="Save the drawing as a new Vectora document"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-save-as"/></svg><span>Save as…</span><kbd aria-hidden="true">⇧⌘ S</kbd></button></div><div class="dropdown-divider" role="separator"></div><div class="dropdown-group" role="group" aria-label="Export"><button type="button" class="dropdown-option" role="menuitem" tabindex="-1" data-file-action="Export SVG" title="Download visible artwork, cut and engraving paths as SVG"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-export-svg"/></svg><span>Export SVG</span><kbd aria-hidden="true">⌘ E</kbd></button><button type="button" class="dropdown-option" role="menuitem" tabindex="-1" data-file-action="Export DXF"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-export-dxf"/></svg><span>Export DXF</span><kbd aria-hidden="true">⇧⌘ E</kbd></button></div></div>
 </div><span class="sr-only" role="status">File menu example.</span></div><button type="button" class="tool" aria-label="Undo" title="Undo"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-undo"/></svg></button><button type="button" class="tool" aria-label="Redo" title="Redo"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-redo"/></svg></button><span class="divider"></span><button type="button" class="tool" aria-label="3D preview" title="3D preview" data-preview-open aria-haspopup="dialog" aria-expanded="false" aria-controls="preview3d-dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-preview-3d"/></svg></button><button type="button" class="tool" aria-label="Settings" title="Settings" data-open-preferences aria-expanded="false" aria-haspopup="dialog" aria-controls="preferences-dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-gear"/></svg></button></div><div class="toolbar vertical left-toolbar" role="group" aria-label="Drawing tool selection demo" data-selection data-shape-demo><button type="button" class="tool selected" aria-label="Select" title="Select" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-select"/></svg></button><button type="button" class="tool" aria-label="Node editing" title="Node editing (N)" aria-pressed="false" data-node-tool><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-nodes"/></svg></button><div class="line-tools"><button type="button" class="tool" aria-label="Lines" title="Lines" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-lines-menu" data-line-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-line"/></svg></button><div class="shapes-menu line-menu" id="primary-lines-menu" hidden><div class="menu-title" id="primary-lines-title">Lines</div><div class="shape-options" role="menu" aria-labelledby="primary-lines-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-line-tool="line" data-shortcut="l"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-line"/></svg><span>Line</span><kbd aria-hidden="true">L</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-line-tool="polyline" data-shortcut="p"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-polyline"/></svg><span>Polyline</span><kbd aria-hidden="true">P</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-line-tool="freehand" data-shortcut="f"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-freehand"/></svg><span>Freehand</span><kbd aria-hidden="true">F</kbd></button></div></div></div><button type="button" class="tool" aria-label="Shapes" title="Shapes" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-shapes-menu" data-shape-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-shapes"/></svg></button><div class="shapes-menu" id="primary-shapes-menu" hidden><div class="menu-title" id="primary-shapes-menu-title">Shapes</div><div class="shape-options" role="menu" aria-labelledby="primary-shapes-menu-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="true" tabindex="0" data-shape="Rectangle" data-shortcut="r"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-rectangle"/></svg><span>Rectangle</span><kbd aria-hidden="true">R</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" tabindex="-1" data-shape="Circle" data-shortcut="c"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-circle"/></svg><span>Circle</span><kbd aria-hidden="true">C</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" tabindex="-1" data-shape="Ellipse" data-shortcut="e"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-ellipse"/></svg><span>Ellipse</span><kbd aria-hidden="true">E</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" tabindex="-1" data-shape="Polygon" data-shortcut="y"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-polygon"/></svg><span>Polygon</span><kbd aria-hidden="true">Y</kbd></button></div></div><button type="button" class="tool" aria-label="Text" title="Text (T)" aria-pressed="false" data-text-tool><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-text"/></svg></button><div class="image-tools"><button type="button" class="tool" aria-label="Images" title="Images" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-images-menu" data-image-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-image"/></svg></button><div class="shapes-menu image-menu" id="primary-images-menu" role="menu" aria-labelledby="primary-images-title" tabindex="-1" hidden><div class="menu-title" id="primary-images-title">Images</div><button type="button" class="shape-option" role="menuitem" data-raster-open aria-haspopup="dialog" aria-controls="raster-dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-raster-vector"/></svg><span>Raster to vector</span></button></div></div><div class="arc-tools"><button type="button" class="tool" aria-label="Arcs" title="Arcs" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-arcs-menu" data-arc-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arc"/></svg></button><div class="shapes-menu arc-menu" id="primary-arcs-menu" hidden><div class="menu-title" id="primary-arcs-title">Arcs</div><div class="shape-options" role="menu" aria-labelledby="primary-arcs-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-arc-tool="arc" data-shortcut="a"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arc"/></svg><span>Centre arc</span><kbd aria-hidden="true">A</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-arc-tool="arc-three-point" data-shortcut="shift+a"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arc-three-point"/></svg><span>Three-point arc</span><kbd aria-hidden="true">⇧ A</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-arc-tool="arc-endpoints"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arc-endpoints"/></svg><span>Start–end arc</span></button></div></div></div><div class="dimension-tools"><button type="button" class="tool" aria-label="Dimensions and callouts" title="Dimensions and callouts" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-dimensions-menu" data-dimension-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimensions"/></svg></button><div class="shapes-menu dimension-menu" id="primary-dimensions-menu" hidden><div class="menu-title" id="primary-dimensions-title">Dimensions &amp; callouts</div><div class="shape-options" role="menu" aria-labelledby="primary-dimensions-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-aligned" data-shortcut="d"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-aligned"/></svg><span>Aligned dimension</span><kbd aria-hidden="true">D</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-linear"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-linear"/></svg><span>Linear dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-radial"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-radial"/></svg><span>Radial dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-diameter"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-diameter"/></svg><span>Diameter dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="leader"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-leader"/></svg><span>Leader callout</span></button></div></div></div><div class="fill-tools"><button type="button" class="tool" aria-label="Colour fill" title="Colour fill (B)" aria-pressed="false" aria-haspopup="dialog" aria-expanded="false" aria-controls="primary-fill-menu" data-fill-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-fill"/></svg><span class="fill-indicator" aria-hidden="true"></span></button><div class="shapes-menu fill-menu" id="primary-fill-menu" role="dialog" aria-label="Fill colour" hidden><div class="menu-title">Fill colour</div><div class="fill-swatches" role="group" aria-label="Preset colours"><button type="button" class="fill-swatch fill-swatch-none" data-fill-colour="none" aria-label="No fill" aria-pressed="false" title="No fill · Remove colour from an area"></button><button type="button" class="fill-swatch" style="--fill-swatch:#FF0000" data-fill-colour="#FF0000" aria-label="Red" aria-pressed="true" title="Red · #FF0000"></button><button type="button" class="fill-swatch" style="--fill-swatch:#0000FF" data-fill-colour="#0000FF" aria-label="Blue" aria-pressed="false" title="Blue · #0000FF"></button><button type="button" class="fill-swatch" style="--fill-swatch:#00FFFF" data-fill-colour="#00FFFF" aria-label="Cyan" aria-pressed="false" title="Cyan · #00FFFF"></button><button type="button" class="fill-swatch" style="--fill-swatch:#FF00FF" data-fill-colour="#FF00FF" aria-label="Magenta" aria-pressed="false" title="Magenta · #FF00FF"></button></div><div class="fill-picker-row"><span>Custom colour</span><input type="color" data-fill-picker value="#FF0000" aria-label="Custom fill colour"></div><label class="number-shell fill-hex-field"><span class="number-prefix">Hex</span><input class="number-input" data-fill-hex aria-label="Fill hex colour" value="#FF0000" maxlength="7" spellcheck="false"></label></div></div><div class="delete-tools"><button type="button" class="tool" aria-label="Delete tools" title="Delete tools" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="primary-delete-menu" data-delete-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-eraser"/></svg></button><div class="shapes-menu delete-menu" id="primary-delete-menu" hidden><div class="menu-title" id="primary-delete-title">Delete</div><div class="shape-options" role="menu" aria-labelledby="primary-delete-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-delete-tool="dissect-delete" data-shortcut="k"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dissect-delete"/></svg><span>Dissect delete</span><kbd aria-hidden="true">K</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-delete-tool="line-delete" data-shortcut="shift+k"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-line-delete"/></svg><span>Line delete</span><kbd aria-hidden="true">⇧ K</kbd></button></div></div></div><span class="divider"></span><button type="button" class="tool selected" id="snap-grid" data-snap-grid aria-label="Snapping" title="Snapping (S) · On" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-snap"/></svg></button><span class="sr-only" role="status">Selected shape: Rectangle</span></div><div class="toolbar vertical right-toolbar" role="group" aria-label="Properties tool selection demo" data-selection><button type="button" class="tool" aria-label="Layers" title="Layers" aria-pressed="false" aria-expanded="false" aria-controls="primary-layers-panel" data-layers-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-layers"/></svg></button><span class="divider"></span><button type="button" class="tool" aria-label="Properties" title="Properties" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-sliders"/></svg></button></div><div class="layers-panel" id="primary-layers-panel" role="region" aria-labelledby="primary-layers-panel-title" hidden>
@@ -1025,10 +1043,10 @@ SOFTWARE.
  <span class="sr-only" role="status">Layers panel ready.</span>
 </div></div></div>
 <p class="subtext">Click the zoom percentage in the centred footer to reset the view to 100%, or focus it and press Enter or Space. Reset keeps the current canvas centre, artwork and selection, and updates the grid spacing without adding an undo step.</p>
-<div class="preview-foot"><span>Select (V): drag from empty canvas to enclose multiple shapes; fully enclosed, visible and unlocked shapes are selected. Shift-click toggles a shape; Shift-drag adds enclosed shapes. A charcoal dashed marquee with a translucent blue fill previews the selection. Each selected shape has a dashed outline, with shared bounds and resize handles. Move, resize, numeric bounds edits and Delete apply to the whole selection in one undo step; Shift preserves proportions. Escape cancels a drag or clears selection. Properties shows the selection count and combined bounds; Sticker Outline requires one shape. Properties opens only when requested with its toolbar button or Export DXF. Creating or selecting shapes does not open it; an already open panel stays open and updates to the selection. Menus and floating panels share the toolbar’s #2A2B2E charcoal surface, white text, light-grey secondary labels, subtle grey dividers, and white selected rows. Layer transfers: drag objects from expanded layers onto another visible, unlocked layer. Dropping onto Cut Path applies the shared red stroke without changing geometry, and supports Undo/Redo. Cut paths export without enabling artwork export. Layers: fixed header, layer count, 64px selectable rows, pastel markers, expanders, visibility and lock buttons, plus the standard footer. The editor starts with Cut Path, Engrave Path, Construction Path and Artwork; adding and deleting layers is supported. Visibility affects only the canvas, not DXF export. Footer: independent left and right sections, with zoom/grid status fixed at the exact horizontal centre. The empty canvas shows only the grid, with no welcome or starting text. Edge-to-edge grid with no canvas padding; the top toolbar spans the full window width against the top edge, with its controls centred, and the left/right toolbars run from immediately below the top bar to the bottom edge, with vertically stacked icons aligned at the top. The bars meet without overlap at every viewport size. Footer labels sit inside the side rails. Toolbar controls retain their internal spacing; the footer has its own 24px inset. Grid: pale blue-white background, subtle blue-gray 1px lines, and a stronger line every five visible cells. At 100%, cells represent 10 mm and major divisions 50 mm. Keep visible cells at least 24 CSS pixels apart, adapting to whole-millimetre intervals as zoom changes. Origin lines use the same color and weight as all other major grid lines; pan and zoom preserve millimetre alignment. Zooming out displays 5, 10, 50… mm intervals, labelled in the editor. Artwork rectangles, circles, ellipses and regular polygons use charcoal strokes with no fill, including during drawing. Their interiors remain selectable for moving. Sticker outlines are also unfilled, with red strokes. The grid never exports. The magnet button (S) toggles grid and all configured object snapping together, on by default, preserving individual mode choices. Snap follows the visible minor spacing; Shift preserves aspect ratio and numeric entries remain exact.</span><span>Left & right: click to preview selection</span><span>Hover for tool names · Tab for focus</span><span>File: dropdown · Settings: preferences · other top tools are visual examples</span><span>Scroll the preview on narrow screens</span></div></section>
+<div class="preview-foot"><span>Select (V): drag from empty canvas to enclose multiple shapes; fully enclosed, visible and unlocked shapes are selected. Shift-click toggles a shape; Shift-drag adds enclosed shapes. A charcoal dashed marquee with a translucent blue fill previews the selection. Each selected shape has a dashed outline, with shared bounds and resize handles. Move, resize, numeric bounds edits and Delete apply to the whole selection in one undo step; Shift preserves proportions. Escape cancels a drag or clears selection. Properties shows the selection count and combined bounds; Sticker Outline requires one shape. Properties opens only when requested with its toolbar button or Export DXF. Creating or selecting shapes does not open it; an already open panel stays open and updates to the selection. Menus and floating panels share the toolbar’s #2A2B2E charcoal surface, white text, light-grey secondary labels, subtle grey dividers, and dark selected rows with blue icons. Layer transfers: drag objects from expanded layers onto another visible, unlocked layer. Dropping onto Cut Path applies the shared red stroke without changing geometry, and supports Undo/Redo. Cut paths export without enabling artwork export. Layers: fixed header, layer count, 52px selectable rows, pastel markers, expanders, visibility and lock buttons, plus the standard footer. The editor starts with Cut Path, Engrave Path, Construction Path and Artwork; adding and deleting layers is supported. Visibility affects only the canvas, not DXF export. Footer: independent left and right sections, with zoom/grid status fixed at the exact horizontal centre. The empty canvas shows only the grid, with no welcome or starting text. Edge-to-edge grid with no canvas padding; the full-width 48px application header shows the Vectora mark at left and the document name centred. A 40px command strip below it contains the existing File, Undo, Redo, 3D preview and Settings actions, aligned from the left, and the left/right toolbars run from immediately below the top bar to the bottom edge, with vertically stacked icons aligned at the top. The bars meet without overlap at every viewport size. Footer labels sit inside the side rails. Toolbar controls retain their internal spacing; the footer has its own 24px inset. Grid: pale blue-white background, subtle blue-gray 1px lines, and a stronger line every five visible cells. At 100%, cells represent 10 mm and major divisions 50 mm. Keep visible cells at least 24 CSS pixels apart, adapting to whole-millimetre intervals as zoom changes. Origin lines use the same color and weight as all other major grid lines; pan and zoom preserve millimetre alignment. Zooming out displays 5, 10, 50… mm intervals, labelled in the editor. Artwork rectangles, circles, ellipses and regular polygons use charcoal strokes with no fill, including during drawing. Their interiors remain selectable for moving. Sticker outlines are also unfilled, with red strokes. The grid never exports. The magnet button (S) toggles grid and all configured object snapping together, on by default, preserving individual mode choices. Snap follows the visible minor spacing; Shift preserves aspect ratio and numeric entries remain exact.</span><span>Left & right: click to preview selection</span><span>Hover for tool names · Tab for focus</span><span>File: dropdown · Settings: preferences · other top tools are visual examples</span><span>Scroll the preview on narrow screens</span></div></section>
 <p class="subtext">The Artwork layer marker uses charcoal (#383838), matching artwork strokes. All layer colour markers have a 1px white outline within their existing 12px size.</p><section aria-labelledby="palette-heading"><div class="section-heading"><span class="section-number">02</span><h2 id="palette-heading">Colour palette</h2><span class="section-note">Neutrals for tools. Colour for meaning.</span></div><div class="swatches"><div class="swatch"><div class="color" style="background:var(--color-canvas)"></div><div class="swatch-info"><strong>Canvas</strong><code>#F4F4F2</code><small>Page & workspace</small><code class="token">--color-canvas</code></div></div><div class="swatch"><div class="color" style="background:var(--color-surface)"></div><div class="swatch-info"><strong>Surface</strong><code>#FFFFFF</code><small>Selected tool & menus</small><code class="token">--color-surface</code></div></div><div class="swatch"><div class="color" style="background:var(--color-toolbar)"></div><div class="swatch-info"><strong>Toolbar</strong><code>#2A2B2E</code><small>Primary toolbar shell</small><code class="token">--color-toolbar</code></div></div><div class="swatch"><div class="color" style="background:var(--color-hover)"></div><div class="swatch-info"><strong>Hover</strong><code>#4A4A4A</code><small>Hovered tool</small><code class="token">--color-hover</code></div></div><div class="swatch"><div class="color" style="background:var(--color-muted)"></div><div class="swatch-info"><strong>Muted</strong><code>#666666</code><small>Supporting text</small><code class="token">--color-muted</code></div></div><div class="swatch"><div class="color" style="background:var(--color-danger)"></div><div class="swatch-info"><strong>Danger</strong><code>#F2A7A0</code><small>Destructive actions</small><code class="token">--color-danger</code></div></div><div class="swatch"><div class="color" style="background:var(--color-warning)"></div><div class="swatch-info"><strong>Warning</strong><code>#F5C28B</code><small>Attention & caution</small><code class="token">--color-warning</code></div></div><div class="swatch"><div class="color" style="background:var(--color-positive)"></div><div class="swatch-info"><strong>Positive</strong><code>#A8D8B9</code><small>Successful actions</small><code class="token">--color-positive</code></div></div><div class="swatch"><div class="color" style="background:var(--color-information)"></div><div class="swatch-info"><strong>Information</strong><code>#ADD2F0</code><small>Helpful information</small><code class="token">--color-information</code></div></div></div><div class="semantic-examples"><span class="button button--danger"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-delete"/></svg>Delete</span><span class="button button--warning"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg>Review</span><span class="button"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg>Apply</span><p>Static examples: normal actions are charcoal; review actions are pastel orange; destructive confirmations are pastel red.</p></div><div class="layer-palette-heading"><h3>Layer type colours</h3><p class="subtext">Layer markers identify Artwork, Cut Path and Engrave Path. Text stays neutral for readability.</p></div><div class="layer-palette"><div class="swatch"><div class="color" style="background:var(--layer-cut)"></div><div class="swatch-info"><strong>Cut Path</strong><code>#FF0000</code><small>Pure red</small><small>Vector cut · full-depth cuts through the material.</small><code class="token">--layer-cut</code></div></div><div class="swatch"><div class="color" style="background:var(--layer-engrave)"></div><div class="swatch-info"><strong>Engrave Path</strong><code>#0000FF</code><small>Pure blue</small><small>Vector score / etch · surface marking without cutting through.</small><code class="token">--layer-engrave</code></div></div><div class="swatch"><div class="color" style="background:var(--layer-construction)"></div><div class="swatch-info"><strong>Construction Path</strong><code>#FF00FF</code><small>Pure magenta</small><small>Reference geometry · excluded from DXF export.</small><code class="token">--layer-construction</code></div></div><div class="swatch"><div class="color" style="background:var(--layer-raster)"></div><div class="swatch-info"><strong>Raster Engrave</strong><code>#BCBEC4</code><small>Soft grey</small><small>Fill / surface image · photo rastering and gradient surface etching.</small><code class="token">--layer-raster</code></div></div></div></section>
 <div class="two-cols"><section aria-labelledby="type-heading"><div class="section-heading"><span class="section-number">03</span><h2 id="type-heading">Typography</h2></div><div class="panel"><div class="font-name">System Sans</div><p class="subtext">Native, familiar, and available offline.</p><code class="font-stack">-apple-system, BlinkMacSystemFont,<br>"Segoe UI", Arial, sans-serif</code><div class="subtext" style="margin-bottom:8px">Size / line height in px · weight</div><div class="type-row"><span style="font-size:var(--text-2xl);line-height:40px;font-weight:600">Page title</span><code>32 / 40 · 600</code></div><div class="type-row"><span style="font-size:var(--text-xl);line-height:32px;font-weight:600">Section heading</span><code>24 / 32 · 600</code></div><div class="type-row"><span style="font-size:var(--text-lg);line-height:28px;font-weight:600">Panel heading</span><code>20 / 28 · 600</code></div><div class="type-row"><span style="font-size:var(--text-md);line-height:24px;font-weight:400">Body text</span><code>16 / 24 · 400</code></div><div class="type-row"><span style="font-size:var(--text-sm);line-height:20px;font-weight:500">Tools & menus</span><code>14 / 20 · 500</code></div><div class="type-row"><span style="font-size:var(--text-xs);line-height:16px;font-weight:400">Labels & metadata</span><code>12 / 16 · 400</code></div><p class="subtext" style="margin-top:16px">Use 400 for body copy, 500 for tool labels, and 600 for headings. The specimen title uses 40 / 48px. Monospace is reserved for token values.</p></div></section>
-<section aria-labelledby="size-heading"><div class="section-heading"><span class="section-number">04</span><h2 id="size-heading">Sizing & spacing</h2></div><div class="panel"><h3>A 2px base unit</h3><p class="subtext">Use named tokens instead of one-off measurements.</p><div class="spacing"><div class="space-sample"><i style="--sample:2px"></i><span>2</span></div><div class="space-sample"><i style="--sample:4px"></i><span>4</span></div><div class="space-sample"><i style="--sample:6px"></i><span>6</span></div><div class="space-sample"><i style="--sample:8px"></i><span>8</span></div><div class="space-sample"><i style="--sample:10px"></i><span>10</span></div><div class="space-sample"><i style="--sample:12px"></i><span>12</span></div><div class="space-sample"><i style="--sample:16px"></i><span>16</span></div><div class="space-sample"><i style="--sample:24px"></i><span>24</span></div><div class="space-sample"><i style="--sample:32px"></i><span>32</span></div></div><table><thead><tr><th scope="col">Element</th><th scope="col">Size in px</th></tr></thead><tbody><tr><td>Tool button</td><td>44 × 44</td></tr><tr><td>Toolbar padding / gap</td><td>8 / 4</td></tr><tr><td>Toolbar width / height¹</td><td>60</td></tr><tr><td>Action button height</td><td>40</td></tr><tr><td>Icons: small / medium / large</td><td>16 / 20 / 24</td></tr><tr><td>Menu width / padding</td><td>240 / 8</td></tr><tr><td>Wide dropdown width</td><td>280</td></tr><tr><td>Menu row / inset</td><td>40 / 12</td></tr><tr><td>Menu offset / row gap / icon</td><td>8 / 4 / 20</td></tr><tr><td>Corner radius: button / menu</td><td>0 / 0</td></tr><tr><td>Border / icon stroke</td><td>2 / 2</td></tr></tbody></table><p class="subtext" style="margin-top:12px">¹ Vertical rail width and horizontal rail height. Use 6, 10, 12px for fine spacing; 16, 20, 24, 32, 48px for larger gaps. Menus, dialogs, inputs, buttons and selected/hovered icon backgrounds have square corners. Circular slider and switch controls retain their functional shapes.</p></div></section></div>
+<section aria-labelledby="size-heading"><div class="section-heading"><span class="section-number">04</span><h2 id="size-heading">Sizing & spacing</h2></div><div class="panel"><h3>A 2px base unit</h3><p class="subtext">Use named tokens instead of one-off measurements.</p><div class="spacing"><div class="space-sample"><i style="--sample:2px"></i><span>2</span></div><div class="space-sample"><i style="--sample:4px"></i><span>4</span></div><div class="space-sample"><i style="--sample:6px"></i><span>6</span></div><div class="space-sample"><i style="--sample:8px"></i><span>8</span></div><div class="space-sample"><i style="--sample:10px"></i><span>10</span></div><div class="space-sample"><i style="--sample:12px"></i><span>12</span></div><div class="space-sample"><i style="--sample:16px"></i><span>16</span></div><div class="space-sample"><i style="--sample:24px"></i><span>24</span></div><div class="space-sample"><i style="--sample:32px"></i><span>32</span></div></div><table><thead><tr><th scope="col">Element</th><th scope="col">Size in px</th></tr></thead><tbody><tr><td>Tool button</td><td>36 × 36</td></tr><tr><td>Toolbar padding / gap</td><td>4 / 2</td></tr><tr><td>Side rail width¹</td><td>44</td></tr><tr><td>Action button height</td><td>32</td></tr><tr><td>Icons: small / medium / large</td><td>16 / 20 / 24</td></tr><tr><td>Menu width / padding</td><td>240 / 8</td></tr><tr><td>Wide dropdown width</td><td>280</td></tr><tr><td>Menu row / inset</td><td>36 / 12</td></tr><tr><td>Menu offset / row gap / icon</td><td>8 / 4 / 20</td></tr><tr><td>Corner radius: button / menu</td><td>0 / 0</td></tr><tr><td>Border / icon stroke</td><td>1 / 1.5</td></tr></tbody></table><p class="subtext" style="margin-top:12px">¹ Side rails are 44px wide. The application header is 48px high and the command strip is 40px high. Use 6, 10, 12px for fine spacing; 16, 20, 24, 32, 48px for larger gaps. Menus, dialogs, inputs, buttons and selected/hovered icon backgrounds have square corners. Circular slider and switch controls retain their functional shapes.</p></div></section></div>
 <section aria-labelledby="menus-heading">
 <div class="section-heading"><span class="section-number">05</span><h2 id="menus-heading">Pop-out menus</h2><span class="section-note">Shapes / toolbar flyout</span></div>
 <div class="menu-showcase">
@@ -1041,8 +1059,8 @@ SOFTWARE.
  </div>
  <div class="menu-guidance">
   <h3>A quiet extension of the toolbar.</h3>
-  <p>A charcoal panel matches the toolbar beside the selected tool. White marks the active shape; a lighter charcoal row shows hover. Ellipse (E) draws between opposite corners; Shift makes a circle. Polygon (Y) draws from its centre to a vertex, with 3–64 sides (default 6). Use ↑/↓ on the canvas to change sides; Shift locks rotation to 15° steps. Snap applies to ellipse corners and polygon centre/radius, preserving a regular polygon. Arcs have a separate toolbar button below Lines, with Centre arc and Three-point arc choices. Icons, names, and shortcuts stay aligned.</p>
-  <dl class="menu-measurements"><div><dt>Panel</dt><dd>240px wide · 12px corners</dd></div><div><dt>Placement</dt><dd>8px from the rail · top edge level with the trigger button</dd></div><div><dt>Spacing</dt><dd>8px padding · 4px between rows</dd></div><div><dt>Rows</dt><dd>40px high · 12px horizontal padding</dd></div><div><dt>Type & icons</dt><dd>14px labels · 12px shortcuts · 20px icons</dd></div></dl>
+  <p>A charcoal panel matches the toolbar beside the selected tool. Blue icons mark the active shape; a lighter charcoal row shows hover. Ellipse (E) draws between opposite corners; Shift makes a circle. Polygon (Y) draws from its centre to a vertex, with 3–64 sides (default 6). Use ↑/↓ on the canvas to change sides; Shift locks rotation to 15° steps. Snap applies to ellipse corners and polygon centre/radius, preserving a regular polygon. Arcs have a separate toolbar button below Lines, with Centre arc and Three-point arc choices. Icons, names, and shortcuts stay aligned.</p>
+  <dl class="menu-measurements"><div><dt>Panel</dt><dd>240px wide · square corners</dd></div><div><dt>Placement</dt><dd>8px from the rail · top edge level with the trigger button</dd></div><div><dt>Spacing</dt><dd>8px padding · 4px between rows</dd></div><div><dt>Rows</dt><dd>36px high · 12px horizontal padding</dd></div><div><dt>Type & icons</dt><dd>14px labels · 12px shortcuts · 20px icons</dd></div></dl>
   <p class="subtext">Click Shapes to open or close. Choose a shape to select it. Use ↑ / ↓ to move, Enter to select, and Escape to close. R, C, E and Y work while the menu has focus.</p>
  </div>
 </div>
@@ -1116,8 +1134,8 @@ SOFTWARE.
  </div>
  <div class="menu-guidance">
   <h3>The same menu, opening down.</h3>
-  <p>A charcoal panel sits below the File button, with its left edge aligned to the button. A small chevron signals the dropdown; the button turns white while it is open.</p>
-  <dl class="menu-measurements"><div><dt>Panel</dt><dd>280px wide · 12px corners</dd></div><div><dt>Placement</dt><dd>8px below the toolbar · aligned to the trigger</dd></div><div><dt>Rows</dt><dd>40px high · 20px icons · 14px labels</dd></div><div><dt>Groups</dt><dd>2px divider · 8px space above and below</dd></div><div><dt>States</dt><dd>Charcoal hover · white keyboard focus</dd></div></dl>
+  <p>A charcoal panel sits below the File button, with its left edge aligned to the button. The existing File icon turns blue while its menu is open.</p>
+  <dl class="menu-measurements"><div><dt>Panel</dt><dd>280px wide · 12px corners</dd></div><div><dt>Placement</dt><dd>8px below the toolbar · aligned to the trigger</dd></div><div><dt>Rows</dt><dd>36px high · 20px icons · 13px labels</dd></div><div><dt>Groups</dt><dd>2px divider · 8px space above and below</dd></div><div><dt>States</dt><dd>Subtle charcoal hover · visible keyboard focus</dd></div></dl>
   <p class="subtext">Click File to open or close. Use ↑ / ↓, Home, and End to move through the actions; Enter to preview an action; Escape to close. Clicking outside also closes the menu.</p>
   <p class="subtext" style="margin-top:12px">Shortcut labels match the reference. File creation, saving, export, and application shortcuts are illustrative.</p>
  </div>
@@ -1136,8 +1154,8 @@ SOFTWARE.
 </div>
   <div class="toolbar vertical layers-example-rail" role="group" aria-label="Right panel example toolbar"><button type="button" class="tool selected" aria-label="Layers" title="Layers" aria-expanded="true" aria-controls="specimen-layers-panel" data-layers-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-layers"/></svg></button><span class="divider" aria-hidden="true"></span><button type="button" class="tool" aria-label="Properties" title="Properties — visual example"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-sliders"/></svg></button></div>
  </div></div>
- <div class="menu-guidance"><h3>Your layers, beside the canvas.</h3><p>Expand a layer and drag an object onto another layer row to transfer it. Dropping artwork onto Cut Path turns its outline red. The detailed specimen includes draggable example objects.</p><p>Layers and Properties expand from the right rail, touching it with no gap and filling the space from beneath the top bar to the bottom edge. Only one panel opens at a time; the header stays fixed while its content scrolls. Panels cannot be dragged away. Charcoal surfaces and white selection keep the layer names clear, with compact controls for expanding, showing, and locking each layer.</p>
- <dl class="menu-measurements"><div><dt>Panel</dt><dd>360 × 488px · 12px corners</dd></div><div><dt>Spacing</dt><dd>16px padding · 8px from the rail</dd></div><div><dt>Layer rows</dt><dd>64px high · 32px controls · 16px icons</dd></div><div><dt>Selection</dt><dd>White row · charcoal text and icons</dd></div><div><dt>Movement</dt><dd>Grip in the header · 2px steps, Shift for 10px</dd></div></dl>
+ <div class="menu-guidance"><h3>Your layers, beside the canvas.</h3><p>Expand a layer and drag an object onto another layer row to transfer it. Dropping artwork onto Cut Path turns its outline red. The detailed specimen includes draggable example objects.</p><p>Layers and Properties expand from the right rail, touching it with no gap and filling the space from beneath the top bar to the bottom edge. Only one panel opens at a time; the header stays fixed while its content scrolls. Panels cannot be dragged away. Charcoal surfaces and blue selection keep the layer names clear, with compact controls for expanding, showing, and locking each layer.</p>
+ <dl class="menu-measurements"><div><dt>Panel</dt><dd>360 × 488px · 12px corners</dd></div><div><dt>Spacing</dt><dd>16px padding · 8px from the rail</dd></div><div><dt>Layer rows</dt><dd>52px high · 28px controls · 16px icons</dd></div><div><dt>Selection</dt><dd>Dark selected row · white text and blue icons</dd></div><div><dt>Movement</dt><dd>Grip in the header · 2px steps, Shift for 10px</dd></div></dl>
  <p class="subtext">The editor starts with Cut Path, Engrave Path, Construction Path and Artwork. Raster Engrave is not included. Add layer offers these four types; each layer has independent object counts, selection, visibility and locking. Drag an object from an expanded layer onto another layer row to move it. Dragging a selected object moves the entire selection; dragging an unselected object moves only that object. Valid targets show a white outline. While holding an object, hover within 40px of the list’s top or bottom to scroll in that direction; scrolling accelerates toward the edge, up to 360px per second, without scrolling the page or moving the header and footer. It stops when the pointer leaves the edge, the drag ends or is cancelled, or the window loses focus. Hidden or locked layers cannot receive a drop, and annotations stay in Artwork layers. Dropping outside or pressing Escape cancels. Transfers preserve geometry, apply the destination colour, and support Undo/Redo. Filled objects moved to Engrave Path retain their full filled area in blue (#0000FF), including holes; unfilled paths remain line engraving. The 3D preview engraves the complete filled region and leaves its holes clear. New drawings and traced images start in Artwork. Delete asks for confirmation and removes the layer and its objects; Undo restores both. Add and move are also undoable. Locked layers cannot be edited or deleted. Engrave Path exports separately from Cut Path. Construction Path uses #FF00FF for strokes and markers, supports the same layer controls and transfers, and is excluded from DXF export. Artwork exports only when Include artwork is enabled. The detailed reference example includes draggable demo objects in Artwork. The neutral trash button opens a centred confirmation; danger colours appear there. A locked layer cannot be deleted. Close with × or Escape; reopen with Layers.</p><p class="subtext" style="margin-top:12px">The panel stays open while you use the canvas. Drag the header to reposition it within the example. Layer changes are local to each demo; Properties remains a visual example.</p>
  </div>
 </div>
@@ -1147,7 +1165,7 @@ SOFTWARE.
 <div class="menu-showcase">
  <div class="toast-stage"><div class="toast-samples" id="toast-samples" aria-label="Alert style examples"><article class="toast-card toast-success" data-toast-kind="success" aria-label="Success alert"><span class="toast-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg></span><div class="toast-copy"><h3>Success</h3><p>Your changes have been saved.</p></div><button type="button" class="toast-close" aria-label="Dismiss success alert" title="Dismiss" data-toast-dismiss><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></article><article class="toast-card toast-warning" data-toast-kind="warning" aria-label="Warning alert"><span class="toast-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg></span><div class="toast-copy"><h3>Warning</h3><p>Select at least two paths to join.</p></div><button type="button" class="toast-close" aria-label="Dismiss warning alert" title="Dismiss" data-toast-dismiss><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></article><article class="toast-card toast-error" data-toast-kind="error" aria-label="Error alert"><span class="toast-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-error"/></svg></span><div class="toast-copy"><h3>Error</h3><p>The file could not be opened. Try another file.</p></div><button type="button" class="toast-close" aria-label="Dismiss error alert" title="Dismiss" data-toast-dismiss><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></article><article class="toast-card toast-information" data-toast-kind="information" aria-label="Information alert"><span class="toast-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-info"/></svg></span><div class="toast-copy"><h3>Information</h3><p>Choose a tool to start drawing.</p></div><button type="button" class="toast-close" aria-label="Dismiss information alert" title="Dismiss" data-toast-dismiss><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></article></div></div>
  <div class="menu-guidance"><h3>Clear feedback, out of the way.</h3><p>Wide, slim charcoal cards match the menus, with white titles and soft-grey message text. Pastel green, orange, and red signal success, warning, and error; information uses pastel blue. Every alert has an icon, a short message, and a close button.</p>
- <dl class="menu-measurements"><div><dt>Placement</dt><dd>Bottom right · 24px from both edges</dd></div><div><dt>Card</dt><dd>440px wide · 12px corners · 8px vertical / 12px horizontal padding</dd></div><div><dt>Stack</dt><dd>8px gaps · latest alert at the bottom</dd></div><div><dt>Type</dt><dd>12px title and message · 16px line height</dd></div><div><dt>Controls</dt><dd>16px icon in a 24px tile · 24px dismiss button</dd></div><div><dt>Behaviour</dt><dd>Auto-dismiss after 5 seconds · no focus stealing</dd></div></dl>
+ <dl class="menu-measurements"><div><dt>Placement</dt><dd>Bottom right · 24px from both edges</dd></div><div><dt>Card</dt><dd>440px wide · square corners · 8px vertical / 12px horizontal padding</dd></div><div><dt>Stack</dt><dd>8px gaps · latest alert at the bottom</dd></div><div><dt>Type</dt><dd>12px title and message · 16px line height</dd></div><div><dt>Controls</dt><dd>16px icon in a 24px tile · 24px dismiss button</dd></div><div><dt>Behaviour</dt><dd>Auto-dismiss after 5 seconds · no focus stealing</dd></div></dl>
  <div class="toast-preview-controls" aria-label="Preview alerts"><button type="button" class="button toast-preview-button" data-toast-show="success"><span class="toast-preview-dot toast-success" aria-hidden="true"></span>Preview success</button><button type="button" class="button toast-preview-button" data-toast-show="warning"><span class="toast-preview-dot toast-warning" aria-hidden="true"></span>Preview warning</button><button type="button" class="button toast-preview-button" data-toast-show="error"><span class="toast-preview-dot toast-error" aria-hidden="true"></span>Preview error</button><button type="button" class="button toast-preview-button" data-toast-show="information"><span class="toast-preview-dot toast-information" aria-hidden="true"></span>Preview information</button></div>
  <p class="subtext" style="margin-top:12px">Preview buttons show example messages in the bottom-right corner of this page. One alert per type keeps the stack compact. The editor uses these same cards: completed actions show Success, blocked drawing shows Warning, failures show Error, and guidance shows Information. Repeated alerts update their card, move it to the bottom and restart its five-second timer. All alerts start dismissing automatically after five seconds and never take focus when shown. Fade and slide up 8px on arrival (240ms); fade and slide down 8px on dismissal (180ms), including manual dismissal. Reduced-motion preferences disable both animations. Updating an exiting alert cancels its removal and restarts its timer. A 16px transparent gutter gives animations room without changing card placement; scrolling uses final layout bounds, so the slide cannot scroll or clip the card. The gutter passes pointer events through to the canvas. Static style examples remain visible for inspection. Dismiss with the close button, or Escape while focused in the card; return focus to the initiating control when available, otherwise the canvas. Errors use an assertive announcement; other types use polite announcements.</p>
  <button type="button" class="button button--danger toast-reset" id="toast-reset">Restore style examples</button>
@@ -1212,7 +1230,7 @@ SOFTWARE.
  <p class="number-error" id="field-invalid-height-error"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg><span>Enter a value of 0 mm or more.</span></p>
 </div></div>
  <p class="subtext" style="margin-top:16px">Correct the negative value to clear the validation state. Width and height accept zero or positive values; positions and rotation can be negative.</p>
- <dl class="menu-measurements"><div><dt>Field</dt><dd>44px high · 8px corners · 2px border</dd></div><div><dt>Padding</dt><dd>12px around values · 16px between fields</dd></div><div><dt>Labels</dt><dd>Attached dark block · 44px minimum width · 14px white text</dd></div><div><dt>Values</dt><dd>14px monospace · 12px unit suffix</dd></div><div><dt>Focus</dt><dd>Grey border and white 2px outline</dd></div></dl>
+ <dl class="menu-measurements"><div><dt>Field</dt><dd>36px high · square corners · 1px border</dd></div><div><dt>Padding</dt><dd>12px around values · 16px between fields</dd></div><div><dt>Labels</dt><dd>Attached dark block · 36px minimum width · 12px white text</dd></div><div><dt>Values</dt><dd>14px monospace · 12px unit suffix</dd></div><div><dt>Focus</dt><dd>Grey border and visible focus outline</dd></div></dl>
  </div>
 </div>
 </section>
@@ -1232,7 +1250,7 @@ SOFTWARE.
 </div></div>
  </div>
  <div class="panel"><h3>Shared input styling</h3><p class="subtext">White background with #383838 borders and icons. Focus adds the same outline as the number fields.</p>
- <dl class="menu-measurements"><div><dt>Size</dt><dd>360px wide · 44px high · shrinks to fit</dd></div><div><dt>Shape</dt><dd>8px corners · 2px border</dd></div><div><dt>Spacing</dt><dd>12px horizontal padding · 8px gaps</dd></div><div><dt>Icons</dt><dd>20px search icon · 16px clear icon</dd></div><div><dt>Clear button</dt><dd>32px target · space reserved when empty</dd></div><div><dt>Typography</dt><dd>14px system sans · 12px label</dd></div></dl>
+ <dl class="menu-measurements"><div><dt>Size</dt><dd>360px wide · 36px high · shrinks to fit</dd></div><div><dt>Shape</dt><dd>Square corners · 1px border</dd></div><div><dt>Spacing</dt><dd>12px horizontal padding · 8px gaps</dd></div><div><dt>Icons</dt><dd>20px search icon · 16px clear icon</dd></div><div><dt>Clear button</dt><dd>32px target · space reserved when empty</dd></div><div><dt>Typography</dt><dd>14px system sans · 12px label</dd></div></dl>
  <p class="subtext">Type to preview the filled state. Click × or press Escape to clear; focus stays in the field. These examples demonstrate the control and do not run a search.</p>
  </div>
 </div>
@@ -1249,7 +1267,7 @@ SOFTWARE.
   </form>
  </div>
 </div>
-<div class="preview-foot"><span>960 × 680px · 200px left panel</span><span>24px content padding · 44px category rows</span><span>Live Snapping · four placeholder tabs</span></div>
+<div class="preview-foot"><span>960 × 680px · 200px left panel</span><span>24px content padding · 36px category rows</span><span>Live Snapping · four placeholder tabs</span></div>
 <p class="subtext" style="margin-top:12px">Choose a category to view its settings. Open the centred modal from here or the top toolbar’s Settings button. Snapping contains live snapping controls, applied immediately. The magnet or S pauses and resumes all configured modes without changing individual choices. General, Grid, Appearance and Editing remain empty placeholders. Category navigation, close and Escape remain available.</p>
 </section>
 <section aria-labelledby="icons-heading">
@@ -1264,23 +1282,23 @@ SOFTWARE.
 <div class="section-heading"><span class="section-number">15</span><h2 id="buttons-heading">Button rules</h2><span class="section-note">Default / warning / danger</span></div>
 <div class="panel"><div class="button-examples"><span class="button"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-gear"/></svg>Open preferences</span><span class="button button--danger"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-undo"/></svg>Reset preferences</span><span class="button button--warning"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg>Review</span><span class="button" aria-disabled="true">Unavailable</span></div>
 <table class="button-rules"><thead><tr><th scope="col">Button type</th><th scope="col">Required treatment</th></tr></thead><tbody>
-<tr><td>Default action</td><td><code>.button</code> — charcoal on light surfaces; white with charcoal text inside dark menus. Use for Open preferences, Add layer, Cancel, previews, and other standard labelled actions.</td></tr>
+<tr><td>Default action</td><td><code>.button</code> — charcoal on light surfaces; subtle dark grey with white text inside dark menus. Use for Open preferences, Add layer, Cancel, previews, and other standard labelled actions.</td></tr>
 <tr><td>Review or caution</td><td><code>.button.button--warning</code> — pastel orange (#F5C28B) with dark text and icons. Use for every Review button and actions that require caution.</td></tr>
 <tr><td>Reset or restore</td><td><code>.button.button--danger</code> — pastel red background with dark text and icons. Applies to every reset or restore button.</td></tr>
 <tr><td>Confirm deletion</td><td><code>.button.button--danger</code> — use in the centred confirmation dialog.</td></tr>
 <tr><td>Trash icon</td><td>Keep the icon neutral. Clicking opens the danger confirmation; the trash trigger itself is not red.</td></tr>
-<tr><td>Toolbar tools</td><td>White icons inside the charcoal toolbar. A white circle and dark icon show selection.</td></tr>
-<tr><td>Menu rows & categories</td><td>Charcoal rows, lighter charcoal hover, and white selection. These use their menu or tab component style.</td></tr>
+<tr><td>Toolbar tools</td><td>Muted icons inside the charcoal toolbar. A blue icon and a subtle dark square show selection; active side tools also have a thin blue edge marker.</td></tr>
+<tr><td>Menu rows & categories</td><td>Charcoal rows, lighter charcoal hover, and blue selection. These use their menu or tab component style.</td></tr>
 <tr><td>Close, clear & drag</td><td>Neutral icon controls with a light hover surface; use a white icon when placed on a dark surface.</td></tr>
 <tr><td>Disabled</td><td>Grey background and muted text. Preserve the disabled state rather than relying on colour alone.</td></tr>
-</tbody></table><p class="subtext" style="margin-top:16px">40px minimum height · 12px horizontal padding · 8px corners and icon gap · 16px icons · 14px text. Review buttons use warning orange; reset, restore, and destructive confirmations use danger red. Other standard actions use charcoal on light surfaces and white inside dark menus.</p></div>
+</tbody></table><p class="subtext" style="margin-top:16px">32px minimum height · 12px horizontal padding · square corners · 8px icon gap · 16px icons · 14px text. Review buttons use warning orange; reset, restore, and destructive confirmations use danger red. Other standard actions use charcoal on light surfaces and subtle grey with white text inside dark menus.</p></div>
 </section>
 <details><summary>CSS custom properties <span>Expand to view and copy the tokens</span></summary><pre><code>/* Vectora — foundational tokens. All dimensional values use even pixels. */
 :root {
   --color-canvas: #F4F4F2;
   --color-surface: #FFFFFF;
   --color-toolbar: #2A2B2E;
-  --color-hover: #4A4A4A;
+  --color-hover: #35373C;
   --color-on-toolbar-muted: #D2D2D2;
   --color-text: #242424;
   --color-muted: #666666;
@@ -1329,12 +1347,12 @@ SOFTWARE.
   --search-width: 360px;
   --search-icon-size: 20px;
   --search-clear-size: 32px;
-  --input-height: 44px;
+  --input-height: 36px;
   --input-padding: 12px;
   --input-radius: 0px;
   --input-border-color: #383838;
   --input-icon-color: #383838;
-  --input-prefix-width: 44px;
+  --input-prefix-width: 36px;
   --input-prefix-background: var(--color-toolbar);
   --input-prefix-foreground: var(--color-surface);
   --input-label-gap: 6px;
@@ -1347,8 +1365,8 @@ SOFTWARE.
   --toggle-height: 28px;
   --toggle-thumb-size: 20px;
   --toggle-inset: 4px;
-  --tool-size: 44px;
-  --button-height: 40px;
+  --tool-size: 36px;
+  --button-height: 32px;
   --button-padding-x: 12px;
   --button-gap: 8px;
   --button-radius: 0px;
@@ -1362,15 +1380,19 @@ SOFTWARE.
   --button-disabled-background: var(--color-line);
   --button-disabled-foreground: var(--color-muted);
   --toolbar-radius: 0px;
-  --toolbar-padding: 8px;
-  --toolbar-gap: 4px;
-  --toolbar-width: 60px;
-  --top-toolbar-height: 60px;
+  --toolbar-padding: 4px;
+  --toolbar-gap: 2px;
+  --toolbar-width: 44px;
+  --top-toolbar-height: 88px;
+  --application-header-height: 48px;
+  --commandbar-background: #35373C;
+  --chrome-accent: #52B9DF;
+  --chrome-selected: #232528;
   --workspace-edge-inset: 0px;
   --workspace-footer-inset: 24px;
   --menu-width: 240px;
   --menu-width-wide: 280px;
-  --panel-width: 360px;
+  --panel-width: 300px;
   --preferences-width: 960px;
   --preferences-height: 680px;
   --preferences-sidebar-width: 200px;
@@ -1380,11 +1402,11 @@ SOFTWARE.
   --dialog-width: 400px;
   --dialog-padding: 24px;
   --panel-height: 488px;
-  --panel-padding: 16px;
-  --layer-row-height: 64px;
+  --panel-padding: 12px;
+  --layer-row-height: 52px;
   --layer-drag-scroll-edge: 40px;
   --layer-drag-scroll-speed: 360;
-  --panel-control-size: 32px;
+  --panel-control-size: 28px;
   --alert-width: 440px;
   --alert-offset: 24px;
   --alert-gap: 8px;
@@ -1397,13 +1419,13 @@ SOFTWARE.
   --alert-motion-gutter: 16px;
   --menu-divider-gap: 8px;
   --menu-padding: 8px;
-  --menu-item-height: 40px;
+  --menu-item-height: 36px;
   --menu-item-padding: 12px;
   --menu-offset: 8px;
   --menu-header-height: 32px;
   --menu-icon-size: 20px;
   --menu-item-gap: 4px;
-  --menu-shadow: 0 8px 24px #24242414;
+  --menu-shadow: 0 4px 16px #00000020;
   --floating-control-height: 32px;
   --floating-padding: 4px;
   --floating-gap: 4px;
@@ -1414,8 +1436,8 @@ SOFTWARE.
   --radius-sm: 0px;
   --radius-menu: 0px;
   --radius-pill: 1000px;
-  --border-width: 2px;
-  --icon-stroke: 2;
+  --border-width: 1px;
+  --icon-stroke: 1.5;
 }
 </code></pre></details>
 <footer><span>Vectora · Toolbar foundations</span><span>Self-contained HTML · No external fonts or libraries</span></footer>

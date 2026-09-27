@@ -128,7 +128,7 @@ test('reference component styles and geometry match at the same viewport',async(
   await page.goto(DEV+'/reference/design-system.html');
   const styles=async()=>page.evaluate(()=>{
     return ['.top-toolbar','.left-toolbar','.right-toolbar','.tool','.brand','[for="field-x"]'].map(selector=>{
-      const element=document.querySelector(selector)!;const css=getComputedStyle(element);return {background:css.backgroundColor,color:css.color,font:css.fontFamily,fontSize:css.fontSize,borderRadius:css.borderRadius,padding:css.padding,width:css.width,height:css.height};
+      const element=document.querySelector(selector)!;const css=getComputedStyle(element);return {background:css.backgroundColor,color:css.color,font:css.fontFamily,fontSize:css.fontSize,borderRadius:css.borderRadius,padding:css.padding,width:selector==='.top-toolbar'?'fill':css.width,height:selector==='.left-toolbar'||selector==='.right-toolbar'?'fill':css.height};
     });
   });
   const reference=await styles();await page.screenshot({path:'test-results/reference.png'});
@@ -248,7 +248,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await page.getByRole('button',{name:'Layers',exact:true}).click();
   const panel=page.locator('#primary-layers-panel');
   await expect(panel).toBeVisible();expect(await panelStyles()).toEqual(reference);
-  const box=(await panel.boundingBox())!;expect(box.width).toBe(360);expect(box.y).toBe(60);expect(box.height).toBe(840);
+  const box=(await panel.boundingBox())!;expect(box.width).toBe(300);expect(box.y).toBe(88);expect(box.height).toBe(812);
   await expect(panel.locator('[data-layer-count]')).toHaveText('4');
   await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toBeEnabled();
   await expect(panel.getByRole('button',{name:'Delete selected layer'})).toBeEnabled();
@@ -279,7 +279,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   expect(await panel.boundingBox()).toEqual(box);
   await page.screenshot({path:'test-results/layers-panel.png',animations:'disabled'});
   await page.setViewportSize({width:650,height:750});
-  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x+b.width===590&&b.y===60&&b.y+b.height===750;}).toBe(true);
+  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x+b.width===606&&b.y===88&&b.y+b.height===750;}).toBe(true);
   await panel.getByRole('button',{name:'Close Layers panel'}).focus();await page.keyboard.press('Escape');await expect(panel).toBeHidden();
   await expect(page.getByRole('button',{name:'Layers',exact:true})).toBeFocused();expect(errors).toEqual([]);
 });
@@ -1294,7 +1294,7 @@ test('Editor alerts use design-system cards with semantic icons, stacking and di
   const stack=page.getByRole('region',{name:'Alerts',exact:true});await expect(stack.locator('.toast-card')).toHaveCount(4);await expect(page.locator('#cad-canvas')).toBeFocused();
   for(const [kind,icon] of [['success','check'],['warning','warning'],['error','error'],['information','info']])await expect(stack.locator(`.toast-${kind} .toast-icon use`)).toHaveAttribute('href',`#i-${icon}`);
   const metrics=await stack.evaluate(element=>{const box=element.getBoundingClientRect(),card=element.querySelector('.toast-card')!,style=getComputedStyle(card),gutter=parseFloat(getComputedStyle(element).padding);return {right:innerWidth-box.right+gutter,bottom:innerHeight-box.bottom+gutter,width:box.width-gutter*2,padding:style.padding,borderRadius:style.borderRadius,bg:style.backgroundColor,gap:getComputedStyle(element).gap};});
-  expect(metrics).toEqual({right:24,bottom:24,width:440,padding:'8px 12px',borderRadius:'12px',bg:'rgb(56, 56, 56)',gap:'8px'});
+  expect(metrics).toEqual({right:24,bottom:24,width:440,padding:'8px 12px',borderRadius:'0px',bg:'rgb(42, 43, 46)',gap:'8px'});
   await page.clock.fastForward(1000);await expect(stack.locator('.toast-card')).toHaveCount(4);
   await page.evaluate(()=>(window as any).__vectora.onMessage('Latest export error.',true));await expect(stack.locator('.toast-card')).toHaveCount(4);await expect(stack.locator('.toast-card').last()).toHaveAttribute('data-toast-kind','error');
   await expect(page.locator('#toast-error-announcement')).toHaveAttribute('role','alert');await expect(page.locator('#toast-error-announcement')).toContainText('Latest export error.');

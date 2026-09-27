@@ -5,10 +5,10 @@ html,body { width:100%; height:100%; overflow:hidden; }
 .toolbar { z-index:4; }
 .preview-caption { pointer-events:none; }
 .editor-panel { z-index:3; overflow:hidden; }
-.editor-panel-body { padding:16px; flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.editor-panel-body { padding:4px 0 12px; flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
 .editor-panel .layers-header { flex-shrink:0; }
 .editor-panel:has(.text-properties:not([hidden])) .layers-header { margin-bottom:0; }
-.editor-panel .number-grid { margin-top:16px; gap:12px; }
+.editor-panel .number-grid { margin-top:16px; gap:10px; }
 .editor-section { border-top:2px solid var(--color-canvas); margin-top:20px; padding-top:16px; display:grid; gap:12px; }
 .export-option { display:flex; align-items:center; gap:8px; font-size:12px; }
 .export-option input { accent-color:var(--menu-selected); }
