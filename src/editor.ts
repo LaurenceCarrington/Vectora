@@ -56,7 +56,7 @@ export class CADEditor {
   get selectionBounds():paper.Rectangle|null {return this.selection.reduce<paper.Rectangle|null>((bounds,item)=>bounds?bounds.unite(this.objectBounds(item)):this.objectBounds(item),null);}
   tool:ToolName='select';
   fillColor='#FF0000';
-  noFill=false;
+  noFill=true;
   snappingEnabled=true;
   snapToGridEnabled=true;
   get gridSnappingActive():boolean {return this.snappingEnabled&&this.snapToGridEnabled;}

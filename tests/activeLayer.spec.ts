@@ -25,7 +25,7 @@ test('Additional layers receive text, filled engraving, traced vectors and dimen
   const record=()=>records.push({layer:e.selected.layer.data.documentId,role:e.selected.data.role,colour:(e.selected.fillColor??e.selected.strokeColor).toCSS(true)});
   await loadTextFont('lato');e.saveText('A',10,new p.Point(20,20),null,'lato');record();
   e.addShape(new p.Path.Rectangle({insert:false,rectangle:[50,50,40,40]}),'Box');record();
-  e.fillAt(new p.Point(60,60));record();const filled=!!e.selected.fillColor;
+  e.setFillColor('#FF0000');e.fillAt(new p.Point(60,60));record();const filled=!!e.selected.fillColor;
   const trace=new p.Path.Circle({insert:false,center:[110,30],radius:10,fillColor:'white'});trace.data.rasterTrace={mode:'fill'};e.addTracedShapes([trace],'Trace');record();
   e.addShape(createDimension({kind:'dimension-aligned',points:[[10,10],[40,10],[20,30]],transform:[1,0,0,1,0,0]}),'Dimension');record();
   const count=e.objects.length;e.undo();const undone={count:e.objects.length,active:e.activeLayerId};e.redo();const redone={count:e.objects.length,active:e.activeLayerId};

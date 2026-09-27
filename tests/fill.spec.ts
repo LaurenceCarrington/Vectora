@@ -22,7 +22,7 @@ test('Colour fill toolbar picks colours, fills only the clicked region and recol
 });
 
 test('Fill uses transformed and visible outlines, respects Artwork lock and recolours moved fill objects',async({page})=>{
-  await page.goto(DEV);const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,40,40]}),'Rectangle');e.artwork.children[0].rotate(30);e.fillAt(new p.Point(20,20));const fill=e.selected,first=fill.area;fill.translate([100,0]);e.setFillColor('#51966A');e.fillAt(new p.Point(120,20));const color=e.selected.fillColor.toCSS(true),count=e.objects.length;e.setLayerState('artwork','locked',true);let locked=false;try{e.fillAt(new p.Point(20,20));}catch{locked=true;}return {first,count,color,locked};});expect(result.first).toBeCloseTo(1600,6);expect(result.count).toBe(2);expect(result.color).toBe('#51966a');expect(result.locked).toBe(true);
+  await page.goto(DEV);const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,40,40]}),'Rectangle');e.artwork.children[0].rotate(30);e.setFillColor('#FF0000');e.fillAt(new p.Point(20,20));const fill=e.selected,first=fill.area;fill.translate([100,0]);e.setFillColor('#51966A');e.fillAt(new p.Point(120,20));const color=e.selected.fillColor.toCSS(true),count=e.objects.length;e.setLayerState('artwork','locked',true);let locked=false;try{e.fillAt(new p.Point(20,20));}catch{locked=true;}return {first,count,color,locked};});expect(result.first).toBeCloseTo(1600,6);expect(result.count).toBe(2);expect(result.color).toBe('#51966a');expect(result.locked).toBe(true);
 });
 
 test('Bucket boundary network handles intersecting circles, self crossings and hidden outlines',async({page})=>{
@@ -35,8 +35,8 @@ test('A new regional fill appears above an existing whole-object colour without 
 
 test('Production fill picker matches the reference and fits a narrow viewport',async({page})=>{
   const styles=async()=>page.locator('#primary-fill-menu').evaluate(el=>{const c=getComputedStyle(el);return [c.backgroundColor,c.color,c.borderRadius,c.padding];});
-  await page.goto(DEV+'/reference/design-system.html');await page.getByRole('button',{name:'Colour fill',exact:true}).click();const reference=await styles();await expect(page.locator('[data-fill-colour]')).toHaveCount(5);await page.getByRole('button',{name:'No fill',exact:true}).click();await expect(page.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.fill-tools')).toHaveClass(/is-no-fill/);await page.getByRole('button',{name:'Cyan',exact:true}).click();await expect(page.locator('[data-fill-hex]')).toHaveValue('#00FFFF');await page.getByRole('button',{name:'Magenta',exact:true}).click();await expect(page.locator('[data-fill-hex]')).toHaveValue('#FF00FF');await page.locator('[data-fill-colour="#0000FF"]').click();await expect(page.locator('[data-fill-hex]')).toHaveValue('#0000FF');
-  await page.setViewportSize({width:420,height:700});await page.goto('http://127.0.0.1:4173');await page.getByRole('button',{name:'Colour fill',exact:true}).click();expect(await styles()).toEqual(reference);const bounds=(await page.locator('#primary-fill-menu').boundingBox())!;expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(420);expect(bounds.y+bounds.height).toBeLessThanOrEqual(676);
+  await page.goto(DEV+'/reference/design-system.html');await page.getByRole('button',{name:'Colour fill',exact:true}).click();const reference=await styles();await expect(page.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('[data-fill-colour]')).toHaveCount(5);await page.getByRole('button',{name:'No fill',exact:true}).click();await expect(page.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.fill-tools')).toHaveClass(/is-no-fill/);await page.getByRole('button',{name:'Cyan',exact:true}).click();await expect(page.locator('[data-fill-hex]')).toHaveValue('#00FFFF');await page.getByRole('button',{name:'Magenta',exact:true}).click();await expect(page.locator('[data-fill-hex]')).toHaveValue('#FF00FF');await page.locator('[data-fill-colour="#0000FF"]').click();await expect(page.locator('[data-fill-hex]')).toHaveValue('#0000FF');
+  await page.setViewportSize({width:420,height:700});await page.goto('http://127.0.0.1:4173');await page.getByRole('button',{name:'Colour fill',exact:true}).click();expect(await styles()).toEqual(reference);await expect(page.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('.fill-tools')).toHaveClass(/is-no-fill/);const bounds=(await page.locator('#primary-fill-menu').boundingBox())!;expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(420);expect(bounds.y+bounds.height).toBeLessThanOrEqual(676);
   await page.locator('[data-fill-picker]').fill('#51966a');await expect(page.locator('[data-fill-hex]')).toHaveValue('#51966A');await page.screenshot({path:'test-results/fill-picker-mobile.png'});await page.keyboard.press('Escape');await expect(page.locator('#primary-fill-menu')).toBeHidden();await page.locator('#cad-canvas').focus();await page.keyboard.press('v');await page.keyboard.press('b');await expect(page.getByRole('button',{name:'Colour fill',exact:true})).toHaveAttribute('aria-pressed','true');
 });
 
@@ -56,7 +56,7 @@ test('Repeated curved fills stay within circle intersections and exclude disconn
   await page.goto(DEV);const result=await page.evaluate(async()=>{
     const p=(window as any).__paper,e=(window as any).__vectora,{regionAt}=await import('/src/regionFill.ts');
     e.addShape(new p.Path.Circle({insert:false,center:[27,31],radius:25}),'Circle');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[-15,5,46,46]}),'Rectangle');e.addShape(new p.Path.Circle({insert:false,center:[1,35],radius:26}),'Circle');
-    const sources=[...e.objects];e.fillAt(new p.Point(40.123,38.234));e.fillAt(new p.Point(32.123,27.234));const region=e.selected,point=new p.Point(32.123,27.234);let leaked=0;
+    const sources=[...e.objects];e.setFillColor('#FF0000');e.fillAt(new p.Point(40.123,38.234));e.fillAt(new p.Point(32.123,27.234));const region=e.selected,point=new p.Point(32.123,27.234);let leaked=0;
     for(let x=-30;x<65;x+=2)for(let y=-5;y<65;y+=2){const q=new p.Point(x+.13,y+.17);if(region.contains(q)&&sources.some(item=>item.contains(q)!==item.contains(point)))leaked++;}
     const priorLeak=region.contains(new p.Point(13.13,11.17));
     e.objects.forEach((item:any)=>item.remove());for(const x of [0,20])e.addShape(new p.Path.Circle({insert:false,center:[x,0],radius:20}),'Circle');
@@ -69,7 +69,7 @@ test('Repeated curved fills stay within circle intersections and exclude disconn
 });
 
 test('Nested and tangent circle boundaries keep all holes after filling',async({page})=>{
-  await page.goto(DEV);const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Circle({insert:false,center:[18,32],radius:10}),'Circle');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[-21,-5,58,58]}),'Rectangle');e.addShape(new p.Path.Circle({insert:false,center:[2,8],radius:13}),'Circle');e.fillAt(new p.Point(30.123,.234));const fill=e.selected;return {smallHole:fill.contains(new p.Point(18,32)),tangentHole:fill.contains(new p.Point(2,8)),clicked:fill.contains(new p.Point(30.123,.234)),area:fill.area};});expect(result).toMatchObject({smallHole:false,tangentHole:false,clicked:true});expect(result.area).toBeCloseTo(2518.674942515399,5);
+  await page.goto(DEV);const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Circle({insert:false,center:[18,32],radius:10}),'Circle');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[-21,-5,58,58]}),'Rectangle');e.addShape(new p.Path.Circle({insert:false,center:[2,8],radius:13}),'Circle');e.setFillColor('#FF0000');e.fillAt(new p.Point(30.123,.234));const fill=e.selected;return {smallHole:fill.contains(new p.Point(18,32)),tangentHole:fill.contains(new p.Point(2,8)),clicked:fill.contains(new p.Point(30.123,.234)),area:fill.area};});expect(result).toMatchObject({smallHole:false,tangentHole:false,clicked:true});expect(result.area).toBeCloseTo(2518.674942515399,5);
 });
 
 test('No fill clears only the clicked curved region and all underlying colours, with undo and redo',async({page})=>{
@@ -77,7 +77,7 @@ test('No fill clears only the clicked curved region and all underlying colours, 
   const result=await page.evaluate(()=>{
     const p=(window as any).__paper,e=(window as any).__vectora;
     e.addShape(new p.Path.Circle({insert:false,center:[0,0],radius:20,strokeColor:'#383838'}),'Circle');
-    e.fillAt(new p.Point(0,0));
+    e.setFillColor('#FF0000');e.fillAt(new p.Point(0,0));
     e.addShape(new p.Path.Circle({insert:false,center:[20,0],radius:20,strokeColor:'#383838'}),'Circle');
     e.setFillColor('#0000FF');e.fillAt(new p.Point(10,0));
     const before=e.snapshot(),outlines=e.objects.filter((x:any)=>!x.data.regionFill).map((x:any)=>x.exportJSON());
@@ -93,7 +93,7 @@ test('No fill clears only the clicked curved region and all underlying colours, 
 
 test('No fill swatch clears a whole fill from the canvas and a colour exits clearing mode',async({page})=>{
   await page.goto(DEV);
-  const point=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora,start=p.view.viewToProject(new p.Point(380,330));e.addShape(new p.Path.Rectangle({insert:false,rectangle:[start.x,start.y,30,30],strokeColor:'#383838'}),'Rectangle');e.fillAt(start.add([15,15]));const q=p.view.projectToView(start.add([15,15]));return {x:q.x,y:q.y};});
+  const point=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora,start=p.view.viewToProject(new p.Point(380,330));e.addShape(new p.Path.Rectangle({insert:false,rectangle:[start.x,start.y,30,30],strokeColor:'#383838'}),'Rectangle');e.setFillColor('#FF0000');e.fillAt(start.add([15,15]));const q=p.view.projectToView(start.add([15,15]));return {x:q.x,y:q.y};});
   await page.getByRole('button',{name:'Colour fill',exact:true}).click();await page.getByRole('button',{name:'No fill',exact:true}).click();await expect(page.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','true');
   const box=(await page.locator('#cad-canvas').boundingBox())!;await page.mouse.click(box.x+point.x,box.y+point.y);
   expect(await page.evaluate(()=>(window as any).__vectora.objects.map((x:any)=>({fill:x.fillColor,name:x.data.name})))).toEqual([{fill:null,name:'Rectangle'}]);
