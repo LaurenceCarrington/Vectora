@@ -329,8 +329,6 @@ for(const [tab,label,keywords] of [
  ['appearance','Appearance','theme dark light mode'],
 ] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
 searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});
-searchButton('add-layer','Add layer','Layers','[data-layer-add]','artwork cut engrave construction','','',()=>{setPanel(layers,true);});
-searchButton('delete-layer','Delete layer','Layers','[data-layer-delete]','remove layer','','Unlock the active layer before deleting it',()=>{setPanel(layers,true);});
 new ToolSearch($<HTMLButtonElement>('[data-tool-search]'),searchTools,()=>{
   if(!inlineText.finish(false,false))return false;
   editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;

@@ -252,7 +252,6 @@ SOFTWARE.
 <div class="layers-panel editor-layers" id="primary-layers-panel" role="region" aria-labelledby="primary-layers-panel-title" hidden>
  <div class="layers-header"><div class="layer-heading"><span><span class="panel-eyebrow">Document</span><span class="panel-title" id="primary-layers-panel-title">Layers <span data-layer-count>4</span></span></span></div><button type="button" class="panel-icon" data-panel-close id="close-layers" aria-label="Close Layers panel" title="Close"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></div>
  <div class="layer-list" id="live-layer-list" aria-label="Document layers"></div>
- <div class="layer-footer"><div class="layer-add-wrap"><button type="button" class="button add-layer" data-layer-add aria-haspopup="menu" aria-expanded="false" aria-controls="primary-layers-panel-add-menu"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-plus"/></svg>Add layer</button><div class="layer-add-menu menu-surface" id="primary-layers-panel-add-menu" data-layer-add-menu role="menu" aria-label="Layer type" hidden><button type="button" class="dropdown-option" role="menuitem" data-add-layer-type="artwork"><span class="layer-dot" style="--layer-color:var(--layer-artwork)" aria-hidden="true"></span>Artwork</button><button type="button" class="dropdown-option" role="menuitem" data-add-layer-type="cutline"><span class="layer-dot" style="--layer-color:var(--layer-cut)" aria-hidden="true"></span>Cut Path</button><button type="button" class="dropdown-option" role="menuitem" data-add-layer-type="engrave"><span class="layer-dot" style="--layer-color:var(--layer-engrave)" aria-hidden="true"></span>Engrave Path</button><button type="button" class="dropdown-option" role="menuitem" data-add-layer-type="construction"><span class="layer-dot" style="--layer-color:var(--layer-construction)" aria-hidden="true"></span>Construction Path</button></div></div><button type="button" class="panel-icon layer-delete" data-layer-delete aria-haspopup="dialog" aria-controls="delete-layer-dialog" aria-label="Delete selected layer" title="Delete selected layer"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-delete"/></svg></button></div>
 
  <span class="sr-only" role="status">Layers panel ready.</span>
 </div>
@@ -290,11 +289,6 @@ SOFTWARE.
 <footer class="raster-footer"><div class="raster-feedback"><p id="raster-status" role="status" aria-live="polite">Choose an image to begin.</p><p id="raster-detail">Images are processed on your device.</p><p id="raster-error" role="alert" hidden></p></div><div class="raster-actions"><button type="button" class="button raster-cancel" data-raster-close>Cancel</button><button type="button" class="button" id="raster-add" disabled>Insert vectors</button></div></footer>
 </dialog>
 
-<dialog class="delete-dialog" id="delete-layer-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description">
- <div class="delete-dialog-heading"><span class="delete-dialog-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg></span><h2 id="delete-dialog-title">Delete layer?</h2></div>
- <p id="delete-dialog-description">This layer and its objects will be deleted. You can undo this action.</p>
- <div class="delete-dialog-actions"><button class="button" type="button" id="delete-dialog-cancel" autofocus>Cancel</button><button type="button" class="button button--danger confirm-delete" id="delete-dialog-confirm">Delete layer</button></div>
-</dialog>
 <input type="file" id="open-document-file" accept=".vectora,application/json" hidden>
 <dialog class="delete-dialog menu-surface document-dialog" id="document-dialog" aria-labelledby="document-dialog-title" aria-describedby="document-dialog-message">
  <form method="dialog">

@@ -241,7 +241,7 @@ test('production snap toggle and shortcut work without altering existing artwork
 });
 test('Layers matches reference and controls real objects, visibility, locking and docking',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  async function panelStyles(){return page.locator('#primary-layers-panel').evaluate(panel=>['.layers-header','.layer-heading','.layer-row','.layer-dot','.layer-footer'].map(selector=>{
+  async function panelStyles(){return page.locator('#primary-layers-panel').evaluate(panel=>['.layers-header','.layer-heading','.layer-row.is-selected','.layer-dot'].map(selector=>{
     const style=getComputedStyle(panel.querySelector(selector)!);
     return [style.height,style.padding,style.gap,style.borderRadius,style.backgroundColor,style.fontSize];
   }));}
@@ -255,8 +255,8 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await expect(panel).toBeVisible();expect(await panelStyles()).toEqual(reference);
   const box=(await panel.boundingBox())!;expect(box.width).toBe(300);expect(box.y).toBe(88);expect(box.height).toBe(784);
   await expect(panel.locator('[data-layer-count]')).toHaveText('4');
-  await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toBeEnabled();
-  await expect(panel.getByRole('button',{name:'Delete selected layer'})).toBeEnabled();
+  await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toHaveCount(0);
+  await expect(panel.getByRole('button',{name:'Delete selected layer'})).toHaveCount(0);
   await panel.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Expand Cut Path',exact:true}).click();
   await panel.getByRole('button',{name:'Rectangle',exact:true}).click();
@@ -284,7 +284,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   expect(await panel.boundingBox()).toEqual(box);
   await page.screenshot({path:'test-results/layers-panel.png',animations:'disabled'});
   await page.setViewportSize({width:650,height:750});
-  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x+b.width===606&&b.y===88&&b.y+b.height===750;}).toBe(true);
+  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x+b.width===606&&b.y===88&&b.y+b.height===722;}).toBe(true);
   await panel.getByRole('button',{name:'Close Layers panel'}).focus();await page.keyboard.press('Escape');await expect(panel).toBeHidden();
   await expect(page.getByRole('button',{name:'Layers',exact:true})).toBeFocused();expect(errors).toEqual([]);
 });

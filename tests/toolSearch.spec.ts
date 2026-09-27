@@ -46,7 +46,7 @@ test('Search stays within small screens, supports both themes, and does not leak
  await ready(page);await page.setViewportSize({width:390,height:650});const {dialog,input}=await open(page,'not a real tool');
  await expect(dialog.getByRole('option')).toHaveCount(0);await expect(dialog.getByRole('status')).toContainText('No tools found');await input.press('Enter');await expect(dialog).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__vectora.tool)).toBe('select');
- await input.fill('');await input.press('ArrowUp');await expect(input).toHaveAttribute('aria-activedescendant','tool-search-delete-layer');
+ await input.fill('');await input.press('ArrowUp');await expect(input).toHaveAttribute('aria-activedescendant','tool-search-font');
  await input.press('Tab');await expect(dialog.getByRole('button',{name:'Close tool search'})).toBeFocused();await page.keyboard.press('Tab');await expect(input).toBeFocused();
  const r=(await dialog.boundingBox())!;expect(r.x).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(390);expect(r.y+r.height).toBeLessThanOrEqual(650);
  await input.fill('arc');await page.screenshot({path:'test-results/tool-search-dark.png'});await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Search tools',exact:true})).toBeFocused();

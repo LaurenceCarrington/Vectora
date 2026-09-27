@@ -1,6 +1,6 @@
 import type paper from 'paper';
 import type { CADEditor } from './editor';
-import type { ObjectRole, Shape } from './types';
+import type { Shape } from './types';
 import {layerId,layerRole,layerType} from './documentLayers';
 
 const icon = (name: string) => `<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-${name}"/></svg>`;
@@ -26,36 +26,6 @@ export class LayersPanel {
     const tokens = getComputedStyle(document.documentElement);
     this.scrollEdge = parseFloat(tokens.getPropertyValue('--layer-drag-scroll-edge'));
     this.scrollSpeed = parseFloat(tokens.getPropertyValue('--layer-drag-scroll-speed'));
-    const add=panel.querySelector<HTMLButtonElement>('[data-layer-add]')!,menu=panel.querySelector<HTMLElement>('[data-layer-add-menu]')!;
-    const closeAdd=()=>{menu.hidden=true;add.setAttribute('aria-expanded','false');};
-    add.onclick=()=>{menu.hidden=!menu.hidden;add.setAttribute('aria-expanded',String(!menu.hidden));if(!menu.hidden)menu.querySelector<HTMLButtonElement>('button')?.focus();};
-    menu.addEventListener('click',event=>{
-      const button=(event.target as Element).closest<HTMLButtonElement>('[data-add-layer-type]');if(!button)return;
-      const layer=this.editor.addDocumentLayer(button.dataset.addLayerType as ObjectRole);this.active=layerId(layer);closeAdd();this.render();
-      this.list.querySelector<HTMLButtonElement>(`[data-layer-id="${this.active}"] [data-layer-action="select"]`)?.focus({preventScroll:true});this.list.querySelector(`[data-layer-id="${this.active}"]`)?.scrollIntoView({block:'nearest'});
-      this.editor.onMessage(`${layer.name} added.`,'success');
-    });
-    menu.addEventListener('keydown',event=>{
-      const buttons=[...menu.querySelectorAll<HTMLButtonElement>('button')],index=buttons.indexOf(document.activeElement as HTMLButtonElement);
-      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeAdd();add.focus();}
-      else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();event.stopPropagation();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowUp'?-1:1)+buttons.length)%buttons.length]?.focus();}
-    });
-    document.addEventListener('pointerdown',event=>{if(!menu.hidden&&!menu.contains(event.target as Node)&&!add.contains(event.target as Node))closeAdd();});
-    const remove=panel.querySelector<HTMLButtonElement>('[data-layer-delete]')!,dialog=document.querySelector<HTMLDialogElement>('#delete-layer-dialog')!;
-    let pendingDelete:string|null=null;
-    remove.onclick=()=>{
-      const layer=this.editor.documentLayer(this.active);if(!layer||layer.locked)return;
-      closeAdd();pendingDelete=this.active;dialog.querySelector('#delete-dialog-description')!.textContent=`“${layer.name}” and its ${layer.children.length} ${layer.children.length===1?'object':'objects'} will be deleted. You can undo this action.`;
-      dialog.returnValue='';dialog.showModal();dialog.querySelector<HTMLButtonElement>('#delete-dialog-cancel')!.focus();
-    };
-    dialog.querySelector<HTMLButtonElement>('#delete-dialog-cancel')!.onclick=()=>dialog.close('cancel');
-    dialog.querySelector<HTMLButtonElement>('#delete-dialog-confirm')!.onclick=()=>dialog.close('delete');
-    dialog.addEventListener('keydown',event=>event.stopPropagation());
-    dialog.addEventListener('close',()=>{
-      const id=pendingDelete;pendingDelete=null;
-      if(id&&dialog.returnValue==='delete'&&this.editor.deleteDocumentLayer(id)){this.render();this.editor.onMessage('Layer deleted. Undo restores its objects.','success');}
-      (remove.disabled?add:remove).focus({preventScroll:true});
-    });
     this.list.addEventListener('click', event => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button');
       const entry = button?.closest<HTMLElement>('[data-layer-id]');
@@ -142,8 +112,6 @@ export class LayersPanel {
 
   render(): void {
     const layers=this.editor.documentLayers;
-    const remove=this.panel.querySelector<HTMLButtonElement>('[data-layer-delete]')!,activeLayer=this.editor.documentLayer(this.active);
-    remove.disabled=!activeLayer||activeLayer.locked;remove.title=activeLayer?.locked?'Unlock the selected layer before deleting':'Delete selected layer';
     const roles=layers.map(layerId);
     const key = JSON.stringify([this.active, this.editor.selectedItems.map(item=>item.data.uid), [...this.expanded], roles.map(role => {
       const layer = this.editor.documentLayer(role)!;
@@ -153,7 +121,7 @@ export class LayersPanel {
     this.lastRender = key;
     this.list.replaceChildren();
     this.panel.querySelector('[data-layer-count]')!.textContent = String(layers.length);
-    if(!layers.length){const empty=document.createElement('p');empty.className='layers-empty';empty.textContent='No layers yet. Add a layer to get started.';this.list.append(empty);}
+    if(!layers.length){const empty=document.createElement('p');empty.className='layers-empty';empty.textContent='No layers in this document. Start a new document to restore the default layers.';this.list.append(empty);}
     for (const role of roles) {
       const layer = this.editor.documentLayer(role)!, name = layer.name.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!)), expanded = this.expanded.has(role);
       const entry = document.createElement('div');

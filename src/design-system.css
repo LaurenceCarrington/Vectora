@@ -371,10 +371,8 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .layer-object[aria-pressed="true"] { background:var(--color-toolbar); color:var(--menu-foreground); }
 .layer-object:disabled { opacity:0.4; cursor:not-allowed; }
 .layer-row.is-hidden .layer-name { text-decoration: line-through; }
-.layer-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); border-top: var(--border-width) solid var(--color-line); padding-top: var(--space-12); margin-top: var(--space-12); }
 
 
-.layer-delete { background: transparent; color: var(--color-text); }.layer-delete:hover { background: var(--color-canvas); }.layer-delete:disabled { background: var(--color-canvas); color: var(--color-muted); cursor: not-allowed; box-shadow: none; }
 .layer-row.is-selected button:focus-visible { outline-color: var(--color-surface); outline-offset: -2px; }
 .layers-empty { color: var(--color-muted); font-size: var(--text-sm); padding: var(--space-16); }
 @media (max-width: 1000px) { .layers-showcase { grid-template-columns: minmax(0, 1fr); } }
@@ -652,10 +650,6 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 .selection-specimen { display:block; width:100%; height:auto; border:var(--border-width) solid var(--color-line); border-radius:var(--radius-menu); margin-bottom:var(--space-12); }
 
-.layer-add-wrap { position:relative; }
-.layer-add-menu { position:absolute; bottom:calc(100% + var(--space-8)); left:0; width:224px; max-width:calc(100vw - 64px); padding:var(--space-8); border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); z-index:5; }
-.layer-add-menu .dropdown-option { width:100%; }
-.layer-footer { flex-shrink:0; }
 
 .line-tools, .arc-tools, .delete-tools, .dimension-tools, .image-tools { position:relative; display:flex; flex-shrink:0; }
 .line-menu, .arc-menu, .delete-menu, .dimension-menu, .image-menu { top:0; left:calc(100% + var(--toolbar-padding) + var(--menu-offset)); }
@@ -822,7 +816,6 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 /* Raise the owning stacking context so flyouts clear other rails and docked panels. */
 .toolbar:has(.file-dropdown:not([hidden]),.shapes-menu:not([hidden])),
-.layers-panel:has(.layer-add-menu:not([hidden])) { z-index:var(--menu-z-index); }
 .node-context-menu,.callout-editor { z-index:var(--menu-z-index); }
 
 /* Dark is the original editor appearance; Light changes colours only. */
