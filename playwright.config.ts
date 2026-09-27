@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./tests',workers:1,webServer:[{command:'npm run dev -- --port 5174 --mode test --strictPort',url:'http://127.0.0.1:5174',reuseExistingServer:false},{command:'npm run preview -- --port 4173 --strictPort',url:'http://127.0.0.1:4173',reuseExistingServer:true}],use:{channel:'chrome',headless:true,viewport:{width:1280,height:900},deviceScaleFactor:2},reporter:'list'});

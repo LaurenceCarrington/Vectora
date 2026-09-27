@@ -1,0 +1,43 @@
+# Dependencies and generated builds (GitHub Actions builds dist for Pages)
+node_modules/
+/dist/
+/.vite/
+/.cache/
+*.tsbuildinfo
+
+# Generated test output; keep tests and their source fixtures in Git
+/test-results/
+/playwright-report/
+/blob-report/
+/coverage/
+
+# Local agent instructions and configuration
+AGENTS.md
+agents.md
+/.agents/
+/.codex/
+
+# Local environment files; keep shareable examples
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs and temporary files
+*.log
+/tmp/
+/temp/
+*.swp
+*.swo
+*~
+__pycache__/
+*.pyc
+
+# Local editor and operating-system files
+/.idea/
+/.vscode/
+*.code-workspace
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

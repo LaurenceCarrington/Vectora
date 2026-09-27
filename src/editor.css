@@ -1,0 +1,26 @@
+html,body { width:100%; height:100%; overflow:hidden; }
+.editor-main { max-width:none; width:100%; height:100%; padding:0; }
+#workspace { background:var(--color-grid-background); width:100%; height:100%; min-width:0; isolation:isolate; }
+#cad-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; outline:none; }
+.toolbar { z-index:4; }
+.preview-caption { pointer-events:none; }
+.editor-panel { z-index:3; right:calc(var(--workspace-edge-inset) + var(--toolbar-width) + var(--menu-offset)); top:calc(124px + var(--workspace-edge-inset)); height:auto; max-height:calc(100% - 174px - 2 * var(--workspace-edge-inset)); overflow:auto; }
+.editor-panel-body { padding:16px; }
+.editor-panel .layers-header { flex-shrink:0; }
+.editor-panel:has(.text-properties:not([hidden])) .layers-header { margin-bottom:0; }
+.editor-panel .number-grid { margin-top:16px; gap:12px; }
+.editor-section { border-top:2px solid var(--color-canvas); margin-top:20px; padding-top:16px; display:grid; gap:12px; }
+.export-option { display:flex; align-items:center; gap:8px; font-size:12px; }
+.export-option input { accent-color:var(--menu-selected); }
+button:disabled { opacity:0.4; cursor:not-allowed; }
+button:disabled:hover { background:transparent; }
+.button:disabled { background:var(--button-disabled-background); }
+@media(max-width:700px) { .brand { padding:0 4px; } .brand-wordmark { display:none; } .preview-caption { font-size:10px; letter-spacing:1px; } .editor-panel { width:min(320px,calc(100% - 76px - 2 * var(--workspace-edge-inset))); } }
+.editor-panel .layers-header > div { flex:1; }
+
+.editor-layers { width:min(var(--panel-width),calc(100% - var(--toolbar-width) - var(--menu-offset) - 2 * var(--workspace-edge-inset))); max-height:calc(100% - 2 * var(--workspace-edge-inset)); }
+
+.editor-selection-menu { z-index:2; }
+
+#duplicate-selection { z-index:1; }
+#duplicate-selection::before { display:none; }
