@@ -1,3 +1,4 @@
+import { initializeThemeControls } from './theme';
 import { CanvasRulers } from './rulers';
 import { alignPopoutWithTrigger } from './menuPosition';
 import paper from 'paper';
@@ -229,7 +230,9 @@ function update():void {
   snappingMaster.checked=editor.snappingEnabled;gridSnapSetting.checked=editor.snapToGridEnabled;
   document.querySelectorAll<HTMLInputElement>('[data-object-snap]').forEach(input=>input.checked=editor.objectSnapModes[input.dataset.objectSnap as ObjectSnapMode]);
 }
-editor.onChange=update;editor.onMessage=notify;update();
+editor.onChange=update;editor.onMessage=notify;
+initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
+update();
 initializeClipper().then(()=>{ready=true;$('#wasm-status').textContent='Outline engine ready';update();}).catch(error=>{$('#wasm-status').textContent='Outline engine unavailable. Reload to retry.';notify(`Could not load the outline engine: ${error instanceof Error?error.message:String(error)}`,true);});
 document.addEventListener('pointerdown',e=>{if(!(e.target instanceof Element))return;for(const [menu,trigger] of menus)if(!menu.contains(e.target)&&!trigger.contains(e.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});
 document.addEventListener('keydown',event=>{

@@ -10,7 +10,7 @@ export class MillimetreGrid {
   readonly layer: paper.Layer;
   spacingMM = GRID_BASE_SPACING_MM;
   private lastView = '';
-  private readonly colors: { minor: string; major: string };
+  private colors: { minor: string; major: string };
 
   constructor() {
     try {
@@ -23,6 +23,12 @@ export class MillimetreGrid {
       minor: tokens.getPropertyValue('--color-grid-minor').trim(),
       major: tokens.getPropertyValue('--color-grid-major').trim(),
     };
+  }
+
+  refreshColors(): void {
+    const tokens = getComputedStyle(document.documentElement);
+    this.colors = { minor: tokens.getPropertyValue('--color-grid-minor').trim(), major: tokens.getPropertyValue('--color-grid-major').trim() };
+    this.lastView = '';
   }
 
   setSpacingMM(value: number): void {

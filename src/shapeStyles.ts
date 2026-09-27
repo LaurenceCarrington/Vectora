@@ -24,3 +24,32 @@ export function applyCutlineStyle(item: Shape): void {
   // Resolve Paper's lazy color values before clearing them.
   if (item.fillColor) item.fillColor = null;
 }
+
+const neutralArtwork = (color: paper.Color | null): boolean => !!color && color.alpha === 1 &&
+  (color.toCSS(true).toUpperCase() === '#FFFFFF' || color.toCSS(true).toUpperCase() === '#383838');
+
+/** Default neutral artwork follows the workspace theme; explicit region colours do not. */
+export function applyArtworkTheme(item: paper.Item, colour = artworkColor()): void {
+  const visit = (child: paper.Item): void => {
+    if (neutralArtwork(child.strokeColor) && child.strokeColor!.toCSS(true).toUpperCase() !== colour.toUpperCase()) child.strokeColor = new paper.Color(colour);
+    if (!item.data.regionFill && neutralArtwork(child.fillColor) && child.fillColor!.toCSS(true).toUpperCase() !== colour.toUpperCase()) child.fillColor = new paper.Color(colour);
+    child.children?.forEach(visit);
+  };
+  visit(item);
+}
+
+/** Theme-only neutral colour changes must not dirty documents or enter undo history. */
+export function artworkSnapshot(item: paper.Item): string {
+  const json = JSON.parse(item.exportJSON({precision:12}));
+  const visit = (value: any): void => {
+    if (!value || typeof value !== 'object') return;
+    for (const key of Object.keys(value)) {
+      if (key === 'data') continue;
+      const color = value[key];
+      if ((key === 'strokeColor' || (key === 'fillColor' && !item.data.regionFill)) && Array.isArray(color) && color.length === 3 &&
+        (color.every((n: number) => Math.abs(n - 1) < 1e-10) || color.every((n: number) => Math.abs(n - 56 / 255) < 1e-10))) value[key] = [1,1,1];
+      else visit(color);
+    }
+  };
+  visit(json);return JSON.stringify(json);
+}

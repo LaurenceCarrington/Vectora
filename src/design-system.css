@@ -630,15 +630,15 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
   --input-prefix-foreground: var(--menu-foreground);
   --button-background: var(--menu-selected);
   --button-foreground: var(--menu-selected-foreground);
-  --button-hover-background: #45484F;
+  --button-hover-background: var(--menu-button-hover);
   --button-disabled-background: var(--menu-hover);
-  --button-disabled-foreground: #AAAAAA;
+  --button-disabled-foreground: var(--menu-disabled);
   background: var(--menu-background);
   color: var(--menu-foreground);
   border-color: var(--menu-border);
-  color-scheme: dark;
+  color-scheme: var(--theme-color-scheme);
 }
-:is(.layers-panel, .preferences-shell, .menu-surface) .number-input { color-scheme: dark; }
+:is(.layers-panel, .preferences-shell, .menu-surface) .number-input { color-scheme: var(--theme-color-scheme); }
 :is(.shape-option[aria-checked="true"]:hover, .prefs-tab[aria-selected="true"]:hover) { background:var(--menu-hover); }
 .layer-row.is-selected .panel-icon:hover { background:var(--menu-hover); }
 .layer-row.is-selected button:focus-visible { outline-color: var(--menu-selected-foreground); }
@@ -823,3 +823,42 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .toolbar:has(.file-dropdown:not([hidden]),.shapes-menu:not([hidden])),
 .layers-panel:has(.layer-add-menu:not([hidden])) { z-index:var(--menu-z-index); }
 .node-context-menu,.callout-editor { z-index:var(--menu-z-index); }
+
+/* Dark is the original editor appearance; Light changes colours only. */
+:root { --theme-color-scheme:dark; --menu-button-hover:#45484F; --menu-disabled:#AAAAAA; }
+:root[data-theme="light"] {
+  --theme-color-scheme:light;
+  --layer-artwork:#383838;
+  --color-canvas:#F3F4F6; --color-surface:#FFFFFF;
+  --color-toolbar:#F5F6F8; --color-hover:#E5E9EF;
+  --menu-background:#F5F6F8; --menu-foreground:#282B31; --menu-muted:#585F6B;
+  --menu-border:#CDD2D9; --menu-hover:#E5E9EF; --menu-selected:#E2EAF2;
+  --menu-selected-foreground:#243B50; --color-on-toolbar-muted:#585F6B;
+  --color-text:#282B31; --color-muted:#585F6B; --color-line:#CDD2D9;
+  --commandbar-background:#EAEDF1; --chrome-accent:#087DA8; --chrome-selected:#DCEAF3;
+  --color-selection:#087DA8; --color-object-snap:#087DA8; --color-selection-area:#087DA822;
+  --color-grid-background:#FAFBFC; --color-grid-minor:#E6EAF0; --color-grid-major:#C8D1DD;
+  --preview-background:#EEF1F5; --preview-foreground:#282B31; --preview-muted:#585F6B;
+  --preview-grid-minor:#D4DAE3; --preview-grid-major:#B7C1CE; --preview-grid-axis:#8996A8;
+  --color-focus:#087DA8; --input-border-color:#CDD2D9; --input-icon-color:#585F6B;
+  --menu-button-hover:#D5DFEA; --menu-disabled:#7C838D;
+  --button-background:#E2EAF2; --button-foreground:#243B50; --button-hover-background:#D5DFEA;
+  --input-prefix-background:#EAEDF1; --input-prefix-foreground:#282B31;
+}
+.theme-choice { display:grid; gap:12px; padding-top:16px; }
+.theme-choice legend { padding:0 0 12px; }
+.theme-option { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--menu-border); cursor:pointer; }
+.theme-option:has(input:checked) { border-color:var(--chrome-accent); background:var(--chrome-selected); }
+.theme-option:has(input:focus-visible) { outline:2px solid var(--chrome-accent); outline-offset:2px; }
+.theme-option input { margin:0; accent-color:var(--chrome-accent); }
+.theme-option .prefs-setting-help { margin-top:2px; }
+.theme-swatch { width:40px; height:32px; flex-shrink:0; border:6px solid; }
+.theme-swatch-dark { background:#202226; border-color:#414349; }
+.theme-swatch-light { background:#FAFBFC; border-color:#CDD2D9; }
+:root[data-theme="light"] .toolbar { color:var(--menu-foreground); }
+:root[data-theme="light"] .vectora-slider:not(:disabled) { --range-fill:var(--chrome-accent); }
+:root[data-theme="light"] .vectora-toggle:checked + .toggle-track { background:var(--chrome-accent); }
+:root[data-theme="light"] .vectora-toggle:checked + .toggle-track::after { background:#FFFFFF; }
+
+:root[data-theme="light"] .preview3d-check input { accent-color:var(--chrome-accent); }
+:root[data-theme="light"] .preferences-shell .vectora-slider:hover:not(:disabled) { --range-fill:var(--chrome-accent); }

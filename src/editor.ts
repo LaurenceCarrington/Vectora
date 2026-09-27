@@ -1,3 +1,4 @@
+import { applyArtworkTheme, artworkSnapshot, artworkColor } from './shapeStyles';
 import paper from 'paper';
 import {hasFilledArea} from './shapeStyles';
 import {regionAt} from './regionFill';
@@ -91,8 +92,8 @@ export class CADEditor {
   get isDeleteTool():boolean {return this.tool==='dissect-delete'||this.tool==='line-delete';}
   private space=false;
   private observer:ResizeObserver;
-  private readonly selectionColor:string;
-  private readonly selectionArea:string;
+  private selectionColor:string;
+  private selectionArea:string;
   private readonly deletePreviewColor:string;
   private readonly rotationHandleOffset:number;
   private readonly rotationHandleRadius:number;
@@ -145,7 +146,7 @@ export class CADEditor {
     paper.view.zoom=BASE_ZOOM;this.changed();
   }
   snapshot():DocumentSnapshot {
-    return {activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>i.exportJSON({precision:12}))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>item.exportJSON({precision:12})))}:{})})))};
+    return {activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
   }
   newDocument():void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
@@ -296,6 +297,12 @@ export class CADEditor {
   setSnappingEnabled(enabled:boolean):void {
     if(this.snappingEnabled===enabled)return;
     this.cancel();this.snappingEnabled=enabled;this.changed();
+  }
+  refreshTheme():void {
+    const tokens=getComputedStyle(document.documentElement);
+    this.selectionColor=tokens.getPropertyValue('--color-selection').trim();
+    this.selectionArea=tokens.getPropertyValue('--color-selection-area').trim();
+    this.grid.refreshColors();this.changed();
   }
   setGridSpacing(value:number):void {
     this.grid.setSpacingMM(value);this.cancel();this.changed();
@@ -554,7 +561,7 @@ export class CADEditor {
     for(const item of [stem,knob,label]){item.data.role='overlay';this.overlays.addChild(item);}
     stem.data.control='rotation-stem';knob.data.control='rotate';
   }
-  private changed():void {const signature=this.selectionSignature(),layer=this.selection[0]?.layer;if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);this.layerSelectionSignature=signature;this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
+  private changed():void {const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>applyArtworkTheme(item,themeColour));const signature=this.selectionSignature(),layer=this.selection[0]?.layer;if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);this.layerSelectionSignature=signature;this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
   private drawOverlay():void {
     // A drawing preview also lives on this layer, so remove selection decorations only.
     for(const child of [...this.overlays.children]) if(child.data.role==='overlay')child.remove();
