@@ -29,7 +29,7 @@ export class DocumentFiles {
   this.savedKey=documentKey(editor);
   this.recovery=new DocumentRecovery(message=>this.notify(message,'warning'));
   this.nameControl=new DocumentName(document.querySelector<HTMLElement>('[data-document-name]')!,name=>{
-   this.filename=name;this.handle=null;this.renamed=true;document.title=`${name} — Vectora`;this.cache();
+   this.filename=name;this.handle=null;this.renamed=true;this.cache();
   },()=>{if(this.busy||!this.prepare())return false;this.editor.cancel();return true;},as=>{void this.save(as);});
   this.updateName();
   dialog.addEventListener('keydown',event=>event.stopPropagation());
@@ -57,7 +57,7 @@ export class DocumentFiles {
     const loaded=await decodeDocument(data.contents);
     if(!this.changedDuringStartup){
      this.restoring=true;this.editor.loadDocument(loaded.snapshot,loaded.view);
-     this.filename=data.filename;this.handle=null;this.renamed=data.dirty;this.savedKey=documentKey(this.editor);this.updateName();document.title=`${this.filename} — Vectora`;
+     this.filename=data.filename;this.handle=null;this.renamed=data.dirty;this.savedKey=documentKey(this.editor);this.updateName();
      const pending=data.draft;
      if(pending){
       if(typeof pending.content!=='string'||pending.content.length>500)throw new Error('The recovered text draft is invalid.');
@@ -110,7 +110,7 @@ export class DocumentFiles {
    const handle=as||!this.handle?await api.showSaveFilePicker({suggestedName:this.filename,types:pickerTypes}):this.handle;
    const writable=await handle.createWritable();try{await writable.write(contents);await writable.close();}catch(error){try{await writable.abort();}catch{/* The stream may already be closed. */}throw error;}
    this.handle=handle;this.filename=handle.name;this.savedKey=key;this.renamed=false;this.updateName();
-   document.title=`${this.filename} — Vectora`;this.notify(`Saved ${this.filename}.`,'success');
+   this.notify(`Saved ${this.filename}.`,'success');
   }else{
    const filename=this.filename;
    const url=URL.createObjectURL(new Blob([contents],{type:'application/json'})),anchor=document.createElement('a');anchor.href=url;anchor.download=filename;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -121,7 +121,7 @@ export class DocumentFiles {
   if(!this.prepare())return;
   if(this.dirty&&await this.prompt('New document?','The current drawing has unsaved changes. Starting a new document will discard them. Cancel to save your drawing first.','New document')===null)return;
   this.editor.newDocument();this.handle=null;this.filename='Untitled.vectora';this.savedKey=documentKey(this.editor);this.renamed=false;this.updateName();
-  document.title='Untitled — Vectora';this.editor.canvas.focus({preventScroll:true});this.notify('New document created.','success');
+  this.editor.canvas.focus({preventScroll:true});this.notify('New document created.','success');
  });}
  open():Promise<void>{
   if(this.busy||!this.prepare())return Promise.resolve();
@@ -136,6 +136,6 @@ export class DocumentFiles {
   if(this.dirty&&await this.prompt('Open document?','The current drawing has unsaved changes. Opening this file will replace them. Cancel to save your drawing first.','Open document')===null)return;
   if(!this.prepare())return;
   this.editor.loadDocument(document.snapshot,document.view);this.handle=handle;this.filename=file.name;this.savedKey=documentKey(this.editor);this.renamed=false;this.updateName();
-  window.document.title=`${this.filename} — Vectora`;this.notify(`Opened ${file.name}.`,'success');
+  this.notify(`Opened ${file.name}.`,'success');
  }
 }
