@@ -7,7 +7,7 @@ async function open(page:any){await page.getByRole('button',{name:'Layers',exact
 test('Layer types match the reference and selected geometry moves between engraving, construction and artwork',async({page})=>{
   await page.goto(DEV);await seed(page);await open(page);const panel=page.locator('#primary-layers-panel');await expect(panel.locator('[data-layer-count]')).toHaveText('4');await expect(panel.getByText('Raster Engrave')).toHaveCount(0);await expect(panel.locator('.layer-name').filter({hasText:/^Construction Path$/})).toHaveCount(1);
   const before=await page.evaluate(()=>(window as any).__vectora.selected.exportJSON());
-  for(const [name,role,color] of [['Engrave Path','engrave','#0000ff'],['Construction Path','construction','#00ffff'],['Artwork','artwork','#383838']]){
+  for(const [name,role,color] of [['Engrave Path','engrave','#0000ff'],['Construction Path','construction','#ff00ff'],['Artwork','artwork','#383838']]){
     // Keep empty expanded rows from pushing the target outside this fixed-height panel.
     const emptyLayers=panel.locator('.layer-entry').filter({has:page.locator('.layer-meta').filter({hasText:/^0 objects$/})}).locator('[data-layer-action="expand"][aria-expanded="true"]');
     while(await emptyLayers.count())await emptyLayers.first().click();
