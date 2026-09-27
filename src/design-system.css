@@ -846,6 +846,9 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
   --button-background:#E2EAF2; --button-foreground:#243B50; --button-hover-background:#D5DFEA;
   --input-prefix-background:#EAEDF1; --input-prefix-foreground:#282B31;
 }
+.grid-type-select { font-family:var(--font-sans); }
+.grid-demo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; color:var(--color-grid-minor); }
+.grid-demo .major { color:var(--color-grid-major); }
 .theme-choice { display:grid; gap:12px; padding-top:16px; }
 .theme-choice legend { padding:0 0 12px; }
 .theme-option { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--menu-border); cursor:pointer; }

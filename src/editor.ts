@@ -1,3 +1,4 @@
+import type { GridType } from './gridGeometry';
 import { applyArtworkTheme, artworkSnapshot, artworkColor } from './shapeStyles';
 import paper from 'paper';
 import {hasFilledArea} from './shapeStyles';
@@ -304,6 +305,8 @@ export class CADEditor {
     this.selectionArea=tokens.getPropertyValue('--color-selection-area').trim();
     this.grid.refreshColors();this.changed();
   }
+  setGridType(type:GridType):void {this.cancel();this.grid.setType(type);this.changed();}
+  setGridAngle(degrees:number):void {this.cancel();this.grid.setAngle(degrees);this.changed();}
   setGridSpacing(value:number):void {
     this.grid.setSpacingMM(value);this.cancel();this.changed();
   }
@@ -316,7 +319,7 @@ export class CADEditor {
   }
   private snapPoint(point:paper.Point,spacing:number|null,anchor?:paper.Point,objectSnaps=true):paper.Point {
     this.activeObjectSnap=objectSnaps&&this.snappingEnabled?findObjectSnap(this.objects,point,10/paper.view.zoom,this.objectSnapModes,anchor,this.interaction?.items??[]):null;
-    return this.activeObjectSnap?.point??(spacing===null?point:new paper.Point(snapMM(point.x,spacing),snapMM(point.y,spacing)));
+    return this.activeObjectSnap?.point??(spacing===null?point:this.grid.snap(point,spacing));
   }
   deleteSelection():void {this.cancel();if(!this.selection.length)return;const before=this.snapshot();for(const item of this.selection)item.remove();this.selected=null;this.commit(before);}
   saveText(content:string,sizeMM:number,point:paper.Point|null,uid:string|null,fontId?:string):void {

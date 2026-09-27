@@ -1,5 +1,6 @@
 import paper from 'paper';
-import { GRID_BASE_SPACING_MM, GRID_MAJOR_INTERVAL, GRID_MIN_SPACING_PX } from './units';
+import { GRID_BASE_SPACING_MM } from './units';
+import { GRID_TYPES, gridMarks, snapGridPoint, type GridType } from './gridGeometry';
 
 const STORAGE_KEY = 'vectora.gridSpacingMM';
 function validSpacing(value: number): boolean {
@@ -9,6 +10,8 @@ function validSpacing(value: number): boolean {
 export class MillimetreGrid {
   readonly layer: paper.Layer;
   spacingMM = GRID_BASE_SPACING_MM;
+  type:GridType = 'square';
+  angleDegrees = 15;
   private lastView = '';
   private colors: { minor: string; major: string };
 
@@ -16,6 +19,10 @@ export class MillimetreGrid {
     try {
       const saved = Number(localStorage.getItem(STORAGE_KEY));
       if (validSpacing(saved)) this.spacingMM = saved;
+      const type=localStorage.getItem('vectora.gridType') as GridType;
+      if(GRID_TYPES.includes(type))this.type=type;
+      const angle=Number(localStorage.getItem('vectora.gridAngle'));
+      if([5,10,15,20,30,45,60,90].includes(angle))this.angleDegrees=angle;
     } catch { /* Storage may be unavailable. */ }
     this.layer = new paper.Layer({ name: 'Millimetre grid', guide: true, locked: true, data: { role: 'grid' } });
     const tokens = getComputedStyle(document.documentElement);
@@ -37,31 +44,32 @@ export class MillimetreGrid {
     try { localStorage.setItem(STORAGE_KEY, String(value)); } catch { /* Keep the session preference. */ }
   }
 
+  setType(type:GridType):void {
+    if(!GRID_TYPES.includes(type))throw new Error('Choose a valid grid type.');
+    this.type=type;
+    try{localStorage.setItem('vectora.gridType',type);}catch{ /* Session preference. */ }
+  }
+  setAngle(degrees:number):void {
+    if(![5,10,15,20,30,45,60,90].includes(degrees))throw new Error('Choose a radial angle from the list.');
+    this.angleDegrees=degrees;
+    try{localStorage.setItem('vectora.gridAngle',String(degrees));}catch{ /* Session preference. */ }
+  }
+  snap(point:paper.Point,spacing=this.spacingMM):paper.Point {
+    const target=snapGridPoint(point,{type:this.type,spacing,angle:this.angleDegrees});
+    return new paper.Point(target.x,target.y);
+  }
   update(view: paper.View): void {
     const bounds = view.bounds;
-    const key = [bounds.x, bounds.y, bounds.width, bounds.height, view.zoom, this.spacingMM].join(',');
-    if (key === this.lastView) return;
-    this.lastView = key;
-    this.layer.removeChildren();
-    // Hide subpixel detail instead of changing the document interval or snap spacing.
-    const stride = this.spacingMM * view.zoom >= GRID_MIN_SPACING_PX ? 1 : GRID_MAJOR_INTERVAL;
-    const renderedSpacing = this.spacingMM * stride;
-    if (renderedSpacing * view.zoom < GRID_MIN_SPACING_PX) return;
-    for (const vertical of [true, false]) {
-      const start = Math.ceil((vertical ? bounds.left : bounds.top) / renderedSpacing);
-      const end = Math.floor((vertical ? bounds.right : bounds.bottom) / renderedSpacing);
-      for (let index = start; index <= end; index++) {
-        const position = index * renderedSpacing;
-        const kind = (index * stride) % GRID_MAJOR_INTERVAL === 0 ? 'major' : 'minor';
-        const from = vertical ? new paper.Point(position, bounds.top) : new paper.Point(bounds.left, position);
-        const to = vertical ? new paper.Point(position, bounds.bottom) : new paper.Point(bounds.right, position);
-        const line = new paper.Path({
-          insert: false, segments: [from, to],
-          strokeColor: this.colors[kind], strokeWidth: 1,
-          strokeScaling: false, guide: true, data: { role: 'grid' },
-        });
-        this.layer.addChild(line);
-      }
+    const key = [bounds.x,bounds.y,bounds.width,bounds.height,view.zoom,this.spacingMM,this.type,this.angleDegrees].join(',');
+    if(key===this.lastView)return;
+    this.lastView=key;this.layer.removeChildren();
+    for(const mark of gridMarks(bounds,view.zoom,{type:this.type,spacing:this.spacingMM,angle:this.angleDegrees})){
+      const style={insert:false,guide:true,data:{role:'grid'},strokeScaling:false,strokeWidth:1};
+      const color=this.colors[mark.major?'major':'minor'];
+      const path=mark.kind==='line'
+        ?new paper.Path({...style,segments:[[mark.a.x,mark.a.y],[mark.b.x,mark.b.y]],strokeColor:color})
+        :new paper.Shape.Circle({...style,center:[mark.center.x,mark.center.y],radius:mark.kind==='circle'?mark.radius:(mark.major?1.5:1)/view.zoom,...(mark.kind==='dot'?{fillColor:color}:{strokeColor:color})});
+      this.layer.addChild(path);
     }
   }
 }

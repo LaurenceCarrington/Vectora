@@ -1,3 +1,4 @@
+import { GRID_NAMES, GRID_HELP, type GridType } from './gridGeometry';
 import { initializeThemeControls } from './theme';
 import { CanvasRulers } from './rulers';
 import { alignPopoutWithTrigger } from './menuPosition';
@@ -128,11 +129,20 @@ snappingMaster.onchange=()=>editor.setSnappingEnabled(snappingMaster.checked);
 gridSnapSetting.onchange=()=>editor.setSnapToGrid(gridSnapSetting.checked);
 const gridSize=$<HTMLInputElement>('#pref-grid-size');
 gridSize.value=String(editor.grid.spacingMM);
+const gridType=$<HTMLSelectElement>('#pref-grid-type'),gridAngle=$<HTMLSelectElement>('#pref-grid-angle');
+gridType.value=editor.grid.type;gridAngle.value=String(editor.grid.angleDegrees);
+function updateGridSettings():void {
+  $('#pref-grid-angle-field').hidden=editor.grid.type!=='polar';
+  $('#pref-grid-size-help').textContent=gridSize.value!==''&&gridSize.validity.valid?GRID_HELP[editor.grid.type]:'Enter a grid size from 0.1 to 1000 mm.';
+}
+gridType.onchange=()=>{editor.setGridType(gridType.value as GridType);updateGridSettings();};
+gridAngle.onchange=()=>editor.setGridAngle(Number(gridAngle.value));
+updateGridSettings();
 gridSize.onchange=()=>{
   const valid=gridSize.value!==''&&gridSize.checkValidity();
   gridSize.setAttribute('aria-invalid',String(!valid));
   gridSize.closest('.number-shell')!.classList.toggle('is-invalid',!valid);
-  $('#pref-grid-size-help').textContent=valid?'Distance between grid lines. Major lines appear every five cells.':'Enter a grid size from 0.1 to 1000 mm.';
+  $('#pref-grid-size-help').textContent=valid?GRID_HELP[editor.grid.type]:'Enter a grid size from 0.1 to 1000 mm.';
   if(valid)editor.setGridSpacing(gridSize.valueAsNumber);
 };
 for(const input of document.querySelectorAll<HTMLInputElement>('[data-object-snap]'))input.onchange=()=>editor.setObjectSnap(input.dataset.objectSnap as ObjectSnapMode,input.checked);
@@ -218,7 +228,7 @@ function update():void {
   if(isDimensionTool(editor.tool))$('#tool-status').textContent=`${DIMENSION_NAMES[editor.tool]}${editor.tool==='dimension-aligned'?' · D':''} · ${editor.dimensions.hint}`;
   const snapButton=$('#snap-grid');snapButton.classList.toggle('selected',editor.snappingEnabled);snapButton.setAttribute('aria-pressed',String(editor.snappingEnabled));snapButton.title=`Snapping (S) · ${editor.snappingEnabled?'On':'Off'}`;
   resetZoom.textContent=`${Math.round(editor.zoom/BASE_ZOOM*100)}%`;
-  $('#grid-status').textContent=`Grid ${editor.grid.spacingMM} mm`;
+  $('#grid-status').textContent=`${editor.grid.type==='square'?'Grid':GRID_NAMES[editor.grid.type]} ${editor.grid.spacingMM} mm${editor.grid.type==='polar'?` · ${editor.grid.angleDegrees}°`:''}`;
   for(const [button,active] of [[$('[aria-label="Select"]'),editor.tool==='select'],[$('[data-shape-trigger]'),['rectangle','circle','ellipse','polygon'].includes(editor.tool)],[$('[data-line-trigger]'),editor.tool==='line'||editor.tool==='polyline'||editor.tool==='freehand'],[$('[data-arc-trigger]'),editor.tool==='arc'||editor.tool==='arc-three-point'||editor.tool==='arc-endpoints'],[$('[data-delete-trigger]'),editor.isDeleteTool],[$('[data-dimension-trigger]'),isDimensionTool(editor.tool)]] as const){button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active));}
   document.querySelectorAll<HTMLElement>('[data-shape]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.shape?.toLowerCase()===editor.tool)));
   document.querySelectorAll<HTMLElement>('[data-line-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.lineTool===editor.tool)));
