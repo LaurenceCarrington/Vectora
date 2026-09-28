@@ -2,7 +2,7 @@
 
 Vectora is a browser-based 2D CAD and vector drawing app for creating precise artwork, sticker outlines, cut paths and engraving designs. Work in millimetres on a zoomable grid, with snapping and exact size and position controls.
 
-Draw rectangles, circles, ellipses, polygons, stars, lines, polylines, arcs and freehand curves. Move, resize, rotate, flip and duplicate objects, or edit individual nodes and curve handles to refine their shape. Round selected corners with an exact fillet radius or bevel them with a chamfer distance, with a live preview before applying. Join objects, close open paths, separate combined outlines and remove individual path sections. Repeat selected objects in rectangular or circular patterns with exact spacing, centre and angle controls, a live preview and individually editable copies.
+Draw rectangles, circles, ellipses, polygons, stars, hearts, lines, polylines, arcs and freehand curves. Move, resize, rotate, flip and duplicate objects, or edit individual nodes and curve handles to refine their shape. Round selected corners with an exact fillet radius or bevel them with a chamfer distance, with a live preview before applying. Join objects, close open paths, separate combined outlines and remove individual path sections. Repeat selected objects in rectangular or circular patterns with exact spacing, centre and angle controls, a live preview and individually editable copies.
 
 Type directly on the canvas, choose from a range of fonts, and convert text into editable paths with separate letter contours. Turn images into vectors using outline, centre-line or filled tracing, with a live preview and adjustable controls.
 

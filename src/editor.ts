@@ -4,6 +4,7 @@ import paper from 'paper';
 import {hasFilledArea} from './shapeStyles';
 import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
+import { createHeart } from './heart';
 import { ObjectPatterns } from './objectPatterns';
 import { NodeEditing } from './nodeEditing';
 import { DimensionTools } from './dimensionTools';
@@ -941,7 +942,7 @@ export class CADEditor {
   }
   private drawShape(state:Interaction,point:paper.Point,shift:boolean):void {
     state.drawPoint=point;state.shift=shift;state.item?.remove();
-    const cornerTool=this.tool==='rectangle'||this.tool==='ellipse';
+    const cornerTool=this.tool==='rectangle'||this.tool==='ellipse'||this.tool==='heart';
     const target=this.tool==='line'?point:this.snapPoint(point,cornerTool?state.snapSpacing:null,undefined,!shift);
     let delta=target.subtract(state.start);
     if(shift&&cornerTool){const size=Math.max(Math.abs(delta.x),Math.abs(delta.y));delta=new paper.Point(Math.sign(delta.x||1)*size,Math.sign(delta.y||1)*size);}
@@ -955,6 +956,7 @@ export class CADEditor {
     }
     else if(this.tool==='line')item=new paper.Path({segments:[state.start,this.segmentEnd(state.start,point,state.snapSpacing,shift)],insert:false,closed:false});
     else if(this.tool==='rectangle')item=new paper.Path.Rectangle({rectangle:bounds,insert:false});
+    else if(this.tool==='heart')item=createHeart(bounds);
     else if(this.tool==='ellipse')item=new paper.Path.Ellipse({rectangle:bounds,insert:false});
     else if(this.tool==='polygon'||this.tool==='star'){
       let angle=Math.atan2(delta.y,delta.x);
