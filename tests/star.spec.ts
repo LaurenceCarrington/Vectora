@@ -1,0 +1,19 @@
+import {test,expect} from '@playwright/test';
+const DEV='http://127.0.0.1:5174';
+test('Stars preserve alternating radii, snapping, live point count, history and document/export geometry',async({page})=>{
+ await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
+ await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.setActiveLayer('cutline');p.view.zoom=5;p.view.center=new p.Point(0,0);});
+ await page.locator('[data-shape-trigger]').click();await page.locator('[data-shape="Star"]').click();await expect(page.locator('[data-shape="Star"]')).toHaveAttribute('aria-checked','true');await expect(page.locator('#tool-status')).toContainText('5 points');
+ const [a,b]=await page.evaluate(()=>{const p=(window as any).__paper;return [[1,1],[29,6]].map(point=>{const q=p.view.projectToView(new p.Point(point));return {x:q.x,y:q.y};});});
+ await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(b.x,b.y,{steps:5});await page.keyboard.press('ArrowUp');await page.keyboard.down('Shift');await page.mouse.up();await page.keyboard.up('Shift');
+ const data=await page.evaluate(async()=>{const e=(window as any).__vectora,s=e.selected,{encodeDocument,decodeDocument}=await import('/src/documentFormat.ts'),{exportSVG}=await import('/src/exportSVG.ts'),{exportDXF}=await import('/src/exportDXF.ts');const result={name:s.data.name,fill:s.fillColor,closed:s.closed,role:s.data.role,stroke:s.strokeColor.toCSS(true),points:s.segments.map((v:any)=>[v.point.x,v.point.y]),svg:exportSVG(e.objects),dxf:exportDXF(e.objects),saved:encodeDocument(e)};e.undo();const undo=e.objects.length;e.redo();const redo=e.selected.segments.length;const doc=await decodeDocument(result.saved);e.loadDocument(doc.snapshot,doc.view);return {...result,undo,redo,loaded:e.objects[0].segments.length};});
+ expect(data).toMatchObject({name:'Star',fill:null,closed:true,role:'cutline',stroke:'#ff0000',undo:0,redo:12,loaded:12});expect(data.points).toHaveLength(12);
+ data.points.forEach(([x,y]:number[],i:number)=>expect(Math.hypot(x,y)).toBeCloseTo(i%2?12:30,7));expect(Math.atan2(data.points[0][1],data.points[0][0])*180/Math.PI).toBeCloseTo(15,7);expect(data.svg).toContain('<path');expect(data.dxf).toContain('LWPOLYLINE');await expect(page.locator('#properties-panel')).toBeHidden();
+ await page.locator('#cad-canvas').focus();await page.keyboard.press('Shift+y');expect(await page.evaluate(()=>(window as any).__vectora.tool)).toBe('star');await page.mouse.move(330,380);await page.mouse.down();await page.mouse.move(440,480);await page.keyboard.press('Escape');await page.mouse.up();expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);
+});
+
+test('Star is available in production, search and the shared design reference',async({page})=>{
+ await page.goto('http://127.0.0.1:4173');await page.locator('[data-shape-trigger]').click();await page.locator('[data-shape="Star"]').click();await page.mouse.move(490,420);await page.mouse.down();await page.mouse.move(490,290,{steps:5});await page.mouse.up();await expect(page.locator('#selection-menu')).toBeVisible();await expect(page.locator('#tool-status')).toContainText('Star');await page.screenshot({path:'test-results/star-production.png',scale:'css'});
+ await page.goto(DEV);await page.locator('[data-tool-search]').click();await page.locator('#tool-search-dialog input').fill('star');await page.locator('.tool-search-result').filter({hasText:'Star'}).first().click();expect(await page.evaluate(()=>(window as any).__vectora.tool)).toBe('star');
+ await page.goto(DEV+'/reference/design-system.html');await page.locator('[data-shape-trigger]').first().click();await page.locator('#primary-shapes-menu [data-shape="Star"]').click();await expect(page.locator('#primary-shapes-menu [data-shape="Star"]')).toHaveAttribute('aria-checked','true');
+});

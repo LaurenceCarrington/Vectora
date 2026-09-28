@@ -68,6 +68,7 @@ export class CADEditor {
   readonly objectSnapModes:SnapModes={intersection:false,nearest:false,centre:false,tangent:false,perpendicular:false};
   activeObjectSnap:ObjectSnap|null=null;
   polygonSides=6;
+  starPoints=5;
   onChange:()=>void=()=>{};
   onDocumentChange:()=>void=()=>{};
   get hasPendingGesture():boolean {return !!this.interaction||!!this.polyline||!!this.threePointArc||this.nodes.dragging||this.dimensions.active;}
@@ -343,6 +344,13 @@ export class CADEditor {
     this.polygonSides=sides;
     const state=this.interaction;
     if(this.tool==='polygon'&&state?.kind==='draw'&&state.drawPoint)this.drawShape(state,state.drawPoint,state.shift??false);
+    this.changed();
+  }
+  setStarPoints(points:number):void {
+    if(!Number.isInteger(points)||points<3||points>64)throw new Error('Enter a whole number of star points from 3 to 64.');
+    this.starPoints=points;
+    const state=this.interaction;
+    if(this.tool==='star'&&state?.kind==='draw'&&state.drawPoint)this.drawShape(state,state.drawPoint,state.shift??false);
     this.changed();
   }
   setSnappingEnabled(enabled:boolean):void {
@@ -940,12 +948,13 @@ export class CADEditor {
     else if(this.tool==='line')item=new paper.Path({segments:[state.start,this.segmentEnd(state.start,point,state.snapSpacing,shift)],insert:false,closed:false});
     else if(this.tool==='rectangle')item=new paper.Path.Rectangle({rectangle:bounds,insert:false});
     else if(this.tool==='ellipse')item=new paper.Path.Ellipse({rectangle:bounds,insert:false});
-    else if(this.tool==='polygon'){
+    else if(this.tool==='polygon'||this.tool==='star'){
       let angle=Math.atan2(delta.y,delta.x);
       if(shift)angle=Math.round(angle/(Math.PI/12))*(Math.PI/12);
-      const segments=Array.from({length:this.polygonSides},(_,i)=>{
-        const theta=angle+i*2*Math.PI/this.polygonSides;
-        return state.start.add(new paper.Point(Math.cos(theta)*radius,Math.sin(theta)*radius));
+      const star=this.tool==='star',vertices=star?this.starPoints*2:this.polygonSides;
+      const segments=Array.from({length:vertices},(_,i)=>{
+        const theta=angle+i*2*Math.PI/vertices,r=radius*(star&&i%2?0.4:1);
+        return state.start.add(new paper.Point(Math.cos(theta)*r,Math.sin(theta)*r));
       });
       item=new paper.Path({segments,closed:true,insert:false});
     }else item=new paper.Path.Circle({center:state.start,radius,insert:false});
@@ -996,13 +1005,14 @@ export class CADEditor {
     if(key==='delete'||key==='backspace'){event.preventDefault();if(this.tool==='nodes')this.nodes.action('delete');else this.deleteSelection();}
     if(key==='s'&&!event.repeat){event.preventDefault();this.setSnappingEnabled(!this.snappingEnabled);}
     if(this.tool==='polygon'&&event.target===this.canvas&&(key==='arrowup'||key==='arrowdown')){event.preventDefault();this.setPolygonSides(Math.max(3,Math.min(64,this.polygonSides+(key==='arrowup'?1:-1))));return;}
+    if(this.tool==='star'&&event.target===this.canvas&&(key==='arrowup'||key==='arrowdown')){event.preventDefault();this.setStarPoints(Math.max(3,Math.min(64,this.starPoints+(key==='arrowup'?1:-1))));return;}
     if(key==='f')this.setTool('freehand');
     if(key==='b')this.setTool('fill');
     if(key==='t')this.setTool('text');
     if(key==='n')this.setTool('nodes');
     if(key==='d'&&!event.shiftKey)this.setTool('dimension-aligned');
     if(key==='k')this.setTool(event.shiftKey?'line-delete':'dissect-delete');
-    if(key==='v')this.setTool('select');if(key==='r')this.setTool('rectangle');if(key==='c')this.setTool('circle');if(key==='e')this.setTool('ellipse');if(key==='y')this.setTool('polygon');if(key==='l')this.setTool('line');if(key==='p')this.setTool('polyline');if(key==='a')this.setTool(event.shiftKey?'arc-three-point':'arc');
+    if(key==='v')this.setTool('select');if(key==='r')this.setTool('rectangle');if(key==='c')this.setTool('circle');if(key==='e')this.setTool('ellipse');if(key==='y')this.setTool(event.shiftKey?'star':'polygon');if(key==='l')this.setTool('line');if(key==='p')this.setTool('polyline');if(key==='a')this.setTool(event.shiftKey?'arc-three-point':'arc');
   };
   private updateCursor():void {this.canvas.style.cursor=this.interaction?.kind==='pan'||this.interaction?.kind==='rotate'?'grabbing':this.space?'grab':this.tool==='select'||this.tool==='nodes'?'default':this.tool==='text'?'text':'crosshair';}
 }
