@@ -176,6 +176,7 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
   if(button.dataset.fileAction){const action=button.dataset.fileAction;
     if(action==='New document'){button.tabIndex=0;button.onclick=()=>{closeMenus();void documentFiles.newDocument();};}
     else if(action==='Save changes'||action==='Save as…'||action==='Open file…'){button.tabIndex=0;button.onclick=()=>{closeMenus();void(action==='Open file…'?documentFiles.open():documentFiles.save(action==='Save as…'));};}
+    else if(action==='Export PDF'||action==='Export PNG'){button.tabIndex=0;button.onclick=()=>void exportDrawingImage(action==='Export PDF'?'pdf':'png');}
     else if(action==='Export SVG'){button.tabIndex=0;button.onclick=exportDrawingSVG;}else if(action==='Export DXF'){button.tabIndex=0;button.onclick=()=>{closeMenus();setPanel(props,true,true);$('#export-dxf').focus();};}else disable(button);}
 }
 function disable(button:HTMLButtonElement):void {button.disabled=true;button.title=(button.title||button.textContent?.trim()||'This control')+' — not yet available';}
@@ -207,6 +208,18 @@ $('#arc-flip').onclick=()=>attempt(()=>editor.setArcProperty('sweep',-(editor.se
 $('#create-outline').onclick=()=>attempt(()=>{editor.outline($<HTMLInputElement>('#outline-distance').valueAsNumber);notify('Sticker outline created. The source shape is unchanged.','success');});
 $('#export-dxf').onclick=()=>attempt(()=>{downloadDXF(exportDXF(editor.objects,$<HTMLInputElement>('#include-artwork').checked));notify('DXF downloaded in millimetres.','success');});
 function exportDrawingSVG():void {closeMenus();attempt(()=>{downloadSVG(exportSVG(editor.objects));notify('SVG downloaded in millimetres.','success');});}
+let imageExportPending=false;
+async function exportDrawingImage(format:'pdf'|'png'):Promise<void> {
+ closeMenus();if(imageExportPending)return;if(!inlineText.finish(false,false))return;
+ imageExportPending=true;
+ const buttons=[...document.querySelectorAll<HTMLButtonElement>('[data-file-action="Export PDF"],[data-file-action="Export PNG"]')];buttons.forEach(button=>{button.disabled=true;button.setAttribute('aria-busy','true');});
+ try{
+  const contents=exportSVG(editor.objects),{downloadImage,exportPNG}=await import('./exportImage');
+  const blob=format==='png'?await exportPNG(contents):await (await import('./exportPDF')).exportPDF(contents);
+  downloadImage(blob,format);notify(format==='png'?'PNG prepared at 300 DPI with a transparent background.':'PDF prepared at actual size in millimetres.','success');
+ }catch(error){notify(error instanceof Error?error.message:'The export failed. Try again.',true);}
+ finally{imageExportPending=false;buttons.forEach(button=>{button.disabled=false;button.removeAttribute('aria-busy');});}
+}
 function update():void {
   rulers.update(paper.view.bounds,paper.view.zoom);
   updatePropertiesContent();

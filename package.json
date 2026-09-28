@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "clipper2-wasm": "0.4.0",
+    "jspdf": "^4.2.1",
     "opentype.js": "^2.0.0",
-    "paper": "0.12.18"
+    "paper": "0.12.18",
+    "svg2pdf.js": "^2.8.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
