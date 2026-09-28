@@ -11,7 +11,7 @@ test('Search discovers every drawing tool and aliases, and keyboard activation c
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);
  const {dialog,input}=await open(page);
  const labels=await dialog.getByRole('option').allTextContents();
- for(const name of ['Rectangle','Circle','Ellipse','Polygon','Line','Polyline','Freehand','Centre arc','Three-point arc','Start–end arc','Aligned dimension','Linear dimension','Radial dimension','Diameter dimension','Leader callout','Node editing','Text','Colour fill','Raster to vector','Preview','Copy','Paste','Duplicate','Close path','Join','Explode','Convert to path','Sticker outline','Export SVG','Export DXF','Save','Layers','Properties']){
+ for(const name of ['Rectangle','Circle','Ellipse','Polygon','Line','Polyline','Freehand','Centre arc','Three-point arc','Start–end arc','Aligned dimension','Linear dimension','Radial dimension','Diameter dimension','Leader callout','Node editing','Text','Colour fill','Raster to vector','Copy','Paste','Duplicate','Close path','Join','Explode','Convert to path','Sticker outline','Export SVG','Export DXF','Save','Layers','Properties']){
   expect(labels.some(label=>label.startsWith(name)),`Search includes ${name}`).toBe(true);
  }
  expect(labels.some(label=>label.startsWith('Nest'))).toBe(false);

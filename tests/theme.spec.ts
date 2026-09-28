@@ -35,7 +35,7 @@ test('Light mode themes the workspace and neutral artwork without changing docum
   expect(errors).toEqual([]);
 });
 
-test('Light mode works in the reference, narrow layouts and production preview',async({page})=>{
+test('Light mode works in the reference, narrow layouts and production build',async({page})=>{
   for(const url of [DEV+'/reference/design-system.html','http://127.0.0.1:4173']){
     await page.goto(url);await appearance(page);await page.locator('[name="appearance-theme"][value="light"]').check();
     await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(245, 246, 248)');
@@ -43,6 +43,4 @@ test('Light mode works in the reference, narrow layouts and production preview',
     expect(await page.locator('#preferences-shell').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     await page.keyboard.press('Escape');await page.setViewportSize({width:1280,height:900});
   }
-  await page.getByRole('button',{name:'Preview',exact:true}).click();
-  await expect(page.locator('.preview3d-view')).toHaveCSS('background-color','rgb(238, 241, 245)');
 });

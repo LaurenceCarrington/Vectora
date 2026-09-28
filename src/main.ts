@@ -40,15 +40,6 @@ const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor);
 const selectionContextMenu=new SelectionContextMenu(editor,()=>closeMenus());
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
 const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>inlineText.finish(false,false),notify);
-const previewTrigger=$<HTMLButtonElement>('[data-preview-open]');
-let preview:import('./preview3D').Preview3D|undefined,previewLoading=false;
-previewTrigger.addEventListener('click',async()=>{
-  if(previewLoading||!inlineText.finish(false,false))return;
-  editor.cancel();closeMenus();previewLoading=true;
-  try{const {Preview3D}=await import('./preview3D');preview??=new Preview3D($<HTMLDialogElement>('#preview3d-dialog'),editor,previewTrigger);if(import.meta.env.MODE==='test')(window as any).__preview3D=preview;await preview.open();}
-  catch(error){notify(`Could not open preview: ${error instanceof Error?error.message:String(error)}`,true);}
-  finally{previewLoading=false;}
-});
 const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElement>('#text-property-size');
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
@@ -291,7 +282,6 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['fill','Colour fill','[data-fill-trigger]','color paint bucket enclosed area no fill remove fill','B'],
   ['raster','Raster to vector','[data-raster-open]','image trace outline center centre line bitmap fill png jpg'],
   ['snap','Snapping','[data-snap-grid]','magnet snap on off','S'],
-  ['preview','Preview','[data-preview-open]','3d material thickness cut engrave orbit pan zoom'],
   ['settings','Settings','[data-open-preferences]','preferences'],
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
   ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],

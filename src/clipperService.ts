@@ -47,16 +47,3 @@ export function createStickerOutline(source: Shape, offsetDistanceMM: number): S
   result.data={role:'cutline',name:'Sticker outline',offsetDistanceMM};
   return result;
 }
-
-/** Resolve crossing and nested preview cut loops with even–odd material occupancy. */
-export function previewCutContours(contours:Contour[]):Contour[] {
-  if(!module)throw new Error('The outline engine is not ready.');
-  const engine=module,input=new engine.PathsD();let output:PathsD|undefined;
-  try{
-    for(const contour of contours){const path=engine.MakePathD(contour.points.flatMap(p=>[p.x,p.y]));try{input.push_back(path);}finally{path.delete();}}
-    output=engine.UnionSelfD(input,engine.FillRule.EvenOdd,CLIPPER_PRECISION);
-    const result:Contour[]=[];
-    for(let i=0;i<output.size();i++){const path=output.get(i);try{const points=[];for(let j=0;j<path.size();j++){const p=path.get(j);try{points.push({x:p.x,y:p.y});}finally{p.delete();}}if(points.length>=3)result.push({closed:true,points});}finally{path.delete();}}
-    return result;
-  }finally{output?.delete();input.delete();}
-}

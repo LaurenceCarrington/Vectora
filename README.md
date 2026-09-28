@@ -11,5 +11,3 @@ Apply colour to enclosed areas, including regions formed by overlapping shapes, 
 Add dimensions and callouts, generate offset sticker outlines, and export cut and engraving paths as DXF files, with optional artwork included. Export visible artwork as SVG with vector curves, colours, fills and millimetre dimensions. Undo and redo let you revise your work as you draw.
 
 Save editable projects as `.vectora` files and reopen them with their layers, text and geometry intact. Save As creates a separate file so you can keep different versions of a design.
-
-Preview cut-through pieces and surface engraving in 3D on plywood, MDF, acrylic, aluminium or leather. Adjust material thickness, rotate the design and inspect it from above without changing the drawing.
