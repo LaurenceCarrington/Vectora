@@ -14,7 +14,7 @@ export function cleanVertices(points: Vertex[], closed: boolean): Vertex[] {
   if (closed && result.length > 1 && distance(result[0],result[result.length-1]) <= EPS) result.pop();
   return result;
 }
-export function flattenInDocument(source: Shape): Contour[] {
+export function flattenInDocument(source: Shape, toleranceMM=geometrySettings.flattenToleranceMM): Contour[] {
   return pathsOf(source).map(path => {
     // Transform points AND Bézier handles before flattening: tolerance is in document mm,
     // including non-uniform ancestor transforms, never the Paper view matrix.
@@ -26,7 +26,7 @@ export function flattenInDocument(source: Shape): Contour[] {
           path.localToGlobal(segment.point.add(segment.handleIn)).subtract(point),
           path.localToGlobal(segment.point.add(segment.handleOut)).subtract(point)));
       }
-      copy.flatten(geometrySettings.flattenToleranceMM);
+      copy.flatten(toleranceMM);
       return {closed:copy.closed, points:cleanVertices(copy.segments.map(s=>s.point),copy.closed)};
     } finally { copy.remove(); }
   });

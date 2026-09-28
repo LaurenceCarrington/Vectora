@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "clipper2-wasm": "0.4.0",
+    "gifenc": "^1.0.3",
     "opentype.js": "^2.0.0",
     "paper": "0.12.18",
     "three": "^0.186.1"
