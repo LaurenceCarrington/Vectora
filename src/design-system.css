@@ -917,7 +917,8 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .preview-colour { flex-direction:row; align-items:center; justify-content:space-between; }
 .preview-colour input { width:48px; height:28px; padding:2px; border:1px solid var(--menu-border); background:transparent; }
 .preview-view-tools { position:absolute; left:12px; top:12px; right:12px; display:flex; flex-wrap:wrap; gap:4px; pointer-events:none; }
-.preview-view-tools .button { pointer-events:auto; min-height:28px; padding:4px 8px; font-size:11px; background:var(--menu-background); color:var(--menu-foreground); border:1px solid var(--menu-border); }
+.preview-view-tools .button { pointer-events:auto; width:32px; height:32px; min-height:32px; padding:5px; flex-shrink:0; background:var(--menu-background); color:var(--menu-foreground); border:1px solid var(--menu-border); }
+.preview-view-tools .button svg { width:20px; height:20px; flex-shrink:0; }
 .preview-view-tools .button:hover { background:var(--menu-hover); }
 .preview3d-navigation { font-size:10px; bottom:10px; width:max-content; max-width:calc(100% - 24px); margin:0 auto; padding:4px 8px; background:var(--menu-background); color:var(--menu-muted); }
 .preview-dimension-label { position:absolute; bottom:34px; left:12px; padding:5px 8px; color:var(--menu-foreground); background:var(--menu-background); border:1px solid var(--menu-border); font-size:11px; pointer-events:none; }
