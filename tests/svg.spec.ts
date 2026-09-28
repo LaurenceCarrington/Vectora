@@ -39,5 +39,5 @@ test('File menu and keyboard export downloadable SVG; empty drawings show the st
   if(method==='menu'){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export SVG',exact:true}).click();}else{await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+e');}
   const download=await downloadPromise;expect(download.suggestedFilename()).toBe('vectora.svg');const text=await readFile((await download.path())!,'utf8');expect(text).toContain('viewBox=');expect(text).toContain('mm"');expect(text).not.toContain('Editor overlays');
  }
- await expect(page.locator('#properties-panel')).toBeHidden();await expect(page.locator('.toast-success')).toContainText('SVG downloaded in millimetres.');
+ await expect(page.locator('#properties-panel')).toBeHidden();await expect(page.locator('.toast-success').first()).toContainText('SVG downloaded in millimetres.');
 });

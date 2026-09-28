@@ -28,7 +28,7 @@ const resetZoom=$<HTMLButtonElement>('[data-reset-zoom]');
 resetZoom.onclick=()=>editor.resetZoom();
 resetZoom.addEventListener('keydown',event=>event.stopPropagation());
 let ready=false;
-const alerts=new Alerts($('#toast-stack'),editor.canvas);
+const alerts=new Alerts($('#toast-stack'),editor.canvas,()=>closeMenus());
 function notify(message:string,kind:boolean|AlertKind=false):void {
   alerts.show(message,typeof kind==='boolean'?(kind?'error':'information'):kind);
 }
@@ -107,7 +107,7 @@ layersButton.onclick=()=>setPanel(layers,layers.hidden);
 $('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
 const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu');
 const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')]] as const;
-function closeMenus():void {for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}
+function closeMenus():void {alerts.close();for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}
 function toggleMenu(menu:HTMLElement,trigger:HTMLElement):void {const open=menu.hidden;closeMenus();menu.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);(menu.querySelector<HTMLButtonElement>('button:not(:disabled)')??menu).focus({preventScroll:true});}}
 window.addEventListener('resize',()=>{for(const [menu,trigger] of menus)if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);});
 $('[data-shape-trigger]').onclick=()=>toggleMenu(shapeMenu,$('[data-shape-trigger]'));
@@ -276,7 +276,7 @@ document.addEventListener('keydown',e=>{
 const searchTools:SearchTool[]=[];
 function searchButton(id:string,label:string,group:string,selector:string,keywords='',shortcut='',reason='Unavailable for the current selection',before?:()=>void):void {
   const button=$<HTMLButtonElement>(selector),icon=button.querySelector('use')?.getAttribute('href')?.replace('#i-','')??'select';
-  searchTools.push({id,label,group,keywords,shortcut,icon,unavailable:()=>button.disabled?reason:undefined,run:()=>{before?.();button.click();if(!document.querySelector('dialog[open]')&&!document.activeElement?.closest('.menu-surface,input,select,textarea'))editor.canvas.focus({preventScroll:true});}});
+  searchTools.push({id,label,group,keywords,shortcut,icon,unavailable:()=>button.disabled?reason:undefined,run:()=>{before?.();button.click();if(!document.querySelector('dialog[open]')&&!document.activeElement?.closest('.menu-surface,.notifications-panel,input,select,textarea'))editor.canvas.focus({preventScroll:true});}});
 }
 for(const [attribute,group] of [['data-shape','Shapes'],['data-line-tool','Lines'],['data-arc-tool','Arcs'],['data-dimension-tool','Dimensions and callouts'],['data-delete-tool','Delete tools'],['data-file-action','File']] as const){
   document.querySelectorAll<HTMLButtonElement>(`[${attribute}]`).forEach(button=>{
@@ -311,6 +311,7 @@ for(const [id,label,selector,keywords,reason] of [
  searchButton(id,label,'Selection',selector,keywords,'',reason);
  if(id==='edit-text')searchTools.at(-1)!.unavailable=()=>editor.selected?.data.text&&!$<HTMLButtonElement>('#edit-text').disabled?undefined:reason;
 }
+searchButton('notifications','Notifications','Application','[data-notifications-trigger]','alerts messages history');
 const needsSelection=()=>editor.canCopySelection?undefined:'Select one or more objects';
 for(const [id,label,icon,field,keywords] of [['move','Move / position','select','x','translate coordinates'],['resize','Resize','width','width','scale size width height'],['rotate','Rotate','rotate','rotation','angle rotation']] as const)searchTools.push({id,label,group:'Properties',icon,keywords,unavailable:()=>editor.selectedItems.length?undefined:'Select one or more objects',run:()=>{setPanel(props,true);$<HTMLInputElement>(`#field-${field}`).focus();}});
 for(const [id,label,selector,keywords] of [['arc-semicircle','Semicircle 180°','#arc-semicircle','arc half circle'],['arc-flip','Flip arc','#arc-flip','reverse arc sweep']] as const){

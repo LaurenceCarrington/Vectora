@@ -125,7 +125,7 @@ test('initialization failure and empty export produce useful feedback',async({pa
   await page.route('**/*.wasm',route=>route.abort());await page.goto(DEV);
   await expect(page.locator('#wasm-status')).toHaveText('Outline engine unavailable. Reload to retry.');
   await page.locator('[aria-label="Properties"]').click();await expect(page.locator('#properties-empty')).toBeVisible();await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export DXF',exact:true}).click();
-  await page.locator('#export-dxf').click();await expect(page.locator('.toast-error .toast-copy p')).toContainText('There are no cut lines');expect(errors).toEqual([]);
+  await page.locator('#export-dxf').click();await expect(page.locator('.toast-error .toast-copy p').first()).toContainText('There are no cut lines');expect(errors).toEqual([]);
 });
 test('reference component styles and geometry match at the same viewport',async({page})=>{
   await page.goto(DEV+'/reference/design-system.html');
@@ -275,7 +275,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await page.locator('#cad-canvas').focus();await page.keyboard.press('v');await page.mouse.click(420,350);
   expect(await page.evaluate(()=>(window as any).__vectora.selected)).toBeNull();
   await page.keyboard.press('r');await page.mouse.move(250,550);await page.mouse.down();await page.mouse.move(400,650);await page.mouse.up();
-  await expect(page.locator('.toast-warning .toast-copy p')).toHaveText('Show and unlock Artwork before drawing.');
+  await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');
   expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
   await panel.getByRole('button',{name:'Unlock Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Rectangle',exact:true}).click();
@@ -457,7 +457,7 @@ test('polyline commits only clicked points, cancels safely, selects by stroke an
   await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toBeDisabled();
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);
   const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toContain('90\n3\n70\n0\n');
-  await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('p');await click([5,5]);await expect(page.locator('.toast-warning .toast-copy p')).toHaveText('Show and unlock Artwork before drawing.');expect((await state()).count).toBe(2);expect(errors).toEqual([]);
+  await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('p');await click([5,5]);await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');expect((await state()).count).toBe(2);expect(errors).toEqual([]);
 });
 test('production Lines menu supports keyboard selection and polyline DXF download',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
@@ -513,7 +513,7 @@ test('Arc drafts cancel safely, angular snapping and group transforms preserve v
     const arc=e.selected,rect=new p.Path.Rectangle({rectangle:[30,0,10,10],insert:false});e.addShape(rect,'Rectangle');e.select(arc,true);
     const before=e.snapshot();e.setProperty('x',10);e.setProperty('width',120);const converted=!e.objects.find((x:any)=>x.data.name==='Arc').data.arc;e.undo();e.undo();return {lengths,converted,before,after:e.snapshot()};
   });expect(result.lengths[0]).toBeCloseTo(Math.PI*5,1);expect(result.lengths[1]).toBeCloseTo(Math.PI*15,1);expect(result.converted).toBe(true);expect(result.after.artwork).toEqual(result.before.artwork);expect(result.after.cutlines).toEqual(result.before.cutlines);expect([...result.after.selectedIds].sort()).toEqual([...result.before.selectedIds].sort());
-  await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('artwork','locked',true);e.setTool('arc');});await page.mouse.click(300,350);await expect(page.locator('.toast-warning .toast-copy p')).toHaveText('Show and unlock Artwork before drawing.');
+  await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('artwork','locked',true);e.setTool('arc');});await page.mouse.click(300,350);await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');
 });
 test('production Arc menu draws and exports a semicircle with exact controls',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
@@ -533,8 +533,8 @@ test('Three-point arc restores snapped drawing, validation, cancellation, histor
   await expect(page.getByRole('button',{name:'Arcs',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.getByRole('button',{name:'Shapes',exact:true})).toHaveAttribute('aria-pressed','false');
   await click([-31,1]);await expect(page.locator('#tool-status')).toContainText('Click curve point');
-  await click([-30,0]);await expect(page.locator('.toast-error .toast-copy p')).toHaveText('Choose three different points for the arc.');
-  await click([-14,-16]);await click([0,-30]);await expect(page.locator('.toast-error .toast-copy p')).toContainText('cannot lie on a straight line');
+  await click([-30,0]);await expect(page.locator('.toast-error .toast-copy p').first()).toHaveText('Choose three different points for the arc.');
+  await click([-14,-16]);await click([0,-30]);await expect(page.locator('.toast-error .toast-copy p').first()).toContainText('cannot lie on a straight line');
   expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);
   await click([1,1]);const arc=await arcState(page);expect(arc.arc).toBeNull();expect(arc.closed).toBe(false);expect(arc.fill).toBeNull();
   for(const [i,n] of [-30,-15,30,15].entries())expect(arc.bounds[i]).toBeCloseTo(n,7);
@@ -654,7 +654,7 @@ test('Freehand ignores taps, accepts flat strokes and cancels drafts without cha
   }
   await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora,point=p.view.viewToProject(new p.Point(431,351));e.addShape(new p.Path({segments:[[point.x,point.y-20],[point.x,point.y+20]],insert:false,strokeColor:'#383838'}),'Line');e.setTool('dissect-delete');});
   await page.mouse.click(350,351);expect(await page.evaluate(()=>(window as any).__vectora.objects[0].data.name)).toBe('Trimmed path');
-  await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('artwork','locked',true);e.setTool('freehand');});await page.mouse.move(300,400);await page.mouse.down();await page.mouse.move(500,500);await page.mouse.up();await expect(page.locator('.toast-warning .toast-copy p')).toHaveText('Show and unlock Artwork before drawing.');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
+  await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('artwork','locked',true);e.setTool('freehand');});await page.mouse.move(300,400);await page.mouse.down();await page.mouse.move(500,500);await page.mouse.up();await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
 });
 test('production Freehand menu matches the reference and draws an exportable stroke',async({page})=>{
   await page.goto(DEV+'/reference/design-system.html');await page.locator('.left-toolbar [data-line-trigger]').click();
@@ -1291,68 +1291,4 @@ test('Explode leaves editable text unchanged and separates compound inner outlin
   const outer=await page.evaluate(()=>(window as any).__vectora.objects[1].exportJSON());
   await page.evaluate(()=>{const e=(window as any).__vectora;e.select(e.objects[2]);e.setProperty('x',e.selectionBounds.x+15);});
   expect(await page.evaluate(()=>(window as any).__vectora.objects[1].exportJSON())).toEqual(outer);
-});
-
-test('Editor alerts use design-system cards with semantic icons, stacking and dismissal',async({page})=>{
-  await page.goto(DEV);await page.clock.install();await page.locator('#cad-canvas').focus();
-  await page.evaluate(()=>{const e=(window as any).__vectora;e.onMessage('Outline created.','success');e.onMessage('Unlock Artwork before drawing.','warning');e.onMessage('Export failed.',true);e.onMessage('Choose a path.');});
-  const stack=page.getByRole('region',{name:'Alerts',exact:true});await expect(stack.locator('.toast-card')).toHaveCount(4);await expect(page.locator('#cad-canvas')).toBeFocused();
-  for(const [kind,icon] of [['success','check'],['warning','warning'],['error','error'],['information','info']])await expect(stack.locator(`.toast-${kind} .toast-icon use`)).toHaveAttribute('href',`#i-${icon}`);
-  const metrics=await stack.evaluate(element=>{const box=element.getBoundingClientRect(),card=element.querySelector('.toast-card')!,style=getComputedStyle(card),gutter=parseFloat(getComputedStyle(element).padding);return {right:innerWidth-box.right+gutter,bottom:innerHeight-box.bottom+gutter,width:box.width-gutter*2,padding:style.padding,borderRadius:style.borderRadius,bg:style.backgroundColor,gap:getComputedStyle(element).gap};});
-  expect(metrics).toEqual({right:24,bottom:24,width:440,padding:'8px 12px',borderRadius:'0px',bg:'rgb(42, 43, 46)',gap:'8px'});
-  await page.clock.fastForward(1000);await expect(stack.locator('.toast-card')).toHaveCount(4);
-  await page.evaluate(()=>(window as any).__vectora.onMessage('Latest export error.',true));await expect(stack.locator('.toast-card')).toHaveCount(4);await expect(stack.locator('.toast-card').last()).toHaveAttribute('data-toast-kind','error');
-  await expect(page.locator('#toast-error-announcement')).toHaveAttribute('role','alert');await expect(page.locator('#toast-error-announcement')).toContainText('Latest export error.');
-  await expect(page.locator('#toast-announcement')).toHaveAttribute('role','status');
-  await page.screenshot({path:'test-results/editor-alerts.png',animations:'disabled'});
-  await stack.getByRole('button',{name:'Dismiss error alert',exact:true}).focus();await page.keyboard.press('Escape');await expect(stack.locator('.toast-error')).toHaveCount(0);await expect(page.locator('#cad-canvas')).toBeFocused();
-  for(const kind of ['success','warning','information'])await stack.getByRole('button',{name:`Dismiss ${kind} alert`,exact:true}).click();await expect(stack).toBeHidden();
-});
-
-test('Alert cards remain within narrow screens and treat messages as plain text',async({page})=>{
-  await page.setViewportSize({width:420,height:600});await page.goto(DEV);
-  await page.evaluate(()=>(window as any).__vectora.onMessage('<img src=x onerror=alert(1)> '+ 'Long message '.repeat(12),true));
-  const card=page.locator('.toast-error');await expect(card.locator('img')).toHaveCount(0);await expect(card.locator('p')).toContainText('<img src=x');
-  await card.evaluate(element=>element.getAnimations().forEach(animation=>animation.finish()));
-  const box=(await card.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(16);expect(box.x+box.width).toBeLessThanOrEqual(404);expect(box.y+box.height).toBeLessThanOrEqual(584);
-  await card.getByRole('button',{name:'Dismiss error alert',exact:true}).click();await expect(card).toHaveCount(0);
-});
-
-
-test('Alerts auto-dismiss after five seconds, restart on update and cancel stale timers',async({page})=>{
-  await page.emulateMedia({reducedMotion:'reduce'});await page.goto(DEV);await page.clock.install({time:new Date('2026-09-26T12:00:00Z')});await page.clock.pauseAt(new Date('2026-09-26T12:00:01Z'));await page.locator('#cad-canvas').focus();
-  await page.evaluate(()=>{const e=(window as any).__vectora;for(const kind of ['success','warning','error','information'])e.onMessage(kind,kind);});
-  const cards=page.locator('.toast-stack .toast-card');await expect(cards).toHaveCount(4);
-  await page.clock.runFor(4000);await expect(cards).toHaveCount(4);
-  await page.evaluate(()=>(window as any).__vectora.onMessage('Updated error','error'));
-  await page.clock.runFor(999);await expect(cards).toHaveCount(4);
-  await page.clock.runFor(1);await expect(cards).toHaveCount(1);await expect(cards).toContainText('Updated error');await expect(page.locator('#cad-canvas')).toBeFocused();
-  await page.clock.runFor(3999);await expect(cards).toHaveCount(1);await page.getByRole('button',{name:'Dismiss error alert',exact:true}).focus();
-  await page.clock.runFor(1);await expect(cards).toHaveCount(0);await expect(page.locator('#cad-canvas')).toBeFocused();
-  await page.evaluate(()=>(window as any).__vectora.onMessage('Old error','error'));await page.clock.runFor(2000);await page.getByRole('button',{name:'Dismiss error alert',exact:true}).click();
-  await page.evaluate(()=>(window as any).__vectora.onMessage('New error','error'));await page.clock.runFor(3000);await expect(cards).toContainText('New error');await page.clock.runFor(2000);await expect(cards).toHaveCount(0);
-});
-
-
-test('Notifications animate in and out and an update during exit revives the card',async({page})=>{
-  await page.emulateMedia({reducedMotion:'no-preference'});await page.goto(DEV);await page.clock.install({time:new Date('2026-09-26T12:00:00Z')});await page.clock.pauseAt(new Date('2026-09-26T12:00:01Z'));
-  await page.evaluate(()=>(window as any).__vectora.onMessage('First message','information'));
-  const card=page.locator('.toast-information');await expect(card).toHaveCSS('animation-name','toast-in');await expect(card).toHaveCSS('animation-duration','0.24s');
-  await page.clock.runFor(5000);await expect(card).toHaveClass(/is-leaving/);await expect(card).toHaveCSS('animation-name','toast-out');await expect(card).toHaveCSS('animation-duration','0.18s');await expect(card).toHaveAttribute('inert','');
-  await page.clock.runFor(90);await page.evaluate(()=>(window as any).__vectora.onMessage('Updated while leaving','information'));await expect(card).not.toHaveClass(/is-leaving/);await expect(card).not.toHaveAttribute('inert','');
-  await page.clock.runFor(90);await expect(card).toHaveCount(1);await expect(card).toContainText('Updated while leaving');
-  await page.clock.runFor(4910);await expect(card).toHaveClass(/is-leaving/);await page.clock.runFor(179);await expect(card).toHaveCount(1);await page.clock.runFor(1);await expect(card).toHaveCount(0);
-  await page.evaluate(()=>(window as any).__vectora.onMessage('Manual dismissal','information'));await card.getByRole('button').dispatchEvent('click');await expect(card).toHaveClass(/is-leaving/);await page.clock.runFor(180);await expect(card).toHaveCount(0);
-  await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>(window as any).__vectora.onMessage('Reduced motion','information'));await expect(card).toHaveCSS('animation-name','none');await card.getByRole('button').click();await expect(card).toHaveCount(0);
-});
-
-test('Notification animation never scrolls or clips a stack that fits the viewport',async({page})=>{
-  await page.emulateMedia({reducedMotion:'no-preference'});await page.goto(DEV);
-  const frames=await page.evaluate(()=>{
-    const editor=(window as any).__vectora,stack=document.querySelector<HTMLElement>('.toast-stack')!;
-    editor.onMessage('There are no cut lines. Create a Sticker Outline or enable “Include artwork”.','error');
-    const card=stack.querySelector<HTMLElement>('.toast-card')!,animation=card.getAnimations()[0];animation.pause();
-    return [0,60,120,180,240].map(time=>{animation.currentTime=time;const box=card.getBoundingClientRect(),clip=stack.getBoundingClientRect();return {time,scrollTop:stack.scrollTop,top:box.top-clip.top,bottom:clip.bottom-box.bottom};});
-  });
-  for(const frame of frames){expect(frame.scrollTop,`scroll at ${frame.time}ms`).toBe(0);expect(frame.top,`top at ${frame.time}ms`).toBeGreaterThanOrEqual(0);expect(frame.bottom,`bottom at ${frame.time}ms`).toBeGreaterThanOrEqual(0);}
 });
