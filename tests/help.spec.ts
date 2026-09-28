@@ -5,7 +5,7 @@ async function open(page:Page){await page.getByRole('button',{name:'Help',exact:
 test('Help opens a complete read-only guide and isolates canvas commands',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(DEV);
  const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,40,30],strokeColor:'#FFFFFF'}),'Rectangle');return {snapshot:JSON.stringify(e.snapshot()),selection:e.selectedItems.map((o:any)=>o.id),tool:e.tool,undo:e.canUndo,redo:e.canRedo};});
- const dialog=await open(page);await expect(dialog).toBeVisible();await expect(dialog.getByRole('tab')).toHaveCount(12);await expect(dialog.getByRole('searchbox',{name:'Search help'})).toBeFocused();
+ const dialog=await open(page);await expect(dialog).toBeVisible();await expect(dialog.getByRole('tab')).toHaveCount(13);await expect(dialog.getByRole('searchbox',{name:'Search help'})).toBeFocused();
  await dialog.getByRole('tab',{name:'Selection & path editing',exact:true}).click();await dialog.getByRole('tabpanel').focus();
  for(const key of ['n','Delete','Control+z','Control+s','Control+c','Control+v'])await page.keyboard.press(key);
  const after=await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:JSON.stringify(e.snapshot()),selection:e.selectedItems.map((o:any)=>o.id),tool:e.tool,undo:e.canUndo,redo:e.canRedo};});expect(after).toEqual(before);
@@ -20,7 +20,7 @@ test('Help search, topic arrows, links and empty results remain keyboard accessi
  await dialog.getByRole('button',{name:'Try a worked example'}).click();await expect(dialog.getByRole('tab',{name:'How-to examples',exact:true})).toHaveAttribute('aria-selected','true');await expect(dialog.getByRole('tabpanel')).toBeFocused();await expect(dialog.getByRole('img')).toHaveCount(4);
  await input.fill('single-line');await expect(dialog.getByRole('tab')).toHaveCount(1);await expect(dialog.getByRole('tabpanel')).toContainText('Hershey');await expect(input).toBeFocused();
  await input.fill('<img src=x onerror=alert(1)>');await expect(dialog.getByRole('heading',{name:'No matching guides'})).toBeVisible();await expect(dialog.locator('img')).toHaveCount(0);await expect(dialog.getByRole('status')).toHaveText('0 matching guides');
- await dialog.getByRole('button',{name:'Clear search'}).click();await expect(dialog.getByRole('tab')).toHaveCount(12);await expect(input).toBeFocused();
+ await dialog.getByRole('button',{name:'Clear search'}).click();await expect(dialog.getByRole('tab')).toHaveCount(13);await expect(input).toBeFocused();
  await page.keyboard.press('Shift+Tab');expect(await page.evaluate(()=>document.activeElement?.closest('#help-dialog')!==null)).toBe(true);
  await dialog.getByRole('button',{name:'Close help'}).click();await expect(dialog).toBeHidden();
 });
@@ -49,7 +49,7 @@ test('Help fits both themes, narrow viewports and short windows with independent
 
 test('Production and reference share the working Help guide and all icon and topic targets resolve',async({page})=>{
  for(const url of ['http://127.0.0.1:4173',DEV+'/reference/design-system.html']){
-  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(url);const dialog=await open(page);await expect(dialog.getByRole('tab')).toHaveCount(12);
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(url);const dialog=await open(page);await expect(dialog.getByRole('tab')).toHaveCount(13);
   const broken=await dialog.evaluate(el=>[...el.querySelectorAll('use')].map(use=>use.getAttribute('href')!).filter(id=>!document.querySelector(id)));expect(broken).toEqual([]);
   await dialog.getByRole('searchbox').fill('SVG');await dialog.getByRole('tab',{name:'Save & export',exact:true}).click();await expect(dialog.getByRole('tabpanel')).toContainText('Default Artwork exports black');await page.keyboard.press('Escape');await expect(dialog).toBeHidden();expect(errors).toEqual([]);
  }

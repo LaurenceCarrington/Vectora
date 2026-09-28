@@ -1,3 +1,4 @@
+import type { Family } from './generators/catalog';
 import { HelpGuide } from './help';
 import { ToolSearch, type SearchTool } from './toolSearch';
 import { GRID_NAMES, GRID_HELP, type GridType } from './gridGeometry';
@@ -105,7 +106,28 @@ window.addEventListener('resize',()=>{for(const [menu,trigger] of menus)if(menu!
 $('[data-shape-trigger]').onclick=()=>toggleMenu(shapeMenu,$('[data-shape-trigger]'));
 $('[data-image-trigger]').onclick=()=>toggleMenu(imageMenu,$('[data-image-trigger]'));
 $('[data-generator-trigger]').onclick=()=>toggleMenu(generatorMenu,$('[data-generator-trigger]'));
-generatorMenu.addEventListener('keydown',event=>{if(event.key!=='Escape')event.stopPropagation();});
+generatorMenu.addEventListener('keydown',event=>{
+  if(event.key==='Escape')return;
+  event.stopPropagation();
+  const buttons=[...generatorMenu.querySelectorAll<HTMLButtonElement>('[data-generator]')],index=buttons.indexOf(document.activeElement as HTMLButtonElement);
+  const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:event.key==='ArrowDown'?(index+1)%buttons.length:event.key==='ArrowUp'?(index+buttons.length-1)%buttons.length:-1;
+  if(next>=0){event.preventDefault();buttons[next].focus();}
+});
+let generatorWorkbench:import('./generators/workbench').GeneratorWorkbench|undefined;
+let generatorLoading=false;
+for(const button of generatorMenu.querySelectorAll<HTMLButtonElement>('[data-generator]'))button.onclick=async()=>{
+  if(generatorLoading||!inlineText.finish(false,false))return;
+  generatorLoading=true;editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();
+  try{
+    const [{GeneratorWorkbench},{generatedShapes}]=await Promise.all([import('./generators/workbench'),import('./generators/paperShapes')]);
+    generatorWorkbench??=new GeneratorWorkbench({
+      destination:()=>{const layer=editor.activeLayer;return {name:layer?.name??'Artwork',error:!layer||!layer.visible||layer.locked?'Show and unlock the active layer before inserting.':undefined};},
+      insert:result=>{editor.addGeneratedShapes(generatedShapes(result,paper.view.center));editor.setTool('select');},
+      returnFocus:()=>{$('[data-generator-trigger]').focus({preventScroll:true});}
+    });
+    generatorWorkbench.open(button.dataset.generator as Family);
+  }catch(error){notify((error as Error).message,true);}finally{generatorLoading=false;}
+};
 $('[data-fill-trigger]').onclick=()=>{editor.setTool('fill');toggleMenu(fillMenu,$('[data-fill-trigger]'));};
 const fillPicker=$<HTMLInputElement>('[data-fill-picker]'),fillHex=$<HTMLInputElement>('[data-fill-hex]');
 function chooseFill(value:string):void {try{editor.setFillColor(value);fillHex.removeAttribute('aria-invalid');}catch(error){fillHex.setAttribute('aria-invalid','true');notify((error as Error).message,true);}}
@@ -330,6 +352,7 @@ for(const [tab,label,keywords] of [
  ['appearance','Appearance','theme dark light mode'],
 ] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
 searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});
+for(const [id,label,words] of [['gear','Involute gear','spur helical bevel rack pinion module teeth'],['drive','Sprocket & timing pulley','chain roller belt groove'],['fastener','Thread & fastener','bolt nut washer thread pitch'],['cam','Cam profile','follower cycloidal harmonic polynomial']] as const)searchButton(`generator-${id}`,label,'Generators',`[data-generator="${id}"]`,words);
 new ToolSearch($<HTMLButtonElement>('[data-tool-search]'),searchTools,()=>{
   if(!inlineText.finish(false,false))return false;
   editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;

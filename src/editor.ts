@@ -503,6 +503,12 @@ export class CADEditor {
     item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name};
     if(layerRole(layer)!=='artwork')this.styleForLayer(item,layer);layer.addChild(item);this.selected=item;this.commit(before);
   }
+  addGeneratedShapes(items:{shape:Shape;name:string}[]):void {
+    if(!items.length)return;
+    const layer=this.drawingLayer(),before=this.snapshot();
+    for(const {shape,name} of items){shape.data={uid:crypto.randomUUID(),role:layerRole(layer),name};this.insertDrawing(shape,layer);}
+    this.selection=items.map(item=>item.shape);this.commit(before);
+  }
   addTracedShapes(items:Shape[],name:string):void {
     if(!items.length)return;
     const layer=this.drawingLayer();
