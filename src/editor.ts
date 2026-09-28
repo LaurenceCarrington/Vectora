@@ -503,10 +503,13 @@ export class CADEditor {
     item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name};
     if(layerRole(layer)!=='artwork')this.styleForLayer(item,layer);layer.addChild(item);this.selected=item;this.commit(before);
   }
-  addGeneratedShapes(items:{shape:Shape;name:string}[]):void {
+  addGeneratedShapes(items:{shape:Shape;name:string;operation?:'engrave'}[]):void {
     if(!items.length)return;
-    const layer=this.drawingLayer(),before=this.snapshot();
-    for(const {shape,name} of items){shape.data={uid:crypto.randomUUID(),role:layerRole(layer),name};this.insertDrawing(shape,layer);}
+    const active=this.drawingLayer();
+    const targets=items.map(item=>item.operation==='engrave'?this.documentLayers.find(layer=>layerRole(layer)==='engrave'):active);
+    if(targets.some(layer=>!layer||!layer.visible||layer.locked))throw new Error('Show and unlock Engrave Path before inserting fold lines.');
+    const before=this.snapshot();
+    items.forEach(({shape,name},index)=>{const layer=targets[index]!;shape.data={uid:crypto.randomUUID(),role:layerRole(layer),name};this.insertDrawing(shape,layer);});
     this.selection=items.map(item=>item.shape);this.commit(before);
   }
   addTracedShapes(items:Shape[],name:string):void {

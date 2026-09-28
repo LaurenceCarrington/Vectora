@@ -1,4 +1,5 @@
-export type Family='gear'|'drive'|'fastener'|'cam';
+import {STRUCTURAL_CATALOG,type StructuralFamily} from './structuralCatalog';
+export type Family='gear'|'drive'|'fastener'|'cam'|StructuralFamily;
 export type Values=Record<string,number|string>;
 export interface Field {key:string;label:string;unit:string;value:number;min:number;max:number;step:number}
 export interface Profile {id:string;label:string;description:string;fields:Field[]}
@@ -7,6 +8,7 @@ const teeth=n('teeth','Teeth',24,12,160,1,''),bore=n('bore','Bore diameter',5,0,
 const gearFields=[teeth,moduleField,pressure,bore,n('backlash','Pitch-circle backlash',0,0,10,.01)];
 const threadFields=[n('diameter','Major diameter',8,.5,200),n('pitch','Pitch',1.25,.1,20,.05),n('length','Thread length',30,1,500),n('depth','Radial thread depth',.65,.01,20,.01),n('angle','Included angle',60,30,90,1,'°')];
 export const CATALOG:Record<Family,{title:string;icon:string;profiles:Profile[]}>= {
+ ...STRUCTURAL_CATALOG,
  gear:{title:'Involute gear',icon:'gear',profiles:[
  {id:'spur',label:'Spur gear',description:'Involute tooth flanks with radial root connections. Closed transverse outline.',fields:gearFields},
  {id:'helical',label:'Helical · transverse section',description:'Normal module and pressure angle converted to a transverse section. No helix or axial geometry.',fields:[...gearFields,n('helix','Helix angle',20,0,45,1,'°')]},

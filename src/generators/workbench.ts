@@ -1,6 +1,6 @@
 import {CATALOG,defaults,type Family,type Values,type Profile} from './catalog';
 import {generate,contourSVG,type Generated} from './geometry';
-export interface GeneratorHost {destination:()=>{name:string;error?:string};insert:(result:Generated)=>void;returnFocus:()=>void}
+export interface GeneratorHost {destination:(result?:Generated)=>{name:string;error?:string};insert:(result:Generated)=>void;returnFocus:()=>void}
 const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 /** Shared editor/reference workbench. Previews never enter the document. */
 export class GeneratorWorkbench {
@@ -10,7 +10,7 @@ export class GeneratorWorkbench {
  private query<T extends Element=HTMLElement>(selector:string):T{return this.dialog.querySelector<T>(selector)!;}
  constructor(private host:GeneratorHost){
   this.dialog.className='generator-dialog menu-surface';this.dialog.id='generator-dialog';this.dialog.setAttribute('aria-labelledby','generator-title');
-  this.dialog.innerHTML=`<header class="generator-header"><div><span class="help-eyebrow">VECTORA / GENERATORS</span><h2 id="generator-title"></h2></div><button class="tool" type="button" aria-label="Close generator" title="Close (Esc)" data-generator-close><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></header><div class="generator-body"><section class="generator-preview"><div class="generator-preview-heading"><span>Live preview · mm</span><label><input type="checkbox" data-guides checked> Guides</label></div><svg class="generator-svg" role="img" aria-label="Generated profile preview" viewBox="-50 -50 100 100"></svg><div class="generator-size"></div></section><section class="generator-controls" aria-label="Generator settings"><label class="generator-field">Profile<select data-profile aria-label="Profile"></select></label><p class="generator-description"></p><div class="generator-fields"></div><button type="button" class="button" data-reset>Reset parameters</button><dl class="generator-metrics"></dl><div class="generator-notes"></div></section></div><footer class="generator-footer"><div class="generator-feedback" role="status" aria-live="polite"></div><div class="generator-actions"><button type="button" class="button" data-generator-close>Cancel</button><button type="button" class="button" data-insert>Insert paths</button></div></footer>`;
+  this.dialog.innerHTML=`<header class="generator-header"><div><span class="help-eyebrow">VECTORA / GENERATORS</span><h2 id="generator-title"></h2></div><button class="tool" type="button" aria-label="Close generator" title="Close (Esc)" data-generator-close><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></header><div class="generator-body"><section class="generator-preview"><div class="generator-preview-heading"><span>Live preview · mm</span><label><input type="checkbox" data-guides checked> Guides</label></div><svg class="generator-svg" role="img" aria-label="Generated profile preview" viewBox="-50 -50 100 100"></svg><div class="generator-legend" hidden><span>Solid · active layer</span><span class="generator-fold-key">Dashed · Engrave Path</span></div><div class="generator-size"></div></section><section class="generator-controls" aria-label="Generator settings"><label class="generator-field">Profile<select data-profile aria-label="Profile"></select></label><p class="generator-description"></p><div class="generator-fields"></div><button type="button" class="button" data-reset>Reset parameters</button><dl class="generator-metrics"></dl><div class="generator-notes"></div></section></div><footer class="generator-footer"><div class="generator-feedback" role="status" aria-live="polite"></div><div class="generator-actions"><button type="button" class="button" data-generator-close>Cancel</button><button type="button" class="button" data-insert>Insert paths</button></div></footer>`;
   document.body.append(this.dialog);
   this.query<HTMLSelectElement>('[data-profile]').onchange=()=>this.choose(this.query<HTMLSelectElement>('[data-profile]').value);
   this.query('[data-reset]').onclick=()=>{this.values=defaults(this.profile);this.saved.set(this.profile.id,this.values);this.fields();this.render();};
@@ -18,7 +18,7 @@ export class GeneratorWorkbench {
   this.dialog.querySelectorAll<HTMLElement>('[data-generator-close]').forEach(b=>b.onclick=()=>this.dialog.close());
   this.query('[data-insert]').onclick=()=>{
    // Revalidate the current values and destination immediately before any document mutation.
-   this.render();if(!this.result||this.host.destination().error)return;
+   this.render();if(!this.result||this.host.destination(this.result).error)return;
    try{this.host.insert(this.result);this.dialog.close();}catch(error){this.feedback((error as Error).message,true);}
   };
   this.dialog.addEventListener('close',()=>{clearTimeout(this.timer);this.result=undefined;this.host.returnFocus();});
@@ -52,11 +52,13 @@ export class GeneratorWorkbench {
   try{
    this.result=generate(this.family,this.profile.id,this.values);const r=this.result,b=r.bounds,pad=Math.max(b.width,b.height)*.12+1;
    svg.setAttribute('viewBox',`${b.x-pad} ${b.y-pad} ${b.width+2*pad} ${b.height+2*pad}`);
-   svg.innerHTML=`<g class="generator-guides${this.query<HTMLInputElement>('[data-guides]').checked?'':' is-hidden'}">${r.guides.map(contourSVG).join('')}</g><g class="generator-outlines">${r.parts.flatMap(p=>p.contours.map(contourSVG)).join('')}</g>`;
-   this.query('.generator-size').textContent=`${b.width.toFixed(2)} × ${b.height.toFixed(2)} mm · ${r.parts.length} ${r.parts.length===1?'part':'parts'}`;
+   const labels=this.family==='box'?r.parts.map(part=>{const points=part.contours.flatMap(c=>'points'in c?c.points:[c.center]);const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);return `<text class="generator-part-label" x="${(Math.min(...xs)+Math.max(...xs))/2}" y="${Math.min(...ys)+(Math.max(...ys)-Math.min(...ys))*(part.name==='Receiver plate'?.28:.5)}" font-size="${Math.max(b.width,b.height)*.025}">${escape(part.name)}</text>`;}).join(''):'';
+   svg.innerHTML=`<g class="generator-guides${this.query<HTMLInputElement>('[data-guides]').checked?'':' is-hidden'}">${r.guides.map(contourSVG).join('')}${labels}</g><g class="generator-outlines">${r.parts.map(p=>`<g${p.operation==='engrave'?' class="generator-folds"':''}>${p.contours.map(contourSVG).join('')}</g>`).join('')}</g>`;
+   this.query('.generator-legend').hidden=!r.parts.some(p=>p.operation==='engrave');
+   this.query('.generator-size').textContent=`${b.width.toFixed(2)} × ${b.height.toFixed(2)} mm · ${r.parts.filter(p=>!p.operation).length} ${r.parts.filter(p=>!p.operation).length===1?'part':'parts'}${r.parts.some(p=>p.operation==='engrave')?' + fold paths':''}`;
    this.query('.generator-metrics').innerHTML=Object.entries(r.metrics).map(([k,v])=>`<div><dt>${escape(k)}</dt><dd>${escape(v)}</dd></div>`).join('');
    this.query('.generator-notes').innerHTML=r.notes.map(n=>`<p>${escape(n)}</p>`).join('');
-   const target=this.host.destination();this.feedback(target.error??`Insert into ${target.name} · editable outlines`,!!target.error);this.query<HTMLButtonElement>('[data-insert]').disabled=!!target.error;
-  }catch(error){this.result=undefined;svg.innerHTML='';this.query('.generator-size').textContent='Adjust the parameters to preview';this.query('.generator-metrics').innerHTML='';this.query('.generator-notes').innerHTML='';this.feedback((error as Error).message,true);this.query<HTMLButtonElement>('[data-insert]').disabled=true;}
+   const target=this.host.destination(r);this.feedback(target.error??`Insert into ${target.name}${r.parts.some(p=>p.operation==='engrave')?' · folds → Engrave Path':' · editable paths'}`,!!target.error);this.query<HTMLButtonElement>('[data-insert]').disabled=!!target.error;
+  }catch(error){this.result=undefined;svg.innerHTML='';this.query('.generator-legend').hidden=true;this.query('.generator-size').textContent='Adjust the parameters to preview';this.query('.generator-metrics').innerHTML='';this.query('.generator-notes').innerHTML='';this.feedback((error as Error).message,true);this.query<HTMLButtonElement>('[data-insert]').disabled=true;}
  }
 }

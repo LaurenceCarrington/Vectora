@@ -6,7 +6,7 @@ Draw rectangles, circles, ellipses, polygons, lines, polylines, arcs and freehan
 
 Type directly on the canvas, choose from a range of fonts, and convert text into editable paths with separate letter contours. Turn images into vectors using outline, centre-line or filled tracing, with a live preview and adjustable controls.
 
-Generate editable 2D mechanical profiles with live previews: involute gears and racks, custom sprockets and timing pulleys, threads and fasteners, and cam profiles. Adjust dimensions, inspect the result, and insert it into the active layer.
+Generate editable 2D mechanical profiles with live previews: involute gears and racks, custom sprockets and timing pulleys, threads and fasteners, and cam profiles. Create finger-jointed box panels, interlocking joints, living-hinge patterns, packaging nets with separate fold lines, and truss or lattice frameworks. Adjust dimensions, inspect the result, and insert it into the active layer.
 
 Apply colour to enclosed areas, including regions formed by overlapping shapes, or use No fill to remove colour without changing the surrounding outlines. Organise objects into Artwork, Cut Path, Engrave Path and Construction Path layers, with visibility, locking and drag-and-drop controls.
 

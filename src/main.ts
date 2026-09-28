@@ -121,7 +121,7 @@ for(const button of generatorMenu.querySelectorAll<HTMLButtonElement>('[data-gen
   try{
     const [{GeneratorWorkbench},{generatedShapes}]=await Promise.all([import('./generators/workbench'),import('./generators/paperShapes')]);
     generatorWorkbench??=new GeneratorWorkbench({
-      destination:()=>{const layer=editor.activeLayer;return {name:layer?.name??'Artwork',error:!layer||!layer.visible||layer.locked?'Show and unlock the active layer before inserting.':undefined};},
+      destination:result=>{const layer=editor.activeLayer,engrave=editor.documentLayers.find(item=>item.data.objectRole==='engrave');return {name:layer?.name??'Artwork',error:!layer||!layer.visible||layer.locked?'Show and unlock the active layer before inserting.':result?.parts.some(part=>part.operation==='engrave')&&(!engrave||!engrave.visible||engrave.locked)?'Show and unlock Engrave Path before inserting fold lines.':undefined};},
       insert:result=>{editor.addGeneratedShapes(generatedShapes(result,paper.view.center));editor.setTool('select');},
       returnFocus:()=>{$('[data-generator-trigger]').focus({preventScroll:true});}
     });
@@ -352,7 +352,7 @@ for(const [tab,label,keywords] of [
  ['appearance','Appearance','theme dark light mode'],
 ] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
 searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});
-for(const [id,label,words] of [['gear','Involute gear','spur helical bevel rack pinion module teeth'],['drive','Sprocket & timing pulley','chain roller belt groove'],['fastener','Thread & fastener','bolt nut washer thread pitch'],['cam','Cam profile','follower cycloidal harmonic polynomial']] as const)searchButton(`generator-${id}`,label,'Generators',`[data-generator="${id}"]`,words);
+for(const [id,label,words] of [['gear','Involute gear','spur helical bevel rack pinion module teeth'],['drive','Sprocket & timing pulley','chain roller belt groove'],['fastener','Thread & fastener','bolt nut washer thread pitch'],['cam','Cam profile','follower cycloidal harmonic polynomial'],['box','Box & finger joints','enclosure laser finger tabs t-slot nut joint'],['hinge','Flexure & living hinge','kerf bend wood acrylic slits slots'],['packaging','Packaging & die-cut nets','carton corrugated fold score glue tray'],['framework','Truss & framework','warren pratt howe structural lattice frame']] as const)searchButton(`generator-${id}`,label,'Generators',`[data-generator="${id}"]`,words);
 new ToolSearch($<HTMLButtonElement>('[data-tool-search]'),searchTools,()=>{
   if(!inlineText.finish(false,false))return false;
   editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;

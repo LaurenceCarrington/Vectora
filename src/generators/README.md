@@ -25,3 +25,24 @@ These sources informed the mathematical definitions; no third-party implementati
 - [SDP/SI — Timing belt pulleys](https://sdp-si.com/products/Timing-Belt-Pulleys/index.php): distinction between trapezoidal and standard-specific curvilinear profiles.
 
 `tests/generators.spec.ts` covers default contour topology, physical dimensions, invalid inputs, bounded generation, live controls, undo, layers, document round-trip, SVG/DXF, production loading, reference parity, keyboard isolation and responsive layouts.
+
+## Enclosures and structural profiles
+
+Four more families share the same lazy-loaded workbench and ordinary editable path insertion:
+
+- **Finger-jointed boxes:** six-panel closed and five-panel open-top layouts. Inputs are outside width/depth/height. Every shared edge uses an odd number of evenly divided fingers over the span between its thickness-sized corners. Partner edges use complementary phases. Front/back panels own the three-way corner blocks; side/base/top panels omit those blocks. The first/last finger phase keeps every panel connected. Joint clearance expands notch spans by half the clearance on each side; it is not a laser offset. Layout gap only changes part placement. Kerf compensation is left to cutting software.
+- **Interlocking tab/slot joints:** projecting tabs on one upright fit rectangular holes in a receiver. The receiver holes are wider and deeper by the specified fit clearance. The T-slot variant uses an even tab count, a central bolt clearance hole in the receiver and a shaft-width open notch leading to a wider nut pocket in the upright. Nut width, thickness and setback are editable; checks prevent overlap with tabs and panel edges.
+- **Living hinges:** alternating columns of interrupted slits, with a half-period shift in adjacent columns; horizontal mode rotates the pattern inside the supplied panel dimensions. Rounded-slot mode creates closed capsule cuts. The outside panel remains a closed contour, while slit paths stay open. Border dimensions are measured to the cut geometry, including slot width. Expected cut width estimates remaining bridges and webs without moving paths. Material-specific bend radius, fatigue and strength are not calculated.
+- **Packaging:** a reverse-tuck folding carton, equal-flap slotted shipping carton and four-wall glued tray. Dimensions are crease-to-crease; flap shortfall provides editable closing clearance. Glue tabs, flap separation and tuck length are explicit. These are custom nets, not a claim of compliance with a named packaging standard. Board caliper, crease width and bend allowance must be accounted for when selecting dimensions. Adjacent rectangles are united into one perimeter so common cut edges are not duplicated. Fold paths cover only attached panel interfaces and remain separate open geometry.
+- **Frameworks:** Warren, Pratt and Howe trusses plus rectangular lattices. Overall outer dimensions include the frame. Truss skeleton faces are triangles inset by half the member width; adjacent inset faces leave a web of the requested perpendicular width. Collapsed holes are rejected. Pratt and Howe use an even bay count. This is cutting geometry without load, support or buckling calculations.
+
+`structural.ts` uses a bounded coordinate-compressed grid for exact orthogonal panel unions/differences. Grid boundaries are normalized to 1e-8 mm before tracing; collinear points are removed. Box edges are limited to 101 finger divisions, hinge patterns to 2,500 cuts, and all generated output retains the 50,000-point cap. No image sampling, worker, geometry dependency or network request is introduced.
+
+Packaging cut outlines use the active layer; fold/score objects go to the first Engrave Path layer. Both destinations are checked before any mutation, and insertion across layers is one undo transaction. The preview shows fold paths as blue dashed lines with an operation legend; the Guides switch hides only non-inserted guides/part labels. Fold objects use the ordinary engraving stroke after insertion. Export retains the existing layer semantics.
+
+References used for feature terminology and scope (implementation is original):
+
+- [Boxes.py user manual](https://florianfesti.github.io/boxes/html/usermanual.html): measured thickness, finger dimensions, clearance and the distinction between cut geometry and burn/kerf compensation.
+- [Trotec — Cutting techniques for bending](https://www.troteclaser.com/en-us/helpcenter/materials/application-techniques/bending-technique): interrupted-cut patterns and material-dependent bending behaviour.
+
+`tests/structuralGenerators.spec.ts` checks all 14 new default profiles, contour topology, complementary box volumes at every coordinate-grid cell (including three-way corners), dimensional changes, invalid/over-dense inputs, fold-layer preflight, one-step undo, SVG/DXF, document round-trip, all live profile selectors, mobile/theme layout, production and reference parity.

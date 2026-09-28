@@ -6,7 +6,7 @@ test('Every mechanical profile produces finite closed outlines, valid bores and 
  await page.goto(DEV);
  const results=await page.evaluate(async()=>{
   const {CATALOG,defaults}=await import('/src/generators/catalog.ts'),{generate}=await import('/src/generators/geometry.ts'),{generatedShapes}=await import('/src/generators/paperShapes.ts'),p=(window as any).__paper;
-  return Object.entries(CATALOG).flatMap(([family,catalog]:any)=>catalog.profiles.map((profile:any)=>{
+  return Object.entries(CATALOG).filter(([family])=>['gear','drive','fastener','cam'].includes(family)).flatMap(([family,catalog]:any)=>catalog.profiles.map((profile:any)=>{
    const result=generate(family as any,profile.id,defaults(profile)),shapes=generatedShapes(result,new p.Point(0,0));
    return {id:profile.id,metrics:result.metrics,bounds:result.bounds,parts:result.parts.length,closed:shapes.every(({shape}:any)=>(shape.children??[shape]).every((path:any)=>path.closed)),curves:shapes.flatMap(({shape}:any)=>(shape.children??[shape]).map((path:any)=>path.curves.length)),finite:result.parts.every((part:any)=>part.contours.every((c:any)=>c.points?c.points.every((point:number[])=>point.every(Number.isFinite)):Number.isFinite(c.radius))),intersections:shapes.flatMap(({shape}:any)=>(shape.children??[shape]).map((path:any)=>path.getCrossings(path).length))};
   }));

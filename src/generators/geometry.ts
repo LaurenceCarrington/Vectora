@@ -1,7 +1,8 @@
+import {structural} from './structural';
 import {CATALOG,type Family,type Values} from './catalog';
 export type Point=[number,number];
 export type Contour={points:Point[];closed:boolean}|{center:Point;radius:number};
-export interface Part {name:string;contours:Contour[]}
+export interface Part {name:string;contours:Contour[];operation?:'engrave'}
 export interface Generated {name:string;parts:Part[];guides:Contour[];metrics:Record<string,string>;notes:string[];bounds:{x:number;y:number;width:number;height:number}}
 const TAU=2*Math.PI,rad=Math.PI/180,TOL=.015;
 const polar=(r:number,a:number):Point=>[r*Math.cos(a),r*Math.sin(a)];
@@ -77,7 +78,7 @@ export function generate(family:Family,id:string,values:Values):Generated {
    const top=edge(0,-1),bottom=edge(v.pitch/2,1).reverse();const pts=[...top,...bottom];if(id==='bolt')pts.push([0,v.across/2],[-v.head,v.across/2],[-v.head,-v.across/2],[0,-v.across/2]);add(profile.label,pts);
    guides.push(poly([[-(v.head??0),0],[v.length,0]],false));metrics['Pitch']=mm(v.pitch);metrics['Core diameter']=mm(v.diameter-2*v.depth);metrics['Crest / root flat']=mm(flat);notes.push('Custom 2D thread section; no tolerance class, helical solid or standard thread truncation.');
   }
- }else{
+ }else if(family==='cam'){
   check(v.rise+v.dwell+v.return<=360,'Rise + high dwell + return must not exceed 360°.');
   const rise=v.rise*rad,dwell=v.dwell*rad,ret=v.return*rad;
   const motion=(t:number):[number,number,number]=>id==='cycloidal'?[t-Math.sin(TAU*t)/TAU,1-Math.cos(TAU*t),TAU*Math.sin(TAU*t)]:id==='harmonic'?[(1-Math.cos(Math.PI*t))/2,Math.PI*Math.sin(Math.PI*t)/2,Math.PI**2*Math.cos(Math.PI*t)/2]:[10*t**3-15*t**4+6*t**5,30*t*t-60*t**3+30*t**4,60*t-180*t*t+120*t**3];
@@ -96,6 +97,7 @@ export function generate(family:Family,id:string,values:Values):Generated {
   check(maxOffsetCurvature<.98,'Roller offset would undercut or form a cusp. Reduce roller/lift, increase base radius, or use longer rise/return angles.');fitBore(minRadius);add(profile.label,pts,v.bore);guides.push(circle(v.base));if(v.roller)guides.push(poly(angles.map(a=>at(a,true))));
   metrics['Low dwell']=`${360-v.rise-v.dwell-v.return}°`;metrics['Maximum pressure angle']=`${maxPressure.toFixed(1)}°`;metrics['Follower']=v.roller?'Roller':'Knife edge';if(maxPressure>30)notes.push('Pressure angle exceeds 30°. A larger base or longer rise/return can reduce side loading.');
  }
+ else {const result=structural(family,id,v);parts.push(...result.parts);guides.push(...result.guides);notes.push(...result.notes);Object.assign(metrics,result.metrics);}
  // Remove shared sample endpoints and closing duplicates before creating editable paths.
  for(const part of parts)for(const contour of part.contours)if('points'in contour){contour.points=contour.points.filter((p,i,all)=>!i||Math.hypot(p[0]-all[i-1][0],p[1]-all[i-1][1])>1e-8);const a=contour.points[0],b=contour.points.at(-1)!;if(Math.hypot(a[0]-b[0],a[1]-b[1])<1e-8)contour.points.pop();}
  const all=parts.flatMap(p=>p.contours.flatMap(c=>'points'in c?c.points:[[c.center[0]-c.radius,c.center[1]-c.radius],[c.center[0]+c.radius,c.center[1]+c.radius]]));

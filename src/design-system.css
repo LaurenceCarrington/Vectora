@@ -920,8 +920,10 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 @media(max-width:600px) { .help-dialog { max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }.help-header { flex-wrap:wrap; gap:12px; padding:14px; }.help-header h2 { font-size:20px; }.help-search { order:3; width:100%; }.help-body { grid-template-columns:118px minmax(0,1fr); }.help-sidebar { padding:12px 4px; }.help-index-label { padding:0 6px 8px; }.help-tab { padding:8px 6px; font-size:11px; line-height:16px; gap:0; }.help-tab svg { display:none; }.help-content { padding:16px 12px; }.help-page-heading h2 { font-size:20px; line-height:27px; }.help-page { font-size:12px; }.help-page-heading p { font-size:12px; }.help-intro { padding:12px; }.help-intro h3 { font-size:18px; line-height:25px; }.help-page th,.help-page td { padding:8px 5px; font-size:11px; }.help-page td:first-child { width:40%; }.help-page kbd { font-size:10px; padding:0 3px; }.help-footer { padding:10px 14px; }.help-footer > span:last-child { display:none; } }
 
 
-/* Mechanical generators: shared live 2D profile workbench. */
-.generator-menu { width:300px; min-height:0; }
+/* Mechanical and structural generators: shared live 2D profile workbench. */
+.generator-menu { width:300px; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+.generator-category { padding:12px 12px 6px; font-size:10px; line-height:16px; color:var(--menu-muted); letter-spacing:.6px; text-transform:uppercase; }
+.generator-category:not(:first-child) { margin-top:8px; border-top:1px solid var(--menu-border); }
 .generator-dialog { position:fixed; inset:0; margin:auto; width:1080px; height:740px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); padding:0; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); overflow:hidden; }
 .generator-dialog[open] { display:flex; flex-direction:column; }
 .generator-dialog::backdrop { background:#14161a99; backdrop-filter:blur(4px); }
@@ -937,6 +939,12 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .generator-guides { color:var(--chrome-accent); opacity:.6; }
 .generator-guides path,.generator-guides circle { stroke-width:1px; stroke-dasharray:5 5; }
 .generator-guides.is-hidden { display:none; }
+.generator-folds { color:var(--chrome-accent); }
+.generator-folds path { stroke-dasharray:5 4; }
+.generator-part-label { fill:var(--menu-muted); stroke:none; text-anchor:middle; dominant-baseline:middle; }
+.generator-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; padding:6px 12px 0; font-size:11px; color:var(--menu-muted); }
+.generator-legend[hidden] { display:none; }
+.generator-fold-key { color:var(--chrome-accent); }
 .generator-svg.is-pending { opacity:.25; }
 .generator-size { padding:14px 16px; text-align:center; font:12px var(--font-mono); color:var(--menu-muted); min-height:46px; box-sizing:border-box; }
 .generator-controls { margin:0; padding:20px; border-left:1px solid var(--menu-border); overflow-y:auto; overscroll-behavior:contain; min-width:0; font-size:12px; }
