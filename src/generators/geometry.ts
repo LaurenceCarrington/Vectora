@@ -1,3 +1,5 @@
+import {pattern,type PatternImage} from './patterns';
+import {PATTERN_CATALOG,type PatternFamily} from './patternCatalog';
 import {structural} from './structural';
 import {CATALOG,type Family,type Values} from './catalog';
 export type Point=[number,number];
@@ -16,7 +18,7 @@ function sampled(fn:(t:number)=>Point,a:number,b:number):Point[]{
  split(a,b,out[0],fn(b),0);return out;
 }
 const mm=(n:number)=>`${Number(n.toFixed(3))} mm`;
-export function generate(family:Family,id:string,values:Values):Generated {
+export function generate(family:Family,id:string,values:Values,image?:PatternImage):Generated {
  const profile=CATALOG[family]?.profiles.find(p=>p.id===id);check(!!profile,'Choose an available profile.');
  const v:Record<string,number>={};for(const f of profile.fields){const x=values[f.key];check(typeof x==='number'&&Number.isFinite(x)&&x>=f.min&&x<=f.max&&(!(f.step===1&&f.unit==='')||Number.isInteger(x)),`${f.label} must be ${f.min}–${f.max}${f.unit?` ${f.unit}`:''}${f.step===1&&f.unit===''?' (whole numbers)':''}.`);v[f.key]=x;}
  const parts:Part[]=[],guides:Contour[]=[],notes:string[]=[],metrics:Record<string,string>={};
@@ -97,7 +99,7 @@ export function generate(family:Family,id:string,values:Values):Generated {
   check(maxOffsetCurvature<.98,'Roller offset would undercut or form a cusp. Reduce roller/lift, increase base radius, or use longer rise/return angles.');fitBore(minRadius);add(profile.label,pts,v.bore);guides.push(circle(v.base));if(v.roller)guides.push(poly(angles.map(a=>at(a,true))));
   metrics['Low dwell']=`${360-v.rise-v.dwell-v.return}°`;metrics['Maximum pressure angle']=`${maxPressure.toFixed(1)}°`;metrics['Follower']=v.roller?'Roller':'Knife edge';if(maxPressure>30)notes.push('Pressure angle exceeds 30°. A larger base or longer rise/return can reduce side loading.');
  }
- else {const result=structural(family,id,v);parts.push(...result.parts);guides.push(...result.guides);notes.push(...result.notes);Object.assign(metrics,result.metrics);}
+ else {const result=family in PATTERN_CATALOG?pattern(family as PatternFamily,id,v,image):structural(family as Parameters<typeof structural>[0],id,v);parts.push(...result.parts);guides.push(...result.guides);notes.push(...result.notes);Object.assign(metrics,result.metrics);}
  // Remove shared sample endpoints and closing duplicates before creating editable paths.
  for(const part of parts)for(const contour of part.contours)if('points'in contour){contour.points=contour.points.filter((p,i,all)=>!i||Math.hypot(p[0]-all[i-1][0],p[1]-all[i-1][1])>1e-8);const a=contour.points[0],b=contour.points.at(-1)!;if(Math.hypot(a[0]-b[0],a[1]-b[1])<1e-8)contour.points.pop();}
  const all=parts.flatMap(p=>p.contours.flatMap(c=>'points'in c?c.points:[[c.center[0]-c.radius,c.center[1]-c.radius],[c.center[0]+c.radius,c.center[1]+c.radius]]));

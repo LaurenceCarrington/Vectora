@@ -8,7 +8,7 @@ function check(ok:boolean,message:string):asserts ok {if(!ok)throw new Error(mes
 const mm=(value:number)=>`${Number(value.toFixed(3))} mm`;
 const line=(a:Point,b:Point)=>poly([a,b],false);
 /** Exact axis-aligned union/difference, using a bounded coordinate-compressed cell grid. */
-function rectangleOutline(add:Rect[],remove:Rect[]=[]):Contour[] {
+export function rectangleOutline(add:Rect[],remove:Rect[]=[]):Contour[] {
  const round=(x:number)=>Number(x.toFixed(8));
  const all=[...add,...remove];check(all.every(r=>r.every(Number.isFinite)&&r[2]>0&&r[3]>0),'Every panel feature must have positive dimensions.');
  const xs=[...new Set(all.flatMap(([x,,w])=>[round(x),round(x+w)]))].sort((a,b)=>a-b),ys=[...new Set(all.flatMap(([,y,,h])=>[round(y),round(y+h)]))].sort((a,b)=>a-b),nx=xs.length-1,ny=ys.length-1;

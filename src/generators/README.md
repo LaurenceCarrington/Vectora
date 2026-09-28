@@ -46,3 +46,22 @@ References used for feature terminology and scope (implementation is original):
 - [Trotec — Cutting techniques for bending](https://www.troteclaser.com/en-us/helpcenter/materials/application-techniques/bending-technique): interrupted-cut patterns and material-dependent bending behaviour.
 
 `tests/structuralGenerators.spec.ts` checks all 14 new default profiles, contour topology, complementary box volumes at every coordinate-grid cell (including three-way corners), dimensional changes, invalid/over-dense inputs, fold-layer preflight, one-step undo, SVG/DXF, document round-trip, all live profile selectors, mobile/theme layout, production and reference parity.
+
+## Pattern and decorative profiles
+
+`patternCatalog.ts` adds 14 profiles across five families; `patterns.ts` generates plain millimetre geometry without Paper.js or new dependencies. The workbench remains lazy-loaded.
+
+- Voronoi cells use half-plane intersections, seeded stratified sites and optional Lloyd centroid relaxation. Insetting shared bisectors by half the requested web leaves a material gap; the panel border remains solid. Collapsed cells are omitted and counted.
+- Hypotrochoids/epitrochoids use inside/outside rolling-circle equations. Whole periods close only when the radius ratio and revolution count complete a period. Cycloids along a line stay open. Curves use a second-derivative bound for approximately 0.015 mm chord error; intentional crossings remain editable.
+- Rectangular mazes use seeded iterative depth-first spanning trees, with entrance/exit openings and a preview-only solution. Wall outlines are exact unions of axis-aligned rectangles. Circular labyrinths alternate almost-complete concentric arcs joined radially into one open route, not a claim to a classical labyrinth topology.
+- Halftone and stipple fit the image inside the panel border without stretching. Bilinear luminance, contrast, inversion and alpha determine hole area. Transparent pixels never create holes. Square/hexagonal sampling or seeded jitter selects centres; nearby-point distances cap diameters to preserve the requested gap. Circles remain native vector curves.
+- Sine and gradient Perlin noise produce open lines or closed strips. Strip height is vertical, not perpendicular to the curve. Row spacing and bounded amplitude preserve a minimum gap. Perlin uses seeded unit-gradient hashing, quintic interpolation and normalized octaves.
+
+Limits: 250 Voronoi sites / 3 relaxation passes, 1,600 maze cells, 6,000 image points, 20,000 curve/wave samples and the shared 50,000-point output limit. Image loading accepts PNG/JPEG/WebP/GIF/BMP, up to 20 MB / 40 megapixels, then downsamples the analysis raster to a 512-pixel longest edge. Decoding is local, closes ImageBitmap resources and ignores stale loads after replacement or dialog closure. Inputs debounce 80 ms and disable insertion immediately while pending. Image pixels are not inserted or serialized into documents.
+
+Mathematical references (independently implemented):
+- [CMU Voronoi notes](https://www.cs.cmu.edu/~guyb/realworld/triang.html): nearest-site cells and half-plane interpretation.
+- [UNSW cycloidal curves](https://webcms3.cse.unsw.edu.au/static/uploads/course/COMP9021/16s2/77a3632422040bb6f33386b1818982b7b9fc8fbe6de5f4f62eda4af9ee1fafd3/cycloidal_curves.pdf): rolling-circle equations and periods.
+- [Ken Perlin, Improving Noise](https://mrl.cs.nyu.edu/~perlin/paper445.pdf): gradient noise and quintic interpolation. This implementation is a seeded 2D variant, not copied reference code.
+
+`tests/patternGenerators.spec.ts` checks clearances, borders, periods, maze connectivity, image tone/alpha/inversion, seeded repeatability, density validation, local file replacement, undo and responsive theme layouts.
