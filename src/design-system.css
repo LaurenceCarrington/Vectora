@@ -208,8 +208,9 @@ section { margin-top: var(--space-32); }
 .top-caption { top: 0; left: 50%; transform: translateX(-50%); }
 .toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
 .application-header { position:absolute; z-index:4; top:0; left:0; right:0; height:var(--application-header-height); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr) minmax(0,1fr); align-items:center; padding:0 16px; background:var(--menu-background); color:var(--menu-foreground); border-bottom:1px solid var(--menu-border); }
-.header-github { justify-self:end; text-decoration:none; }
-.header-github:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
+.header-actions { display:flex; align-items:center; justify-self:end; gap:4px; }
+.header-github { text-decoration:none; }
+.header-actions .tool:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .document-name { appearance:none; border:0; outline:none; box-shadow:none; background:transparent; padding:0; cursor:text; caret-color:var(--menu-foreground); justify-self:center; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:14px; font-weight:400; color:var(--menu-muted); }
 .top-toolbar { position:absolute; top:var(--application-header-height); left:0; right:0; width:100%; height:calc(var(--top-toolbar-height) - var(--application-header-height)); padding:2px 12px; justify-content:flex-start; background:var(--commandbar-background); border-bottom:1px solid var(--menu-border); }
 .brand { justify-self:start; font-size:18px; font-weight:500; display:flex; gap:8px; align-items:center; padding:0; min-width:0; }
