@@ -27,11 +27,12 @@ test('3D preview renders materials and holes, supports controls, and leaves the 
  await page.goto(DEV);await design(page);const before=await page.evaluate(()=>({snapshot:(window as any).__vectora.snapshot(),zoom:(window as any).__paper.view.zoom,undo:(window as any).__vectora.canUndo}));
  const trigger=page.getByRole('button',{name:'Preview',exact:true});await trigger.click();const dialog=page.getByRole('dialog',{name:'Preview',exact:true});await expect(dialog).toBeVisible();await expect(dialog.locator('[data-preview-summary]')).toContainText('1 piece · 1 hole');await expect(dialog.locator('canvas')).toBeVisible();
  await dialog.screenshot({path:'test-results/preview3d-plywood.png'});
+ await expect(dialog.locator('.preview-section[open]')).toHaveCount(0);await dialog.locator('.preview-section > summary').filter({hasText:/^Material$/}).click();
  await dialog.getByLabel('Material',{exact:true}).selectOption('aluminium');await dialog.getByLabel('Material thickness').fill('6');await expect(dialog.locator('[data-preview-summary]')).toContainText('× 6 mm');await dialog.getByLabel('Show engraving').uncheck();await dialog.getByRole('button',{name:'Top view',exact:true}).click();
  await dialog.screenshot({path:'test-results/preview3d-aluminium.png'});expect(await dialog.evaluate(el=>el.scrollTop)).toBe(0);
  await dialog.getByLabel('Material thickness').fill('0');await expect(dialog.locator('[data-preview-validation]')).toBeVisible();await expect(dialog.locator('[data-preview-summary]')).toContainText('× 6 mm');await dialog.getByLabel('Material thickness').fill('3');
  await dialog.locator('canvas').focus();await page.keyboard.press('ArrowLeft');await page.keyboard.press('+');await page.keyboard.press('Delete');await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(trigger).toBeFocused();expect(await page.evaluate(()=>({snapshot:(window as any).__vectora.snapshot(),zoom:(window as any).__paper.view.zoom,undo:(window as any).__vectora.canUndo}))).toEqual(before);expect(await dialog.locator('canvas').count()).toBe(0);
- await trigger.click();await expect(dialog.locator('canvas')).toBeVisible();await expect(dialog.locator('[data-preview-summary]')).toContainText('1 piece · 1 hole');await dialog.getByRole('button',{name:'Close preview',exact:true}).click();
+ await trigger.click();await expect(dialog.locator('canvas')).toBeVisible();await expect(dialog.locator('.preview-section[open]')).toHaveCount(0);await expect(dialog.locator('[data-preview-summary]')).toContainText('1 piece · 1 hole');await dialog.getByRole('button',{name:'Close preview',exact:true}).click();
 });
 
 test('Empty and engraving-only previews explain the material, including a narrow viewport',async({page})=>{
@@ -65,7 +66,7 @@ test('Preview opens at the top, turns without roll, and retains clipping protect
  const box=(await canvas.boundingBox())!;await page.mouse.move(box.x+box.width/2,box.y+box.height*.85);await page.mouse.down();await page.mouse.move(box.x+box.width/2,box.y+box.height*.15,{steps:24});await page.mouse.up();await expect.poll(async()=>{const s=await previewCameraState(page);return s.y<s.center;}).toBe(true);
  expect((await previewCameraState(page)).up).toEqual([0,1,0]);await dialog.screenshot({path:'test-results/preview3d-underside.png'});
  await canvas.focus();for(let i=0;i<35;i++)await page.keyboard.press('+');for(let i=0;i<26;i++){await page.keyboard.press('ArrowLeft');const s=await previewCameraState(page);expect(s.minDepth).toBeGreaterThan(s.near);expect(s.maxDepth).toBeLessThan(s.far);}
- await dialog.getByLabel('Material thickness').fill('100');await canvas.focus();for(let i=0;i<20;i++)await page.keyboard.press('+');const thick=await previewCameraState(page);expect(thick.minDepth).toBeGreaterThan(thick.near);expect(thick.maxDepth).toBeLessThan(thick.far);
+ await dialog.locator('.preview-section > summary').filter({hasText:/^Material$/}).click();await dialog.getByLabel('Material thickness').fill('100');await canvas.focus();for(let i=0;i<20;i++)await page.keyboard.press('+');const thick=await previewCameraState(page);expect(thick.minDepth).toBeGreaterThan(thick.near);expect(thick.maxDepth).toBeLessThan(thick.far);
  await dialog.getByRole('button',{name:'Close preview',exact:true}).click();await trigger.click();await expect(canvas).toBeVisible();expect(await isTop()).toBe(true);
 });
 

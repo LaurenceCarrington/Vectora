@@ -5,14 +5,14 @@ async function open(page:Page){
  await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,100,60]}),'Panel');e.moveSelectionToLayer('cutline');e.addShape(new p.Path.Circle({insert:false,center:[30,30],radius:10}),'Hole');e.moveSelectionToLayer('cutline');e.setActiveLayer('artwork');e.addShape(new p.Path.Circle({insert:false,center:[75,30],radius:10,fillColor:'#ff0000'}),'Printed circle');});
  const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
- await page.getByRole('button',{name:'Preview',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Preview',exact:true});await expect(dialog.locator('canvas')).toBeVisible();return {dialog,before};
+ await page.getByRole('button',{name:'Preview',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Preview',exact:true});await expect(dialog.locator('canvas')).toBeVisible();await expect(dialog.locator('.preview-section[open]')).toHaveCount(0);return {dialog,before};
 }
 async function section(page:Page,name:string){const summary=page.locator('.preview-section > summary').filter({hasText:name});const open=await summary.evaluate(el=>(el.parentElement as HTMLDetailsElement).open);if(!open)await summary.click();}
 async function range(page:Page,id:string,value:string){await page.locator('#preview-'+id).fill(value);await page.locator('#preview-'+id).dispatchEvent('input');}
 
 test('Material-specific controls and cheap thickness/explode transforms keep the document intact',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));const {dialog,before}=await open(page);
- await expect(page.getByLabel('Burnt edges')).toBeVisible();await expect(page.getByLabel('Transparency',{exact:true})).toBeHidden();
+ await section(page,'Material');await expect(page.getByLabel('Burnt edges')).toBeVisible();await expect(page.getByLabel('Transparency',{exact:true})).toBeHidden();
  const initial=await page.evaluate(()=>(window as any).__preview3D.rebuildCount);
  await range(page,'depth','18');await expect(dialog.locator('[data-preview-summary]')).toContainText('× 18 mm');
  expect(await page.evaluate(()=>(window as any).__preview3D.rebuildCount)).toBe(initial);
@@ -77,7 +77,7 @@ test('Quality, camera motion and surface rendering stay bounded for many pieces'
  expect(profile.rebuilds).toBe(0);expect(profile.parts).toBe(80);console.log('80-piece thickness update ms:',profile.ms);
  await section(page,'Scene & performance');await page.getByLabel('Render quality').selectOption('draft');expect(await page.evaluate(()=>(window as any).__preview3D.renderer.getPixelRatio())).toBe(1);
  await page.getByLabel('Auto-rotate').check();const initial=await page.evaluate(()=>(window as any).__preview3D.camera.position.toArray());await expect.poll(()=>page.evaluate(()=>(window as any).__preview3D.camera.position.toArray())).not.toEqual(initial);await page.getByLabel('Auto-rotate').uncheck();
- await page.getByLabel('Render quality').selectOption('balanced');await page.getByLabel('Material',{exact:true}).selectOption('glass');await page.waitForTimeout(200);await page.getByRole('button',{name:'Isometric',exact:true}).click();await page.getByRole('dialog',{name:'Preview',exact:true}).screenshot({path:'test-results/preview-workbench-glass.png'});
+ await page.getByLabel('Render quality').selectOption('balanced');await section(page,'Material');await page.getByLabel('Material',{exact:true}).selectOption('glass');await page.waitForTimeout(200);await page.getByRole('button',{name:'Isometric',exact:true}).click();await page.getByRole('dialog',{name:'Preview',exact:true}).screenshot({path:'test-results/preview-workbench-glass.png'});
  await page.getByLabel('Material',{exact:true}).selectOption('steel');await page.waitForTimeout(200);await page.getByRole('dialog',{name:'Preview',exact:true}).screenshot({path:'test-results/preview-workbench-metal.png'});
  expect(errors).toEqual([]);
 });

@@ -84,6 +84,8 @@ export class Preview3D {
  private get<T extends HTMLElement=HTMLElement>(selector:string):T{return this.dialog.querySelector<T>(selector)!;}
  async open():Promise<void>{
   const revision=++this.revision;
+  this.dialog.querySelectorAll<HTMLDetailsElement>('.preview-section, .preview-sheet-picker').forEach(section=>section.open=false);
+  this.get('[data-preview-settings]').scrollTop=0;
   this.dialog.showModal();this.trigger.setAttribute('aria-expanded','true');this.get<HTMLButtonElement>('[data-preview-close]').focus();
   this.message('Preparing your design…');
   try{
