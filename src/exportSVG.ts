@@ -2,6 +2,7 @@ import paper from 'paper';
 import {documentPath} from './deletion';
 import {pathsOf} from './geometry';
 import {dimensionLabel} from './dimensions';
+import {applyArtworkTheme} from './shapeStyles';
 import {BASE_ZOOM,MIN_DIMENSION_MM} from './units';
 import type {Shape} from './types';
 
@@ -23,6 +24,13 @@ export function exportSVG(objects:readonly Shape[]):string {
     const label=dimensionLabel(item);
     try{
       copy.style=item.style;copy.opacity=item.opacity;
+      if(item.data.role==='artwork'){
+        // Canvas white/charcoal is a theme affordance, not the exported ink colour.
+        // Keep explicit filled regions, including white fills, unchanged.
+        copy.data.regionFill=item.data.regionFill;
+        applyArtworkTheme(copy,'#000000');
+        if(label)applyArtworkTheme(label,'#000000');
+      }
       // Freeze screen-sized editor strokes at their 100% physical width.
       copy.strokeScaling=true;copy.strokeWidth=item.strokeScaling?item.strokeWidth:item.strokeWidth/BASE_ZOOM;
       if(!copy.fillColor&&!copy.strokeColor&&!label)continue;
