@@ -44,7 +44,7 @@ export class Preview3D {
    this.model=model;if(!model){this.message('Nothing to preview yet','Move closed outlines to Cut Path or drawing paths to Engrave Path. Artwork and Construction Path stay in the editor.');return;}
    this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor(getComputedStyle(this.stage).getPropertyValue('--preview-background').trim());this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
    const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','3D material preview. Drag to rotate, shift or right or middle-drag to pan, scroll or control-drag to zoom. Arrow keys rotate; plus and minus zoom; F fits the model.');canvas.setAttribute('role','img');
-   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!this.dialog.open||this.renderer?.domElement!==canvas)return;this.message('3D preview was interrupted','Close and reopen the preview to try again.');});
+   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!this.dialog.open||this.renderer?.domElement!==canvas)return;this.message('Preview was interrupted','Close and reopen the preview to try again.');});
    this.stage.replaceChildren(canvas);this.stage.setAttribute('aria-busy','false');
    this.scene=new THREE.Scene();this.scene.add(new THREE.HemisphereLight('#ffffff','#697481',2));
    const span=Math.max(model.bounds.width,model.bounds.height,10),light=new THREE.DirectionalLight('#fff3df',3.5);light.position.set(-span,span*2,span);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-span,right:span,top:span,bottom:-span,near:.1,far:span*6});light.shadow.bias=-.0001;this.scene.add(light);
@@ -57,7 +57,7 @@ export class Preview3D {
    canvas.addEventListener('dblclick',()=>this.fit(false));
    this.renderer.setAnimationLoop(()=>this.controls?.update());
    this.observer.observe(this.stage);this.get('[data-preview-settings]').removeAttribute('inert');this.rebuild();this.resize();this.fit();
-  }catch(error){if(revision!==this.revision||!this.dialog.open)return;this.dispose();this.message('Unable to show 3D preview',error instanceof Error?error.message:'Enable hardware acceleration and try again.');}
+  }catch(error){if(revision!==this.revision||!this.dialog.open)return;this.dispose();this.message('Unable to show preview',error instanceof Error?error.message:'Enable hardware acceleration and try again.');}
  }
  private message(title:string,detail=''):void{
   this.get('[data-preview-settings]').setAttribute('inert','');this.stage.replaceChildren();this.stage.setAttribute('aria-busy',String(title==='Preparing your design…'));

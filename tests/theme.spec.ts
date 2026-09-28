@@ -43,6 +43,6 @@ test('Light mode works in the reference, narrow layouts and production preview',
     expect(await page.locator('#preferences-shell').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     await page.keyboard.press('Escape');await page.setViewportSize({width:1280,height:900});
   }
-  await page.getByRole('button',{name:'3D preview',exact:true}).click();
+  await page.getByRole('button',{name:'Preview',exact:true}).click();
   await expect(page.locator('.preview3d-view')).toHaveCSS('background-color','rgb(238, 241, 245)');
 });

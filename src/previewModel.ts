@@ -13,7 +13,7 @@ export async function buildPreviewModel(objects:readonly Shape[]):Promise<Previe
  for(const item of items){
   if(item.data.role==='cutline'){
    for(const c of flattenInDocument(item)){
-    vertices+=c.points.length;if(vertices>60000||cuts.length>2000)throw new Error('This design is too complex for 3D preview. Try hiding some layers.');
+    vertices+=c.points.length;if(vertices>60000||cuts.length>2000)throw new Error('This design is too complex for preview. Try hiding some layers.');
     if(c.closed&&c.points.length>=3)cuts.push(c);else openCuts++;
    }
   }else{
