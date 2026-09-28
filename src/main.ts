@@ -1,3 +1,4 @@
+import { HelpGuide } from './help';
 import { ToolSearch, type SearchTool } from './toolSearch';
 import { GRID_NAMES, GRID_HELP, type GridType } from './gridGeometry';
 import { initializeThemeControls } from './theme';
@@ -156,6 +157,10 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
 function disable(button:HTMLButtonElement):void {button.disabled=true;button.title=(button.title||button.textContent?.trim()||'This control')+' — not yet available';}
 new RasterToVector($<HTMLDialogElement>('#raster-dialog'),editor,$<HTMLButtonElement>('[data-raster-open]'),()=>{editor.cancel();closeMenus();});
 new Preferences($<HTMLDialogElement>('#preferences-dialog'),$<HTMLButtonElement>('[aria-label="Settings"]'),()=>{editor.cancel();closeMenus();});
+new HelpGuide($<HTMLButtonElement>('[data-help-open]'),()=>{
+  if(!inlineText.finish(false,false))return false;
+  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
+});
 $('[aria-label="Undo"]').onclick=()=>editor.undo();$('[aria-label="Redo"]').onclick=()=>editor.redo();
 for(const key of ['x','y','width','height'] as const){const input=$<HTMLInputElement>('#field-'+key);input.value='';input.min=(key==='width'||key==='height')?'0.001':'';input.addEventListener('change',()=>{
   try{if(!input.value.trim())throw new Error('Enter a number.');editor.setProperty(key,input.valueAsNumber);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
@@ -283,6 +288,7 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['raster','Raster to vector','[data-raster-open]','image trace outline center centre line bitmap fill png jpg'],
   ['snap','Snapping','[data-snap-grid]','magnet snap on off','S'],
   ['settings','Settings','[data-open-preferences]','preferences'],
+  ['help','Help','[data-help-open]','guide keyboard shortcuts controls tutorials examples instructions','F1'],
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
   ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],
 ] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');
