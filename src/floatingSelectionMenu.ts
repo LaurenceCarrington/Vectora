@@ -66,7 +66,7 @@ export class FloatingSelectionMenu {
       this.finishDrag(true);
       if (this.menu.contains(document.activeElement)) this.editor.canvas.focus({ preventScroll: true });
     }
-    this.menu.hidden = count === 0;
+    this.menu.hidden = count === 0 || this.editor.patterns.active;
     const label = `${count} selected`;
     if (this.count.textContent !== label) this.count.textContent = label;
     this.place();

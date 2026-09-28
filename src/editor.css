@@ -25,3 +25,5 @@ button:disabled:hover { background:transparent; }
 
 #duplicate-selection { z-index:1; }
 #duplicate-selection::before { display:none; }
+
+#cad-canvas.pattern-picking { cursor:crosshair !important; }
