@@ -34,7 +34,7 @@ test('Every drawing popout stays flush with its rail and follows its own icon on
  await page.goto(DEV);
  for(const size of [{width:1280,height:900},{width:390,height:600}]){
   await page.setViewportSize(size);
-  for(const tool of ['shape','line','arc','delete','dimension','image','fill']){
+  for(const tool of ['shape','line','arc','delete','dimension','image','generator','fill']){
    const trigger=page.locator(`[data-${tool}-trigger]`);
    await trigger.click();
    const menu=page.locator('#'+await trigger.getAttribute('aria-controls'));

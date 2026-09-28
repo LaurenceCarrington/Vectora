@@ -644,8 +644,8 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .selection-specimen { display:block; width:100%; height:auto; border:var(--border-width) solid var(--color-line); border-radius:var(--radius-menu); margin-bottom:var(--space-12); }
 
 
-.line-tools, .arc-tools, .delete-tools, .dimension-tools, .image-tools { position:relative; display:flex; flex-shrink:0; }
-.line-menu, .arc-menu, .delete-menu, .dimension-menu, .image-menu { top:0; left:calc(100% + var(--toolbar-padding) + var(--menu-offset)); }
+.line-tools, .arc-tools, .delete-tools, .dimension-tools, .image-tools, .generator-tools { position:relative; display:flex; flex-shrink:0; }
+.line-menu, .arc-menu, .delete-menu, .dimension-menu, .image-menu, .generator-menu { top:0; left:calc(100% + var(--toolbar-padding) + var(--menu-offset)); }
 
 .image-menu { width:224px; min-height:96px; max-width:calc(100vw - var(--workspace-edge-inset) * 2 - var(--toolbar-width) - var(--menu-offset)); }
 
@@ -717,6 +717,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .callout-actions .button { min-height:36px; padding:var(--space-8) var(--space-12); }
 /* Raster tracing: original Vectora two-column workflow using current menu tokens. */
 .image-menu { width:248px; }
+.generator-menu { width:248px; min-height:96px; outline:none; }
 .raster-dialog { position:fixed; inset:0; margin:auto; padding:0; width:1080px; max-width:calc(100vw - 48px); max-height:calc(100dvh - 48px); border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-sm); box-shadow:var(--menu-shadow); overflow:hidden; }
 .raster-dialog[open] { display:flex; flex-direction:column; }
 .raster-dialog::backdrop { background:#24242466; backdrop-filter:blur(4px); }

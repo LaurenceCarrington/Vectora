@@ -97,13 +97,15 @@ propertiesButton.setAttribute('aria-controls','properties-panel');
 propertiesButton.onclick=()=>setPanel(props,props.hidden);
 layersButton.onclick=()=>setPanel(layers,layers.hidden);
 $('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
-const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu');
-const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')]] as const;
+const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu'),generatorMenu=$('#primary-generators-menu');
+const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')],[generatorMenu,$('[data-generator-trigger]')]] as const;
 function closeMenus():void {alerts.close();for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}
 function toggleMenu(menu:HTMLElement,trigger:HTMLElement):void {const open=menu.hidden;closeMenus();menu.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);(menu.querySelector<HTMLButtonElement>('button:not(:disabled)')??menu).focus({preventScroll:true});}}
 window.addEventListener('resize',()=>{for(const [menu,trigger] of menus)if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);});
 $('[data-shape-trigger]').onclick=()=>toggleMenu(shapeMenu,$('[data-shape-trigger]'));
 $('[data-image-trigger]').onclick=()=>toggleMenu(imageMenu,$('[data-image-trigger]'));
+$('[data-generator-trigger]').onclick=()=>toggleMenu(generatorMenu,$('[data-generator-trigger]'));
+generatorMenu.addEventListener('keydown',event=>{if(event.key!=='Escape')event.stopPropagation();});
 $('[data-fill-trigger]').onclick=()=>{editor.setTool('fill');toggleMenu(fillMenu,$('[data-fill-trigger]'));};
 const fillPicker=$<HTMLInputElement>('[data-fill-picker]'),fillHex=$<HTMLInputElement>('[data-fill-hex]');
 function chooseFill(value:string):void {try{editor.setFillColor(value);fillHex.removeAttribute('aria-invalid');}catch(error){fillHex.setAttribute('aria-invalid','true');notify((error as Error).message,true);}}
@@ -272,7 +274,7 @@ document.addEventListener('keydown',e=>{
 const searchTools:SearchTool[]=[];
 function searchButton(id:string,label:string,group:string,selector:string,keywords='',shortcut='',reason='Unavailable for the current selection',before?:()=>void):void {
   const button=$<HTMLButtonElement>(selector),icon=button.querySelector('use')?.getAttribute('href')?.replace('#i-','')??'select';
-  searchTools.push({id,label,group,keywords,shortcut,icon,unavailable:()=>button.disabled?reason:undefined,run:()=>{before?.();button.click();if(!document.querySelector('dialog[open]')&&!document.activeElement?.closest('.menu-surface,.notifications-panel,input,select,textarea'))editor.canvas.focus({preventScroll:true});}});
+  searchTools.push({id,label,group,keywords,shortcut,icon,unavailable:()=>button.disabled?reason:undefined,run:()=>{before?.();button.click();if(!document.querySelector('dialog[open]')&&!document.activeElement?.closest('.menu-surface,.notifications-panel,.generator-menu,input,select,textarea'))editor.canvas.focus({preventScroll:true});}});
 }
 for(const [attribute,group] of [['data-shape','Shapes'],['data-line-tool','Lines'],['data-arc-tool','Arcs'],['data-dimension-tool','Dimensions and callouts'],['data-delete-tool','Delete tools'],['data-file-action','File']] as const){
   document.querySelectorAll<HTMLButtonElement>(`[${attribute}]`).forEach(button=>{
@@ -287,6 +289,7 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['fill','Colour fill','[data-fill-trigger]','color paint bucket enclosed area no fill remove fill','B'],
   ['raster','Raster to vector','[data-raster-open]','image trace outline center centre line bitmap fill png jpg'],
   ['snap','Snapping','[data-snap-grid]','magnet snap on off','S'],
+  ['generators','Generators','[data-generator-trigger]','generator menu'],
   ['settings','Settings','[data-open-preferences]','preferences'],
   ['help','Help','[data-help-open]','guide keyboard shortcuts controls tutorials examples instructions','F1'],
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
