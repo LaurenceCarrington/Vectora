@@ -13,3 +13,5 @@ Apply colour to enclosed areas, including regions formed by overlapping shapes, 
 Add dimensions and callouts, generate offset sticker outlines, and export cut and engraving paths as DXF files, with optional artwork included. Export visible artwork as SVG with vector curves, colours, fills and millimetre dimensions. Export a vector PDF at actual size or a transparent PNG at 300 DPI. Undo and redo let you revise your work as you draw.
 
 Save editable projects as `.vectora` files and reopen them with their layers, text and geometry intact. Save As creates a separate file so you can keep different versions of a design.
+
+Combine closed shapes with Weld, Subtract and Intersect. Preview the result before applying, preserve curved outlines and holes, and undo each operation in one step.

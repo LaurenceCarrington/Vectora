@@ -72,6 +72,9 @@ for(const button of flipButtons){
 }
 joinButton.addEventListener('click',()=>attempt(()=>{editor.joinSelection();editor.canvas.focus({preventScroll:true});}));
 joinButton.addEventListener('keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
+const shapeOperationsButton=$<HTMLButtonElement>('[data-shape-operations-open]');
+shapeOperationsButton.onclick=()=>{closeMenus();selectionContextMenu.close();editor.shapeOperations.open();};
+shapeOperationsButton.addEventListener('keydown',event=>event.stopPropagation());
 const patternButton=$<HTMLButtonElement>('[data-pattern-open]');
 patternButton.onclick=()=>{closeMenus();selectionContextMenu.close();editor.patterns.open();};
 patternButton.addEventListener('keydown',event=>event.stopPropagation());
@@ -242,6 +245,8 @@ function update():void {
   $('.fill-tools').classList.toggle('is-no-fill',editor.noFill);
   fillPicker.value=editor.fillColor;if(document.activeElement!==fillHex)fillHex.value=editor.fillColor;
   fillMenu.querySelectorAll<HTMLButtonElement>('[data-fill-colour]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.fillColour?.toLowerCase()===(editor.noFill?'none':editor.fillColor.toLowerCase()))));
+  shapeOperationsButton.disabled=!editor.shapeOperations.available;
+  shapeOperationsButton.title=editor.shapeOperations.available?'Shape operations · Weld, Subtract or Intersect':'Select two or more closed paths on the same layer; convert text first';
   patternButton.disabled=!editor.patterns.available;
   closePathButton.disabled=!editor.canCloseSelection;
   closePathButton.title=editor.canCloseSelection?'Close path · Join nearest endpoints':'Select open paths on the same layer to close';
@@ -351,6 +356,7 @@ for(const [id,label,selector,keywords,reason] of [
 }
 for(const [id,label,keywords] of [['fillet','Fillet','round corner radius'],['chamfer','Chamfer','bevel corner distance']] as const)searchTools.push({id,label,group:'Node editing',icon:id,keywords,unavailable:()=>editor.tool==='nodes'&&editor.nodes.canEditCorners?undefined:'Select corners between straight edges with Node editing',run:()=>editor.nodes.openCorner(id)});
 for(const [kind,label,icon,keywords] of [['rectangular','Rectangular pattern','pattern-rectangular','array repeat rows columns holes slots spacing'],['circular','Circular pattern','pattern-circular','array repeat radial polar holes slots centre angle']] as const)searchTools.push({id:`pattern-${kind}`,label,group:'Selection',icon,keywords,unavailable:()=>editor.patterns.available?undefined:'Select visible, unlocked objects to repeat',run:()=>editor.patterns.open(kind)});
+for(const [kind,label,keywords] of [['weld','Weld','boolean union merge overlapping outlines'],['subtract','Subtract','boolean difference cut hole remove'],['intersect','Intersect','boolean intersection shared overlap']] as const)searchTools.push({id:`shape-${kind}`,label,group:'Selection',icon:kind,keywords,unavailable:()=>editor.shapeOperations.available?undefined:'Select two or more closed paths on the same layer; convert text first',run:()=>editor.shapeOperations.open(kind)});
 searchButton('notifications','Notifications','Application','[data-notifications-trigger]','alerts messages history');
 const needsSelection=()=>editor.canCopySelection?undefined:'Select one or more objects';
 for(const [id,label,icon,field,keywords] of [['move','Move / position','select','x','translate coordinates'],['resize','Resize','width','width','scale size width height'],['rotate','Rotate','rotate','rotation','angle rotation']] as const)searchTools.push({id,label,group:'Properties',icon,keywords,unavailable:()=>editor.selectedItems.length?undefined:'Select one or more objects',run:()=>{setPanel(props,true);$<HTMLInputElement>(`#field-${field}`).focus();}});

@@ -6,6 +6,7 @@ import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
 import { createHeart } from './heart';
 import { ObjectPatterns } from './objectPatterns';
+import { ShapeOperations } from './shapeOperations';
 import { NodeEditing } from './nodeEditing';
 import { DimensionTools } from './dimensionTools';
 import { dimensionLabel, isDimensionTool } from './dimensions';
@@ -31,6 +32,7 @@ export class CADEditor {
   readonly nodes:NodeEditing;
   readonly dimensions:DimensionTools;
   readonly patterns:ObjectPatterns;
+  readonly shapeOperations:ShapeOperations;
   readonly artwork:paper.Layer;
   readonly cutlines:paper.Layer;
   private extraLayers:paper.Layer[]=[];
@@ -74,7 +76,7 @@ export class CADEditor {
   starPoints=5;
   onChange:()=>void=()=>{};
   onDocumentChange:()=>void=()=>{};
-  get hasPendingGesture():boolean {return !!this.patterns?.active||!!this.interaction||!!this.polyline||!!this.threePointArc||this.nodes.dragging||this.dimensions.active;}
+  get hasPendingGesture():boolean {return !!this.shapeOperations?.active||!!this.patterns?.active||!!this.interaction||!!this.polyline||!!this.threePointArc||this.nodes.dragging||this.dimensions.active;}
   onTextRequest:(point:paper.Point|null,target:Shape|null)=>void=()=>{};
   textEditing=false;
   private textEditingBounds:paper.Rectangle|null=null;
@@ -129,6 +131,11 @@ export class CADEditor {
       for(const {source,copy} of copies)source.layer.addChild(copy);
       this.selection=[...originals,...copies.map(({copy})=>copy)];this.commit(before);
     }});
+    this.shapeOperations=new ShapeOperations(this,{changed:()=>this.changed(),apply:(sources,result)=>{
+      const before=this.snapshot(),base=[...sources].sort((a,b)=>a.index-b.index)[0];
+      base.parent.insertChild(base.index,result);sources.forEach(source=>source.remove());
+      this.nodes.clear();this.selected=result;this.commit(before);
+    }});
     paper.view.zoom=BASE_ZOOM;
     paper.view.center=new paper.Point(100,70);
     this.observer=new ResizeObserver(()=>this.resize()); this.observer.observe(canvas.parentElement!);
@@ -175,7 +182,7 @@ export class CADEditor {
     }catch(error){this.restore(before);paper.view.zoom=oldZoom;paper.view.center=oldCenter;this.changed();throw error;}
   }
   private restore(snapshot:DocumentSnapshot):void {
-    this.patterns.cancel();this.dimensions.cancel();this.nodes.clear();
+    this.shapeOperations.cancel();this.patterns.cancel();this.dimensions.cancel();this.nodes.clear();
     this.selected=null; this.artwork.removeChildren();this.cutlines.removeChildren();
     this.extraLayers.forEach(layer=>layer.remove());this.extraLayers=[];
     for(const state of JSON.parse(snapshot.layers??'[]') as LayerSnapshot[]){
@@ -492,7 +499,7 @@ export class CADEditor {
   }
   get duplicateControlPoint():paper.Point|null {
     const bounds=this.selectionBounds;
-    return bounds&&!this.patterns?.active&&this.tool!=='nodes'&&!this.textEditing&&!this.isDeleteTool&&!this.dimensions.active&&!this.interaction&&!this.polyline&&!this.threePointArc&&!this.space
+    return bounds&&!this.shapeOperations?.active&&!this.patterns?.active&&this.tool!=='nodes'&&!this.textEditing&&!this.isDeleteTool&&!this.dimensions.active&&!this.interaction&&!this.polyline&&!this.threePointArc&&!this.space
       ?paper.view.projectToView(bounds.bottomCenter).add([0,28]):null;
   }
   duplicateSelection():void {
@@ -644,6 +651,7 @@ export class CADEditor {
     // A drawing preview also lives on this layer, so remove selection decorations only.
     for(const child of [...this.overlays.children]) if(child.data.role==='overlay')child.remove();
     this.dimensions.draw();
+    if(this.shapeOperations?.active){this.shapeOperations.draw();return;}
     if(this.patterns?.active){this.patterns.draw();this.drawSnapMarker();return;}
     if(this.textEditing){
       if(this.textEditingBounds){this.drawSelectionBorder(this.textEditingBounds);this.drawSelectionHandles(this.boxHandlePoints(this.textEditingBounds));}
@@ -984,7 +992,7 @@ export class CADEditor {
     this.updateCursor();this.changed();
   };
   cancel():void {
-    this.patterns?.cancel();this.dimensions.cancel();this.nodes.cancel();
+    this.shapeOperations?.cancel();this.patterns?.cancel();this.dimensions.cancel();this.nodes.cancel();
     this.activeObjectSnap=null;this.clearDeletePreview();
     const arc=this.threePointArc;this.threePointArc=null;
     if(arc){arc.item.remove();this.restore(arc.before);}
