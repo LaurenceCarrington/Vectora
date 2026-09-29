@@ -40,7 +40,7 @@ test('geometry, topology, transforms, history and DXF acceptance',async({page})=
     assert(exportDXF([rect],true)===dxf,'viewport changed DXF');
     assert(dxf.includes('10\n110\n20\n-70\n'),'dimensions/origin/Y conversion');
     assert(rect.exportJSON()===original,'export changed source');
-    assert(exportDXF([outline]).match(/LWPOLYLINE/g)?.length===1,'overlay exported');
+    assert(exportDXF([outline]).match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)?.length===1,'overlay exported');
     editor.setProperty('x',40);editor.setProperty('width',150);
     const moved=createStickerOutline(editor.selected,3);
     assert(near(moved.bounds.x,37,0.13)&&near(moved.bounds.width,156,0.13),'moved/resized outline');
@@ -191,7 +191,7 @@ test('millimetre grid stays aligned at every zoom and never exports',async({page
     p.view.zoom=96/25.4;p.view.center=new p.Point(100,70);e.setTool('select');
     const rect=new p.Path.Rectangle({rectangle:[10,20,100,50],insert:false,fillColor:'white'});e.addShape(rect,'Rectangle');
     const dxf=exportDXF([...e.grid.layer.children,...e.objects,...e.overlays.children],true);
-    assert((dxf.match(/LWPOLYLINE/g)||[]).length===1,'grid or selection leaked into DXF');
+    assert((dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length===1,'grid or selection leaked into DXF');
     assert(e.grid.layer.locked&&e.grid.layer.guide,'grid must be non-interactive');
     return rows;
   });
@@ -273,7 +273,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   expect(await page.evaluate(()=>{const e=(window as any).__vectora;return [e.artwork.visible,e.selected];})).toEqual([false,null]);
   await expect(panel.getByRole('button',{name:'Rectangle',exact:true})).toBeDisabled();
   const exported=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects,true);});
-  expect((exported.match(/LWPOLYLINE/g)||[]).length).toBe(2);
+  expect((exported.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(2);
   await panel.getByRole('button',{name:'Show Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Rectangle',exact:true}).click();
   await panel.getByRole('button',{name:'Lock Artwork',exact:true}).click();
@@ -325,7 +325,7 @@ test('ellipse and regular polygon support millimetre snapping, sides, cancellati
   await page.mouse.click(689,499);expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(3);
   // Every new closed shape can produce an outline and enter the millimetre DXF pipeline.
   const report=await page.evaluate(async()=>{const e=(window as any).__vectora;const {exportDXF}=await import('/src/exportDXF.ts');const source=e.snapshot().artwork;for(const item of [...e.artwork.children]){e.select(item);e.outline(3);}return {sourceUnchanged:source===e.snapshot().artwork,cuts:e.cutlines.children.length,dxf:exportDXF(e.objects,true)};});
-  expect(report.sourceUnchanged).toBe(true);expect(report.cuts).toBe(3);expect((report.dxf.match(/LWPOLYLINE/g)||[]).length).toBe(6);
+  expect(report.sourceUnchanged).toBe(true);expect(report.cuts).toBe(3);expect((report.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(6);
   await close();await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   await expect(page.locator('.layer-object').filter({hasText:'Ellipse'})).toHaveCount(2);await expect(page.locator('.layer-object').filter({hasText:'Polygon'})).toHaveCount(1);
   await page.screenshot({path:'test-results/ellipse-polygon.png',animations:'disabled'});expect(errors).toEqual([]);
@@ -381,7 +381,7 @@ test('marquee selection moves, resizes and deletes shapes together with atomic u
   await drag([200,250],[580,460]);expect(await selected()).toEqual(['A','B','C']);
   await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('cutline','visible',true);e.select(null);});await drag([200,250],[580,460]);expect(await selected()).toEqual(['A','B','C','Cut']);
   // Selection decorations never become artwork or DXF entities.
-  const exported=await page.evaluate(async()=>{const e=(window as any).__vectora,{exportDXF}=await import('/src/exportDXF.ts');return exportDXF([...e.objects,...e.overlays.children],true);});expect((exported.match(/LWPOLYLINE/g)||[]).length).toBe(4);
+  const exported=await page.evaluate(async()=>{const e=(window as any).__vectora,{exportDXF}=await import('/src/exportDXF.ts');return exportDXF([...e.objects,...e.overlays.children],true);});expect((exported.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(4);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();await expect(page.locator('.layer-object[aria-pressed="true"]:visible')).toHaveCount(3);
   await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();expect(await selected()).toEqual(['Cut']);expect(errors).toEqual([]);
 });
@@ -400,7 +400,7 @@ test('moving selected artwork to Cut Path preserves geometry, selection, styling
   const after=await page.evaluate(async()=>{const e=(window as any).__vectora,{flattenInDocument}=await import('/src/geometry.ts'),{exportDXF}=await import('/src/exportDXF.ts');return {art:e.artwork.children.length,cuts:e.cutlines.children.length,objects:e.selectedItems.map((s:any)=>({id:s.data.uid,name:s.data.name,geometry:flattenInDocument(s),bounds:s.bounds.toJSON()})),styles:e.selectedItems.map((s:any)=>({role:s.data.role,color:s.strokeColor.toCSS(true),fill:s.fillColor,width:s.strokeWidth,scaling:s.strokeScaling})),dxf:exportDXF(e.objects),snapshot:e.snapshot()};});
   expect(after.art).toBe(0);expect(after.cuts).toBe(3);expect(after.objects).toEqual(before.objects);
   for(const style of after.styles)expect(style).toEqual({role:'cutline',color:before.color,fill:null,width:1.5,scaling:false});
-  expect((after.dxf.match(/LWPOLYLINE/g)||[]).length).toBe(3);expect(after.dxf.match(/8\nARTWORK\n/)).toBeNull();
+  expect((after.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(3);expect(after.dxf.match(/8\nARTWORK\n/)).toBeNull();
   await expect(page.locator('#properties-panel')).toBeHidden();await expect(page.locator('#layer-objects-cutline')).toBeVisible();
   await page.screenshot({path:'test-results/move-to-cut.png'});
   await page.getByRole('button',{name:'Undo',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before.snapshot);
@@ -578,7 +578,7 @@ test('Dissect delete previews only the bounded section, preserves cut style and 
   const preview=await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:e.snapshot(),lengths:e.overlays.children.filter((p:any)=>p.data.role==='delete-preview').map((p:any)=>p.length)};});expect(preview.snapshot).toEqual(before);expect(preview.lengths).toHaveLength(1);expect(preview.lengths[0]).toBeCloseTo(20,6);
   await page.screenshot({path:'test-results/dissect-delete-preview.png'});await page.mouse.click(640,450);
   const trimmed=await page.evaluate(async()=>{const e=(window as any).__vectora,{pathsOf}=await import('/src/geometry.ts'),{exportDXF}=await import('/src/exportDXF.ts');const shape=e.cutlines.children[0];return {count:e.objects.length,lengths:pathsOf(shape).map((p:any)=>p.length),closed:pathsOf(shape).map((p:any)=>p.closed),color:shape.strokeColor.toCSS(true),snapshot:e.snapshot(),dxf:exportDXF(e.objects)};});
-  expect(trimmed.count).toBe(3);expect(trimmed.lengths).toHaveLength(2);for(const length of trimmed.lengths)expect(length).toBeCloseTo(20,8);expect(trimmed.closed).toEqual([false,false]);expect(trimmed.color.toLowerCase()).toBe('#ff0000');expect((trimmed.dxf.match(/LWPOLYLINE/g)||[]).length).toBe(2);
+  expect(trimmed.count).toBe(3);expect(trimmed.lengths).toHaveLength(2);for(const length of trimmed.lengths)expect(length).toBeCloseTo(20,8);expect(trimmed.closed).toEqual([false,false]);expect(trimmed.color.toLowerCase()).toBe('#ff0000');expect((trimmed.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(2);
   await expect(page.locator('#properties-panel')).toBeHidden();await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(trimmed.snapshot);
   await page.evaluate(()=>(window as any).__vectora.setLayerState('cutline','locked',true));await page.mouse.click(440,450);expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(3);expect(errors).toEqual([]);
 });
@@ -977,7 +977,7 @@ test('Join preserves contours as one selectable, transformable, duplicable objec
   expect(await page.evaluate(()=>{const e=(window as any).__vectora;return {count:e.objects.length,parts:e.selected.children.length};})).toEqual({count:2,parts:3});
   await page.keyboard.press('Delete');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);
   const exported=await page.evaluate(async()=>{const e=(window as any).__vectora;e.select(e.objects[0]);e.moveSelectionToCutPath();const {exportDXF}=await import('/src/exportDXF.ts');return {dxf:exportDXF(e.objects),role:e.selected.data.role,color:e.selected.strokeColor.toCSS(true),children:e.selected.children.length};});
-  expect(exported).toMatchObject({role:'cutline',color:'#ff0000',children:3});expect(exported.dxf.match(/LWPOLYLINE/g)).toHaveLength(3);
+  expect(exported).toMatchObject({role:'cutline',color:'#ff0000',children:3});expect(exported.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)).toHaveLength(3);
   await page.screenshot({path:'test-results/joined-shape.png'});
 });
 
@@ -1008,7 +1008,7 @@ test('Inline text converts every contour separately and undo restores editable t
   await expect(convert).toBeHidden();await expect(page.locator('#selection-menu .selection-count')).toHaveText(`${before.curves.length} selected`);
   const after=await page.evaluate(async()=>{const e=(window as any).__vectora,p=(window as any).__paper,{exportDXF}=await import('/src/exportDXF.ts');return {count:e.objects.length,snapshot:e.snapshot(),text:e.objects.some((s:any)=>s.data.text),curves:e.objects.flatMap((s:any)=>(s instanceof p.Path?[s]:s.children).map((path:any)=>path.curves.map((c:any)=>c.values))),parts:e.objects.map((s:any)=>s instanceof p.Path?1:s.children.length),dxf:exportDXF(e.objects,true)};});
   expect(after.count).toBe(before.curves.length);expect(after.text).toBe(false);expect(after.curves).toEqual(before.curves);expect(after.parts).toEqual(Array(before.curves.length).fill(1));
-  expect(after.dxf.match(/LWPOLYLINE/g)).toHaveLength(before.curves.length);
+  expect(after.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)).toHaveLength(before.curves.length);
   await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before.snapshot);await expect(convert).toBeVisible();
   await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after.snapshot);
   const click=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.select(null);const first=e.objects[0],v=p.view.projectToView(first.segments[0].point);return {x:v.x,y:v.y,others:e.objects.slice(1).map((s:any)=>s.exportJSON())};});

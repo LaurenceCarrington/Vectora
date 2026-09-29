@@ -1,3 +1,4 @@
+import {circularBounds} from './dxfGeometry';
 import {exportImageSource} from './exportImage';
 const NS='http://www.w3.org/2000/svg';
 /** Lay out a frozen SVG in physical millimetres, without touching editor geometry. */
@@ -15,11 +16,14 @@ export function layoutSVG(contents:string,options:{scale?:number;margin?:number;
 /** Supported writer records only; preserve all non-position tags and the original line endings. */
 export function dxfAtOrigin(contents:string):string {
  const sep=contents.includes('\r\n')?'\r\n':'\n',lines=contents.trimEnd().split(/\r?\n/);
- let section='',header='',minX=Infinity,minY=Infinity;const xs:number[]=[],ys:number[]=[],extentX:number[]=[],extentY:number[]=[];
+ let section='',header='',record='',minX=Infinity,minY=Infinity;const xs:number[]=[],ys:number[]=[],extentX:number[]=[],extentY:number[]=[];
  for(let i=0;i<lines.length;i+=2){const code=Number(lines[i]),value=lines[i+1];
   if(code===2&&lines[i-2]==='0'&&lines[i-1]==='SECTION')section=value;
   if(code===0&&value==='ENDSEC')section='';
   if(code===9)header=value;
+  if(code===0)record=value;
+  if(section==='TABLES'&&record==='VPORT'){if(code===12)extentX.push(i+1);if(code===22)extentY.push(i+1);}
+  if(section==='OBJECTS'&&record==='LAYOUT'){if(code===14||code===15)extentX.push(i+1);if(code===24||code===25)extentY.push(i+1);}
   if(section==='ENTITIES'){if(code===10||code===11){xs.push(i+1);minX=Math.min(minX,Number(value));}if(code===20||code===21){ys.push(i+1);minY=Math.min(minY,Number(value));}}
   if(section==='HEADER'&&(header==='$EXTMIN'||header==='$EXTMAX')){if(code===10)extentX.push(i+1);if(code===20)extentY.push(i+1);}
  }
@@ -33,11 +37,18 @@ export function previewDXF(contents:string):string {
  const lines=contents.trimEnd().split(/\r?\n/),svg=document.createElementNS(NS,'svg');let section='',record:{kind:string;tags:[number,string][]}|null=null;
  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
  const point=(x:number,y:number)=>{minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);return `${x},${y}`;};
- const flush=()=>{if(!record)return;const {kind,tags}=record;const get=(n:number)=>tags.find(([code])=>code===n)?.[1]??'0';const color=get(8).startsWith('CUT')?'#ff0000':get(8).startsWith('ENGRAVE')?'#0000ff':'#000000';
+ const flush=()=>{if(!record)return;const {kind,tags}=record;const get=(n:number)=>tags.find(([code])=>code===n)?.[1]??'0';const aci=Number(get(62));const color=aci===1?'#ff0000':aci===5?'#0000ff':aci===7?'#000000':get(8).startsWith('CUT')?'#ff0000':get(8).startsWith('ENGRAVE')?'#0000ff':'#000000';
   if(kind==='LINE'||kind==='LWPOLYLINE'){
    const ys=tags.filter(([c])=>c===20);
    const points=kind==='LINE'?[point(Number(get(10)),-Number(get(20))),point(Number(get(11)),-Number(get(21)))]:tags.filter(([c])=>c===10).map(([,x],i)=>point(Number(x),-Number(ys[i][1])));
    const el=document.createElementNS(NS,kind==='LWPOLYLINE'&&(Number(get(70))&1)!==0?'polygon':'polyline');el.setAttribute('points',points.join(' '));el.setAttribute('fill','none');el.setAttribute('stroke',color);el.setAttribute('stroke-width','.26458333');svg.append(el);
+  }else if(kind==='CIRCLE'||kind==='ARC'){
+   const cx=Number(get(10)),cy=Number(get(20)),radius=Number(get(40)),start=Number(get(50)),end=Number(get(51));
+   circularBounds({kind,cx,cy,radius,start,end}).forEach(p=>point(p.x,-p.y));
+   const el=document.createElementNS(NS,kind==='CIRCLE'?'circle':'path');
+   if(kind==='CIRCLE'){el.setAttribute('cx',String(cx));el.setAttribute('cy',String(-cy));el.setAttribute('r',String(radius));}
+   else{const angle=(a:number)=>[cx+radius*Math.cos(a*Math.PI/180),-cy-radius*Math.sin(a*Math.PI/180)].join(' ');el.setAttribute('d',`M ${angle(start)} A ${radius} ${radius} 0 ${(end-start+360)%360>180?1:0} 0 ${angle(end)}`);}
+   el.setAttribute('fill','none');el.setAttribute('stroke',color);el.setAttribute('stroke-width','.26458333');svg.append(el);
   }else if(kind==='TEXT'){const x=Number(get(72))===1?Number(get(11)):Number(get(10)),y=-(Number(get(72))===1?Number(get(21)):Number(get(20))),el=document.createElementNS(NS,'text');point(x,y);el.setAttribute('x',String(x));el.setAttribute('y',String(y));el.setAttribute('font-size',get(40));el.setAttribute('fill',color);el.setAttribute('text-anchor',Number(get(72))===1?'middle':'start');el.setAttribute('transform',`rotate(${-Number(get(50))} ${x} ${y})`);el.textContent=get(1).replace(/%%c/g,'Ø').replace(/\\U\+([a-f0-9]{4})/gi,(_,h)=>String.fromCharCode(parseInt(h,16)));el.setAttribute('font-family','Arial, sans-serif');
    const ctx=document.createElement('canvas').getContext('2d')!;const fontSize=Number(get(40));ctx.font=`${fontSize}px Arial`;const metrics=ctx.measureText(el.textContent??''),offset=Number(get(72))===1?metrics.width/2:0,angle=-Number(get(50))*Math.PI/180;
    for(const [dx,dy] of [[-offset,-(metrics.actualBoundingBoxAscent||fontSize)],[metrics.width-offset,-(metrics.actualBoundingBoxAscent||fontSize)],[metrics.width-offset,metrics.actualBoundingBoxDescent||0],[-offset,metrics.actualBoundingBoxDescent||0]])point(x+dx*Math.cos(angle)-dy*Math.sin(angle),y+dx*Math.sin(angle)+dy*Math.cos(angle));

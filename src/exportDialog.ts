@@ -9,7 +9,7 @@ const formats:{id:ExportTab;name:string;icon:string;hint:string}[]=[
  {id:'png',name:'PNG',icon:'export-png',hint:'Raster image · transparent or solid background'},
  {id:'svg',name:'SVG',icon:'export-svg',hint:'Scalable vector artwork · exact curves and colours'},
  {id:'pdf',name:'PDF',icon:'export-pdf',hint:'Vector document · print at actual size / 100%'},
- {id:'dxf',name:'DXF',icon:'export-dxf',hint:'Standard DXF 2000 · millimetres · polylines'}
+ {id:'dxf',name:'DXF',icon:'export-dxf',hint:'DXF 2000 · millimetres · circles, arcs & polylines'}
 ];
 type Settings={compatibility:'standard'|'laser';dpi:number;pixels:number|null;colour:string;background:string;width:number|null;margin:number;groups:boolean;page:string;orientation:string;scale:number;tolerance:number;origin:boolean;layers:Set<string>|null};
 const fresh=():Settings=>({compatibility:'standard',dpi:300,pixels:null,colour:'#ffffff',background:'transparent',width:null,margin:0,groups:true,page:'fit',orientation:'portrait',scale:100,tolerance:.05,origin:false,layers:null});
@@ -77,7 +77,7 @@ export class ExportDialog {
   const form=this.get<HTMLFormElement>('form');
   try{
    const s=this.settings[this.format],dxf=this.format==='dxf';
-   if(dxf)this.get('.export-format-hint').textContent=s.compatibility==='laser'?'DXF R12 · basic lines · choose millimetres when importing':'Standard DXF 2000 · millimetres · polylines';
+   if(dxf)this.get('.export-format-hint').textContent=s.compatibility==='laser'?'DXF R12 · basic lines · choose millimetres when importing':'DXF 2000 · millimetres · circles, arcs & polylines';
    if(this.format==='pdf')this.get<HTMLSelectElement>('[data-setting="orientation"]').disabled=s.page==='fit';
    const objects=(this.scope==='selection'?this.editor.selectedItems:this.editor.objects).filter(item=>s.layers!.has(item.layer.data.documentId)&&!item.layer.data.deleted&&(dxf||item.visible));
    if(!objects.length)throw new Error('No objects in the chosen area and layers. Choose another area or include a layer.');

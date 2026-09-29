@@ -1,49 +1,51 @@
-import {exportContours} from './dxfGeometry';
+import {standardContours,circularBounds,validateDXFTolerance} from './dxfGeometry';
 import {exportLaserDXF} from './exportLaserDXF';
+import {standardDXF,type DXFEntity,type DXFTag} from './dxfDocument';
+import {dimensionLabel,dimensionTextLayout} from './dimensions';
+import {validNumber} from './units';
+import type {Shape} from './types';
 export type DXFFormat='standard'|'laser';
-import { dimensionTextLayout } from './dimensions';
-import type { Shape } from './types';
-import { signedArea } from './geometry';
-import { NUMERIC_EPSILON_MM } from './units';
-/** ASCII DXF R2000, 2D LWPOLYLINE and annotation TEXT subset. No viewport or overlay data. */
-export function exportDXF(objects: readonly Shape[], includeArtwork = false, mode:DXFFormat='standard',tolerance?:number): string {
-  if(mode==='laser')return exportLaserDXF(objects,includeArtwork,tolerance);
-  const entities: string[] = [];
-  let handle = 256;
-  const layerNames=new Map<string,string>(),layerColors=new Map<string,number>([['0',7],['CUTLINE',1],['ARTWORK',7],['ANNOTATIONS',7]]);
-  const dxfLayer=(object:Shape):string=>{
-    if(object.data.dimension)return 'ANNOTATIONS';
-    const id=object.layer?.data.documentId??object.data.role,role=object.data.role;
-    let name=layerNames.get(id);if(name)return name;
-    const base=id==='cutline'?'CUTLINE':id==='artwork'?'ARTWORK':id==='engrave'?'ENGRAVE':(object.layer?.name??role).toUpperCase().replace(/[^A-Z0-9_-]/g,'_');
-    name=base;let suffix=2;while(layerColors.has(name)&&name!=='CUTLINE'&&name!=='ARTWORK')name=`${base}_${suffix++}`;
-    layerNames.set(id,name);layerColors.set(name,role==='cutline'?1:role==='engrave'?5:7);return name;
-  };
-  const pair = (code:number, value:string|number) => `${code}\n${value}\n`;
-  for (const object of objects) {
-    const role = object.data.role;
-    if (role !== 'cutline' && role !== 'engrave' && !(includeArtwork && role === 'artwork')) continue;
-    const targetLayer=dxfLayer(object);
-    for (const contour of exportContours(object,tolerance)) {
-      if (contour.points.length < (contour.closed ? 3 : 2)) continue;
-      if (contour.closed && Math.abs(signedArea(contour.points)) < NUMERIC_EPSILON_MM) continue;
-      let entity = pair(0,'LWPOLYLINE') + pair(5,(handle++).toString(16).toUpperCase()) + pair(100,'AcDbEntity') + pair(8,targetLayer) + pair(100,'AcDbPolyline') + pair(90,contour.points.length) + pair(70,contour.closed ? 1 : 0);
-      for (const point of contour.points) entity += pair(10,format(point.x)) + pair(20,format(-point.y));
-      entities.push(entity);
-    }
-    if(object.data.dimension){
-      const layout=dimensionTextLayout(object.data.dimension),position=layout.position,centered=layout.centered;
-      const label=layout.label.replace(/Ø/g,'%%c').replace(/[^\x20-\x7e]/g,char=>'\\U+'+char.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'));
-      entities.push(pair(0,'TEXT')+pair(5,(handle++).toString(16).toUpperCase())+pair(100,'AcDbEntity')+pair(8,'ANNOTATIONS')+pair(100,'AcDbText')+pair(10,format(position.x))+pair(20,format(-position.y))+pair(30,0)+pair(40,format(layout.fontSize))+pair(1,label)+pair(50,format(-layout.angle))+pair(72,centered?1:0)+pair(11,format(position.x))+pair(21,format(-position.y))+pair(31,0)+pair(100,'AcDbText')+pair(73,0));
-    }
+/** ASCII R2000: native circular geometry, flattened freeform paths and annotation TEXT. */
+export function exportDXF(objects:readonly Shape[],includeArtwork=false,mode:DXFFormat='standard',tolerance?:number):string {
+ validateDXFTolerance(tolerance);
+ if(mode==='laser')return exportLaserDXF(objects,includeArtwork,tolerance);
+ const entities:DXFEntity[]=[],layers=new Map<string,number>([['0',7]]),names=new Map<string,string>();
+ let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ const number=(n:number)=>{if(!validNumber(n))throw new Error('DXF geometry exceeds the supported coordinate range.');return n;};
+ const include=(x:number,y:number)=>{number(x);number(y);minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
+ const layerName=(object:Shape):string=>{
+  if(object.data.dimension){layers.set('ANNOTATIONS',7);return 'ANNOTATIONS';}
+  const id=object.layer?.data.documentId??object.data.role,existing=names.get(id);if(existing)return existing;
+  const base=(id==='cutline'?'CUTLINE':id==='artwork'?'ARTWORK':id==='engrave'?'ENGRAVE':object.layer?.name??object.data.role).toUpperCase().replace(/[^A-Z0-9_-]/g,'_').slice(0,31)||'LAYER';
+  let name=base,suffix=2;while(layers.has(name)||name==='ANNOTATIONS'){const tail=`_${suffix++}`;name=base.slice(0,31-tail.length)+tail;}
+  names.set(id,name);layers.set(name,object.data.role==='cutline'?1:object.data.role==='engrave'?5:7);return name;
+ };
+ for(const object of objects){
+  const role=object.data.role;if(role!=='cutline'&&role!=='engrave'&&!(includeArtwork&&role==='artwork'))continue;
+  const layer=layerName(object);
+  for(const geometry of standardContours(object,tolerance)){
+   if(geometry.kind==='LWPOLYLINE'){
+    const {points,closed}=geometry.contour;if(points.length<(closed?3:2))continue;
+    const tags:DXFTag[]=[[100,'AcDbPolyline'],[90,points.length],[70,closed?1:0]];
+    for(const p of points){include(p.x,-p.y);tags.push([10,p.x],[20,-p.y]);}
+    entities.push({kind:'LWPOLYLINE',layer,tags});
+   }else{
+    circularBounds(geometry).forEach(p=>include(p.x,p.y));
+    const tags:DXFTag[]=[[100,'AcDbCircle'],[10,number(geometry.cx)],[20,number(geometry.cy)],[30,0],[40,number(geometry.radius)]];
+    if(geometry.kind==='ARC')tags.push([100,'AcDbArc'],[50,geometry.start],[51,geometry.end]);
+    entities.push({kind:geometry.kind,layer,tags});
+   }
   }
-  if (!entities.length) throw new Error(includeArtwork ? 'There are no exportable objects. Draw a shape first.' : 'There are no cut lines. Create a Sticker Outline or enable “Include artwork”.');
-  let header = pair(0,'SECTION')+pair(2,'HEADER')+pair(9,'$ACADVER')+pair(1,'AC1015')+pair(9,'$INSUNITS')+pair(70,4)+pair(9,'$MEASUREMENT')+pair(70,1)+pair(9,'$INSBASE')+pair(10,0)+pair(20,0)+pair(30,0)+pair(0,'ENDSEC');
-  header += pair(0,'SECTION')+pair(2,'TABLES')+pair(0,'TABLE')+pair(2,'LTYPE')+pair(70,1)+pair(0,'LTYPE')+pair(100,'AcDbSymbolTableRecord')+pair(100,'AcDbLinetypeTableRecord')+pair(2,'CONTINUOUS')+pair(70,0)+pair(3,'Solid line')+pair(72,65)+pair(73,0)+pair(40,0)+pair(0,'ENDTAB')+pair(0,'TABLE')+pair(2,'LAYER')+pair(70,layerColors.size);
-  for (const [name,color] of layerColors) header += pair(0,'LAYER')+pair(100,'AcDbSymbolTableRecord')+pair(100,'AcDbLayerTableRecord')+pair(2,name)+pair(70,0)+pair(62,color)+pair(6,'CONTINUOUS');
-  return header+pair(0,'ENDTAB')+pair(0,'ENDSEC')+pair(0,'SECTION')+pair(2,'ENTITIES')+entities.join('')+pair(0,'ENDSEC')+pair(0,'EOF');
+  if(object.data.dimension){
+   const layout=dimensionTextLayout(object.data.dimension),p=layout.position;
+   const label=layout.label.replace(/Ø/g,'%%c').replace(/[^\x20-\x7e]/g,char=>'\\U+'+char.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'));
+   include(p.x,-p.y);const text=dimensionLabel(object);if(text){try{const b=text.bounds;include(b.left,-b.bottom);include(b.right,-b.top);}finally{text.remove();}}
+   entities.push({kind:'TEXT',layer,tags:[[100,'AcDbText'],[10,number(p.x)],[20,number(-p.y)],[30,0],[40,number(layout.fontSize)],[1,label],[50,number(-layout.angle)],[7,'STANDARD'],[72,layout.centered?1:0],[11,p.x],[21,-p.y],[31,0],[100,'AcDbText'],[73,0]]});
+  }
+ }
+ if(!entities.length)throw new Error(includeArtwork?'There are no exportable objects. Draw a shape first.':'There are no cut lines. Create a Sticker Outline or enable “Include artwork”.');
+ return standardDXF(entities,layers,{minX,minY,maxX,maxY});
 }
-function format(value:number):string { return Number(value.toFixed(8)).toString(); }
 export function downloadDXF(contents:string,format:DXFFormat='standard'):void {
   const url=URL.createObjectURL(new Blob([contents],{type:'application/dxf'}));
   const anchor=document.createElement('a'); anchor.href=url; anchor.download=format==='laser'?'vectora-laser.dxf':'vectora.dxf'; anchor.click();
