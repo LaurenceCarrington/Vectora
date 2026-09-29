@@ -14,4 +14,4 @@ Add dimensions and callouts, generate offset sticker outlines, and export cut an
 
 Save editable projects as `.vectora` files and reopen them with their layers, text and geometry intact. Save As creates a separate file so you can keep different versions of a design.
 
-Combine closed shapes with Weld, Subtract and Intersect. Preview the result before applying, preserve curved outlines and holes, and undo each operation in one step.
+Combine closed shapes with Weld, Subtract and Intersect directly from the selection menu. Preserve curved outlines and holes, and undo each operation in one step.
