@@ -84,6 +84,9 @@ for(const button of shapeOperationButtons){
   button.onclick=()=>attempt(()=>{closeMenus();selectionContextMenu.close();editor.applyShapeOperation(button.dataset.shapeOperation as ShapeOperation);editor.canvas.focus({preventScroll:true});});
   button.addEventListener('keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
 }
+const offsetButton=$<HTMLButtonElement>('[data-offset-open]');
+offsetButton.onclick=()=>{closeMenus();selectionContextMenu.close();editor.offsets.open(offsetButton);};
+offsetButton.addEventListener('keydown',event=>event.stopPropagation());
 const patternButton=$<HTMLButtonElement>('[data-pattern-open]');
 patternButton.onclick=()=>{closeMenus();selectionContextMenu.close();editor.patterns.open();};
 patternButton.addEventListener('keydown',event=>event.stopPropagation());
@@ -264,6 +267,7 @@ function update():void {
     button.disabled=!editor.canApplyShapeOperation;
     button.title=editor.canApplyShapeOperation?`${button.getAttribute('aria-label')} · ${button.dataset.operationHint}`:'Select two or more closed paths on the same layer; convert text first';
   }
+  offsetButton.disabled=!editor.offsets.available;
   patternButton.disabled=!editor.patterns.available;
   closePathButton.disabled=!editor.canCloseSelection;
   closePathButton.title=editor.canCloseSelection?'Close path · Join nearest endpoints':'Select open paths on the same layer to close';
@@ -372,6 +376,7 @@ for(const [id,label,selector,keywords,reason] of [
  if(id==='edit-text')searchTools.at(-1)!.unavailable=()=>editor.selected?.data.text&&!$<HTMLButtonElement>('#edit-text').disabled?undefined:reason;
 }
 for(const [id,label,keywords] of [['fillet','Fillet','round corner radius'],['chamfer','Chamfer','bevel corner distance']] as const)searchTools.push({id,label,group:'Node editing',icon:id,keywords,unavailable:()=>editor.tool==='nodes'&&editor.nodes.canEditCorners?undefined:'Select corners between straight edges with Node editing',run:()=>editor.nodes.openCorner(id)});
+searchButton('offset-path','Offset path','Selection','[data-offset-open]','inset outset expand shrink contour border distance round bevel sharp','','Select visible, unlocked closed paths; convert text first');
 for(const [kind,label,icon,keywords] of [['rectangular','Rectangular pattern','pattern-rectangular','array repeat rows columns holes slots spacing'],['circular','Circular pattern','pattern-circular','array repeat radial polar holes slots centre angle']] as const)searchTools.push({id:`pattern-${kind}`,label,group:'Selection',icon,keywords,unavailable:()=>editor.patterns.available?undefined:'Select visible, unlocked objects to repeat',run:()=>editor.patterns.open(kind)});
 for(const [kind,label,keywords] of [['weld','Weld','boolean union merge overlapping outlines'],['subtract','Subtract','boolean difference cut hole remove'],['intersect','Intersect','boolean intersection shared overlap']] as const)searchButton(`shape-${kind}`,label,'Selection',`#selection-menu [data-shape-operation="${kind}"]`,keywords,'','Select two or more closed paths on the same layer; convert text first');
 for(const button of arrangementButtons){
