@@ -6,6 +6,7 @@ import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
 import { createHeart } from './heart';
 import { ObjectPatterns } from './objectPatterns';
+import { arrangementOffsets, type ArrangementAction } from './arrangement';
 import { buildShapeOperation, eligibleForShapeOperation, type ShapeOperation } from './shapeOperationGeometry';
 import { NodeEditing } from './nodeEditing';
 import { DimensionTools } from './dimensionTools';
@@ -188,7 +189,9 @@ export class CADEditor {
       for(const itemJSON of JSON.parse(json) as string[]) layer.addChild(paper.project.importJSON(itemJSON));
     }
     const ids=snapshot.selectedIds??(snapshot.selected?[snapshot.selected]:[]);
-    this.selection=this.objects.filter(o=>ids.includes(o.data.uid)&&this.isEditable(o));
+    // Selection order identifies the alignment reference, including after Undo/Redo.
+    const byId=new Map(this.objects.map(item=>[item.data.uid,item]));
+    this.selection=[...new Set<string>(ids)].flatMap(id=>{const item=byId.get(id);return item&&this.isEditable(item)?[item]:[];});
     this.drawingLayerId=snapshot.activeLayerId??'artwork';this.layerSelectionSignature=this.selectionSignature();
     this.artwork.activate();this.changed();this.onDocumentChange();
   }
@@ -434,6 +437,28 @@ export class CADEditor {
     this.selection=selection;
     this.commit(before);
     }finally{engraving.forEach(shape=>shape.remove());}
+  }
+  canArrangeSelection(action:ArrangementAction):boolean {
+    return !this.hasPendingGesture&&!this.textEditing&&this.selection.length>=(action.startsWith('distribute-')?3:2)&&this.selection.every(item=>item.visible&&!item.locked&&this.isEditable(item));
+  }
+  arrangeSelection(action:ArrangementAction):void {
+    if(!this.canArrangeSelection(action))return;
+    const offsets=arrangementOffsets(this.selection.map(item=>this.objectBounds(item)),action),replacements=new Map<Shape,Shape>();
+    try{
+      for(const [index,source] of this.selection.entries()){
+        const delta=offsets[index];if(delta.length<1e-10)continue;
+        const copy=source.clone({insert:false}) as Shape;replacements.set(source,copy);copy.data=structuredClone(source.data);
+        copy.translate(delta);transformText(copy,new paper.Matrix().translate(delta));
+        if(copy.data.arc){copy.data.arc.cx+=delta.x;copy.data.arc.cy+=delta.y;}
+        const bounds=this.objectBounds(copy);
+        const metadataCoordinates=[...(copy.data.arc?[copy.data.arc.cx,copy.data.arc.cy]:[]),...(copy.data.text?.transform??[]),...(copy.data.dimension?.transform??[])];
+        if(![bounds.left,bounds.top,bounds.right,bounds.bottom,...metadataCoordinates].every(validNumber))throw new Error('Arranging these objects would exceed ±1,000,000 mm.');
+      }
+    }catch(error){replacements.forEach(copy=>copy.remove());throw error;}
+    if(!replacements.size)return;
+    const before=this.snapshot();
+    for(const [source,copy] of replacements){source.parent.insertChild(source.index,copy);source.remove();}
+    this.selection=this.selection.map(source=>replacements.get(source)??source);this.nodes.clear();this.commit(before);
   }
   get canApplyShapeOperation():boolean {
     return !this.hasPendingGesture&&!this.textEditing&&eligibleForShapeOperation(this.selection);

@@ -1,3 +1,4 @@
+import type {ArrangementAction} from './arrangement';
 import type {ShapeOperation} from './shapeOperationGeometry';
 import type { Family } from './generators/catalog';
 import { HelpGuide } from './help';
@@ -73,6 +74,11 @@ for(const button of flipButtons){
 }
 joinButton.addEventListener('click',()=>attempt(()=>{editor.joinSelection();editor.canvas.focus({preventScroll:true});}));
 joinButton.addEventListener('keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
+const arrangementButtons=document.querySelectorAll<HTMLButtonElement>('#selection-menu [data-arrange]');
+for(const button of arrangementButtons){
+  button.onclick=()=>attempt(()=>{closeMenus();selectionContextMenu.close();editor.arrangeSelection(button.dataset.arrange as ArrangementAction);editor.canvas.focus({preventScroll:true});});
+  button.addEventListener('keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
+}
 const shapeOperationButtons=document.querySelectorAll<HTMLButtonElement>('#selection-menu [data-shape-operation]');
 for(const button of shapeOperationButtons){
   button.onclick=()=>attempt(()=>{closeMenus();selectionContextMenu.close();editor.applyShapeOperation(button.dataset.shapeOperation as ShapeOperation);editor.canvas.focus({preventScroll:true});});
@@ -248,6 +254,12 @@ function update():void {
   $('.fill-tools').classList.toggle('is-no-fill',editor.noFill);
   fillPicker.value=editor.fillColor;if(document.activeElement!==fillHex)fillHex.value=editor.fillColor;
   fillMenu.querySelectorAll<HTMLButtonElement>('[data-fill-colour]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.fillColour?.toLowerCase()===(editor.noFill?'none':editor.fillColor.toLowerCase()))));
+  for(const button of arrangementButtons){
+    const action=button.dataset.arrange as ArrangementAction,distribute=action.startsWith('distribute-');
+    button.disabled=!editor.canArrangeSelection(action);
+    const hint=distribute?'Space centres evenly; keep end objects fixed':`To ${editor.selectedItems.at(-1)?.data.name??'the last selected object'} (last selected)`;
+    button.title=button.disabled?`Select ${distribute?'three':'two'} or more visible, unlocked objects`:`${button.getAttribute('aria-label')} · ${hint}`;
+  }
   for(const button of shapeOperationButtons){
     button.disabled=!editor.canApplyShapeOperation;
     button.title=editor.canApplyShapeOperation?`${button.getAttribute('aria-label')} · ${button.dataset.operationHint}`:'Select two or more closed paths on the same layer; convert text first';
@@ -362,6 +374,10 @@ for(const [id,label,selector,keywords,reason] of [
 for(const [id,label,keywords] of [['fillet','Fillet','round corner radius'],['chamfer','Chamfer','bevel corner distance']] as const)searchTools.push({id,label,group:'Node editing',icon:id,keywords,unavailable:()=>editor.tool==='nodes'&&editor.nodes.canEditCorners?undefined:'Select corners between straight edges with Node editing',run:()=>editor.nodes.openCorner(id)});
 for(const [kind,label,icon,keywords] of [['rectangular','Rectangular pattern','pattern-rectangular','array repeat rows columns holes slots spacing'],['circular','Circular pattern','pattern-circular','array repeat radial polar holes slots centre angle']] as const)searchTools.push({id:`pattern-${kind}`,label,group:'Selection',icon,keywords,unavailable:()=>editor.patterns.available?undefined:'Select visible, unlocked objects to repeat',run:()=>editor.patterns.open(kind)});
 for(const [kind,label,keywords] of [['weld','Weld','boolean union merge overlapping outlines'],['subtract','Subtract','boolean difference cut hole remove'],['intersect','Intersect','boolean intersection shared overlap']] as const)searchButton(`shape-${kind}`,label,'Selection',`#selection-menu [data-shape-operation="${kind}"]`,keywords,'','Select two or more closed paths on the same layer; convert text first');
+for(const button of arrangementButtons){
+  const id=button.dataset.arrange!,distribute=id.startsWith('distribute-');
+  searchButton(id,button.getAttribute('aria-label')!,'Selection',`#selection-menu [data-arrange="${id}"]`,distribute?'arrange space centres centers evenly spacing':'arrange align reference centre center position','',`Select ${distribute?'three':'two'} or more visible, unlocked objects`);
+}
 searchButton('notifications','Notifications','Application','[data-notifications-trigger]','alerts messages history');
 const needsSelection=()=>editor.canCopySelection?undefined:'Select one or more objects';
 for(const [id,label,icon,field,keywords] of [['move','Move / position','select','x','translate coordinates'],['resize','Resize','width','width','scale size width height'],['rotate','Rotate','rotate','rotation','angle rotation']] as const)searchTools.push({id,label,group:'Properties',icon,keywords,unavailable:()=>editor.selectedItems.length?undefined:'Select one or more objects',run:()=>{setPanel(props,true);$<HTMLInputElement>(`#field-${field}`).focus();}});
