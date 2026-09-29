@@ -4,23 +4,23 @@ import {exportDXF} from './exportDXF';
 import {exportImageSource,exportPNG} from './exportImage';
 import {layoutSVG,dxfAtOrigin,previewDXF} from './exportLayout';
 export type ExportFormat='png'|'svg'|'pdf'|'dxf'|'laser';
-const formats:{id:ExportFormat;name:string;icon:string;hint:string}[]=[
+type ExportTab=Exclude<ExportFormat,'laser'>;
+const formats:{id:ExportTab;name:string;icon:string;hint:string}[]=[
  {id:'png',name:'PNG',icon:'export-png',hint:'Raster image · transparent or solid background'},
  {id:'svg',name:'SVG',icon:'export-svg',hint:'Scalable vector artwork · exact curves and colours'},
  {id:'pdf',name:'PDF',icon:'export-pdf',hint:'Vector document · print at actual size / 100%'},
- {id:'dxf',name:'DXF',icon:'export-dxf',hint:'Standard DXF 2000 · millimetres · polylines'},
- {id:'laser',name:'Laser-compatible DXF',icon:'export-dxf',hint:'DXF R12 · basic lines · choose millimetres when importing'}
+ {id:'dxf',name:'DXF',icon:'export-dxf',hint:'Standard DXF 2000 · millimetres · polylines'}
 ];
-type Settings={dpi:number;pixels:number|null;colour:string;background:string;width:number|null;margin:number;groups:boolean;page:string;orientation:string;scale:number;tolerance:number;origin:boolean;layers:Set<string>|null};
-const fresh=():Settings=>({dpi:300,pixels:null,colour:'#ffffff',background:'transparent',width:null,margin:0,groups:true,page:'fit',orientation:'portrait',scale:100,tolerance:.05,origin:false,layers:null});
+type Settings={compatibility:'standard'|'laser';dpi:number;pixels:number|null;colour:string;background:string;width:number|null;margin:number;groups:boolean;page:string;orientation:string;scale:number;tolerance:number;origin:boolean;layers:Set<string>|null};
+const fresh=():Settings=>({compatibility:'standard',dpi:300,pixels:null,colour:'#ffffff',background:'transparent',width:null,margin:0,groups:true,page:'fit',orientation:'portrait',scale:100,tolerance:.05,origin:false,layers:null});
 const icon=(name:string)=>`<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-${name}"/></svg>`;
 const number=(name:string,label:string,value:number,min:number,max:number,step='any')=>`<label>${label}<input class="number-input" data-setting="${name}" type="number" value="${value}" min="${min}" max="${max}" step="${step}" required></label>`;
 const check=(name:string,label:string,value:boolean)=>`<label class="export-check"><input type="checkbox" data-setting="${name}" ${value?'checked':''}>${label}</label>`;
 const select=(name:string,label:string,options:[string,string][],value:string)=>`<label>${label}<select class="number-input" aria-label="${label}" data-setting="${name}">${options.map(([id,text])=>`<option value="${id}" ${id===value?'selected':''}>${text}</option>`).join('')}</select></label>`;
 /** One modal owns export settings and frozen output. The editor is never transformed for export. */
 export class ExportDialog {
- private dialog=document.createElement('dialog');private format:ExportFormat='svg';
- private settings=Object.fromEntries(formats.map(f=>[f.id,fresh()])) as Record<ExportFormat,Settings>;
+ private dialog=document.createElement('dialog');private format:ExportTab='svg';
+ private settings=Object.fromEntries(formats.map(f=>[f.id,fresh()])) as Record<ExportTab,Settings>;
  private scope='drawing';private returnFocus:HTMLElement|null=null;private url='';private revision=0;private timer=0;private busy=false;
  private prepared:{contents:string;svg:string;width:number;height:number;pixels:number}|null=null;
  private cache=new Map<string,string>();
@@ -34,9 +34,9 @@ export class ExportDialog {
   this.dialog.addEventListener('keydown',event=>{
    event.stopPropagation();if(event.key==='Escape'){event.preventDefault();this.dialog.close();}
    const tab=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-format]');
-   if(tab&&['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();const i=formats.findIndex(f=>f.id===tab.dataset.format),n=event.key==='Home'?0:event.key==='End'?4:(i+(event.key==='ArrowDown'?1:4))%5;this.choose(formats[n].id);this.get<HTMLButtonElement>(`[data-format="${this.format}"]`).focus();}
+   if(tab&&['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();const i=formats.findIndex(f=>f.id===tab.dataset.format),n=event.key==='Home'?0:event.key==='End'?formats.length-1:(i+(event.key==='ArrowDown'?1:formats.length-1))%formats.length;this.choose(formats[n].id);this.get<HTMLButtonElement>(`[data-format="${this.format}"]`).focus();}
   });
-  this.dialog.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(button=>button.onclick=()=>this.choose(button.dataset.format as ExportFormat));
+  this.dialog.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(button=>button.onclick=()=>this.choose(button.dataset.format as ExportTab));
   this.get<HTMLSelectElement>('#export-scope').onchange=e=>{this.scope=(e.target as HTMLSelectElement).value;this.refresh();};
   this.dialog.addEventListener('input',event=>{const input=event.target as HTMLInputElement;if(input.id==='export-filename'){this.queue();return;}if(input.matches('[data-setting]')){this.readSetting(input);this.queue();}});
   this.dialog.addEventListener('change',event=>{const input=event.target as HTMLInputElement;if(input.matches('[data-setting]')){this.readSetting(input);this.refresh();}if(input.matches('[data-layer]')){const layers=this.settings[this.format].layers!;input.checked?layers.add(input.dataset.layer!):layers.delete(input.dataset.layer!);this.refresh();}});
@@ -48,10 +48,10 @@ export class ExportDialog {
   this.dialog.querySelectorAll<HTMLButtonElement|HTMLInputElement|HTMLSelectElement>('button,input,select').forEach(el=>el.disabled=false);
   const name=document.querySelector<HTMLInputElement>('[data-document-name]');this.get<HTMLInputElement>('#export-filename').value=(name?.value??name?.textContent??'Untitled.vectora').replace(/\.vectora$/i,'');
   const scope=this.get<HTMLSelectElement>('#export-scope');scope.querySelector<HTMLOptionElement>('[value="selection"]')!.disabled=!this.editor.selectedItems.length;if(!this.editor.selectedItems.length)this.scope='drawing';scope.value=this.scope;
-  this.get<HTMLDetailsElement>('details').open=false;this.dialog.showModal();this.choose(format??this.format);this.get<HTMLButtonElement>(`[data-format="${this.format}"]`).focus();
+  this.get<HTMLDetailsElement>('details').open=false;this.dialog.showModal();if(format==='laser')this.settings.dxf.compatibility='laser';this.choose(format==='laser'?'dxf':format??this.format);this.get<HTMLButtonElement>(`[data-format="${this.format}"]`).focus();
  }
- private choose(format:ExportFormat):void {
-  if(this.busy)return;this.format=format;const settings=this.settings[format],dxf=format==='dxf'||format==='laser';
+ private choose(format:ExportTab):void {
+  if(this.busy)return;this.format=format;const settings=this.settings[format],dxf=format==='dxf';
   const layers=this.editor.documentLayers.filter(layer=>layer.data.objectRole!=='construction');
   if(!settings.layers)settings.layers=new Set(layers.filter(layer=>dxf?layer.data.objectRole!=='artwork':layer.visible).map(layer=>layer.data.documentId));
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(button=>{const active=button.dataset.format===format;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;});
@@ -59,7 +59,7 @@ export class ExportDialog {
   this.get('.export-format-hint').textContent=formats.find(f=>f.id===format)!.hint;
   this.get('[data-export-submit]').textContent=`Export ${formats.find(f=>f.id===format)!.name}`;
   this.get('[data-export-footer]').textContent=dxf?'Physical size · millimetres':`.${format} · document unchanged`;
-  this.get('[data-format-fields]').innerHTML=format==='png'?number('dpi','Resolution (DPI)',settings.dpi,1,2400)+number('pixels','Width (px)',settings.pixels??1,1,16384,'1')+select('background','Background',[['transparent','Transparent'],['colour','Colour']],settings.background)+`<label data-background-colour>Background colour<input type="color" data-setting="colour" value="${settings.colour}"></label>`:format==='svg'?number('width','Width (mm)',settings.width??1,.001,1000000)+number('margin','Margin (mm)',settings.margin,0,10000):format==='pdf'?select('page','Page size',[['fit','Fit drawing'],['a4','A4 (210 × 297 mm)'],['a3','A3 (297 × 420 mm)'],['letter','Letter (216 × 279 mm)']],settings.page)+select('orientation','Orientation',[['portrait','Portrait'],['landscape','Landscape']],settings.orientation)+number('margin','Margin (mm)',settings.margin,0,1000)+number('scale','Scale (%)',settings.scale,.01,10000):'<p class="export-wide">Paths remain at their original size. Fills export as outlines.</p>';
+  this.get('[data-format-fields]').innerHTML=format==='png'?number('dpi','Resolution (DPI)',settings.dpi,1,2400)+number('pixels','Width (px)',settings.pixels??1,1,16384,'1')+select('background','Background',[['transparent','Transparent'],['colour','Colour']],settings.background)+`<label data-background-colour>Background colour<input type="color" data-setting="colour" value="${settings.colour}"></label>`:format==='svg'?number('width','Width (mm)',settings.width??1,.001,1000000)+number('margin','Margin (mm)',settings.margin,0,10000):format==='pdf'?select('page','Page size',[['fit','Fit drawing'],['a4','A4 (210 × 297 mm)'],['a3','A3 (297 × 420 mm)'],['letter','Letter (216 × 279 mm)']],settings.page)+select('orientation','Orientation',[['portrait','Portrait'],['landscape','Landscape']],settings.orientation)+number('margin','Margin (mm)',settings.margin,0,1000)+number('scale','Scale (%)',settings.scale,.01,10000):select('compatibility','Compatibility',[['standard','Standard DXF (2000)'],['laser','Laser-compatible DXF (R12)']],settings.compatibility)+'<p class="export-wide">Paths remain at their original size. Fills export as outlines.</p>';
   this.get('[data-advanced-fields]').innerHTML=dxf?number('tolerance','Curve tolerance (mm)',settings.tolerance,.001,1)+check('origin','Move to origin',settings.origin):format==='svg'?check('groups','Preserve layer groups',settings.groups):'<p class="export-wide">Artwork exports black in both themes. Explicit fill colours are preserved.</p>';
   const list=this.get('[data-export-layers]');list.replaceChildren();for(const layer of layers){const label=document.createElement('label');label.className='export-check';const input=document.createElement('input');input.type='checkbox';input.dataset.layer=layer.data.documentId;input.checked=settings.layers.has(layer.data.documentId);label.append(input,document.createTextNode(layer.name));list.append(label);}
   this.refresh();
@@ -76,14 +76,15 @@ export class ExportDialog {
   clearTimeout(this.timer);this.prepared=null;const error=this.get('.export-error'),button=this.get<HTMLButtonElement>('[data-export-submit]');error.hidden=true;button.disabled=true;
   const form=this.get<HTMLFormElement>('form');
   try{
-   const s=this.settings[this.format],dxf=this.format==='dxf'||this.format==='laser';
+   const s=this.settings[this.format],dxf=this.format==='dxf';
+   if(dxf)this.get('.export-format-hint').textContent=s.compatibility==='laser'?'DXF R12 · basic lines · choose millimetres when importing':'Standard DXF 2000 · millimetres · polylines';
    if(this.format==='pdf')this.get<HTMLSelectElement>('[data-setting="orientation"]').disabled=s.page==='fit';
    const objects=(this.scope==='selection'?this.editor.selectedItems:this.editor.objects).filter(item=>s.layers!.has(item.layer.data.documentId)&&!item.layer.data.deleted&&(dxf||item.visible));
    if(!objects.length)throw new Error('No objects in the chosen area and layers. Choose another area or include a layer.');
    let contents='',svg='',pixels=0;
    if(dxf&&!form.checkValidity())throw new Error('Check the highlighted export settings.');
-   const cacheKey=JSON.stringify([this.scope,[...s.layers!],dxf?s.tolerance:'svg',this.format==='laser'?'laser':dxf?'dxf':'svg']);
-   let source=this.cache.get(cacheKey);if(!source){source=dxf?exportDXF(objects,true,this.format==='laser'?'laser':'standard',s.tolerance):exportSVG(objects,true);this.cache.set(cacheKey,source);}
+   const cacheKey=JSON.stringify([this.scope,[...s.layers!],dxf?s.tolerance:'svg',dxf?s.compatibility:'svg']);
+   let source=this.cache.get(cacheKey);if(!source){source=dxf?exportDXF(objects,true,s.compatibility,s.tolerance):exportSVG(objects,true);this.cache.set(cacheKey,source);}
    if(dxf){if(!form.checkValidity())throw new Error('Check the highlighted export settings.');contents=s.origin?dxfAtOrigin(source):source;svg=previewDXF(contents);}
    else{
     const base=exportImageSource(source);
@@ -116,7 +117,7 @@ export class ExportDialog {
   try{
    const blob=format==='png'?await exportPNG(snapshot.contents,{dpi:s.dpi,width:snapshot.pixels,background:s.background==='colour'?s.colour:undefined}):format==='pdf'?await (await import('./exportPDF')).exportPDF(snapshot.contents):new Blob([snapshot.contents],{type:format==='svg'?'image/svg+xml':'application/dxf'});
    if(revision!==this.revision||!this.dialog.open)return;
-   const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=`${name}.${format==='laser'?'dxf':format}`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),60000);this.dialog.close();this.notify(format==='laser'?'Laser-compatible DXF prepared. Choose millimetres when importing.':`${format.toUpperCase()} prepared for download.`,'success');
+   const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=`${name}.${format}`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),60000);this.dialog.close();this.notify(format==='dxf'&&s.compatibility==='laser'?'Laser-compatible DXF prepared. Choose millimetres when importing.':`${format.toUpperCase()} prepared for download.`,'success');
   }catch(e){if(revision===this.revision&&this.dialog.open){this.get('.export-error').textContent=e instanceof Error?e.message:String(e);this.get('.export-error').hidden=false;}}
   finally{if(revision===this.revision){this.busy=false;controls.forEach(el=>el.disabled=false);}this.get('[data-export-submit]').removeAttribute('aria-busy');}
  }
