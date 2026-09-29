@@ -20,7 +20,7 @@ import { DIMENSION_NAMES, isDimensionTool } from './dimensions';
 import { loadTextFont } from './text';
 import type { ObjectSnapMode } from './objectSnapping';
 import { initializeClipper } from './clipperService';
-import { downloadDXF, exportDXF } from './exportDXF';
+import { downloadDXF, exportDXF, type DXFFormat } from './exportDXF';
 import { downloadSVG, exportSVG } from './exportSVG';
 import { DocumentFiles } from './documentFiles';
 import { BASE_ZOOM } from './units';
@@ -224,7 +224,10 @@ for(const key of ['radius','start','sweep'] as const){
 $('#arc-semicircle').onclick=()=>attempt(()=>editor.setArcProperty('sweep',Math.sign(editor.selectedArc?.sweep??1)*180));
 $('#arc-flip').onclick=()=>attempt(()=>editor.setArcProperty('sweep',-(editor.selectedArc?.sweep??180)));
 $('#create-outline').onclick=()=>attempt(()=>{editor.outline($<HTMLInputElement>('#outline-distance').valueAsNumber);notify('Sticker outline created. The source shape is unchanged.','success');});
-$('#export-dxf').onclick=()=>attempt(()=>{downloadDXF(exportDXF(editor.objects,$<HTMLInputElement>('#include-artwork').checked));notify('DXF downloaded in millimetres.','success');});
+const dxfFormat=$<HTMLSelectElement>('#dxf-format');
+const updateDXFHint=()=>{$('#dxf-format-hint').textContent=dxfFormat.value==='laser'?'Basic lines for older laser software. Choose millimetres when importing.':'Standard DXF 2000 with polylines and millimetre units.';};
+dxfFormat.onchange=updateDXFHint;
+$('#export-dxf').onclick=()=>attempt(()=>{const format=dxfFormat.value as DXFFormat;downloadDXF(exportDXF(editor.objects,$<HTMLInputElement>('#include-artwork').checked,format),format);notify(format==='laser'?'Laser-compatible DXF downloaded. Choose millimetres when importing.':'DXF downloaded in millimetres.','success');});
 function exportDrawingSVG():void {closeMenus();attempt(()=>{downloadSVG(exportSVG(editor.objects));notify('SVG downloaded in millimetres.','success');});}
 let imageExportPending=false;
 async function exportDrawingImage(format:'pdf'|'png'):Promise<void> {
@@ -402,6 +405,7 @@ for(const [tab,label,keywords] of [
  ['snapping','Snapping settings','intersection nearest centre center tangent perpendicular object snap grid'],
  ['appearance','Appearance','theme dark light mode'],
 ] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
+searchTools.push({id:'export-laser-dxf',label:'Laser-compatible DXF',group:'File',icon:'export-dxf',keywords:'export download legacy r12 techsoft laser cutter',run:()=>{closeMenus();dxfFormat.value='laser';updateDXFHint();setPanel(props,true,true);$('#export-dxf').focus();}});
 searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});
 for(const [id,label,words] of [['gear','Involute gear','spur helical bevel rack pinion module teeth'],['drive','Sprocket & timing pulley','chain roller belt groove'],['fastener','Thread & fastener','bolt nut washer thread pitch'],['cam','Cam profile','follower cycloidal harmonic polynomial'],['box','Box & finger joints','enclosure laser finger tabs t-slot nut joint'],['hinge','Flexure & living hinge','kerf bend wood acrylic slits slots'],['packaging','Packaging & die-cut nets','carton corrugated fold score glue tray'],['framework','Truss & framework','warren pratt howe structural lattice frame'],['voronoi','Voronoi pattern','cells seed organic panel webs'],['spirograph','Spirograph & cycloid','hypotrochoid epitrochoid rolling circle'],['maze','Maze & labyrinth','rectangular circular walls solution'],['halftone','Halftone & stipple','image photo holes dots tone'],['waveform','Noise & waveform','perlin sine wave strips panel']] as const)searchButton(`generator-${id}`,label,'Generators',`[data-generator="${id}"]`,words);
 new ToolSearch($<HTMLButtonElement>('[data-tool-search]'),searchTools,()=>{

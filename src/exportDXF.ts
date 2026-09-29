@@ -1,10 +1,13 @@
-import { createTextShape, isStrokeFont } from './text';
+import {exportContours} from './dxfGeometry';
+import {exportLaserDXF} from './exportLaserDXF';
+export type DXFFormat='standard'|'laser';
 import { dimensionTextLayout } from './dimensions';
 import type { Shape } from './types';
-import { flattenInDocument, signedArea } from './geometry';
+import { signedArea } from './geometry';
 import { NUMERIC_EPSILON_MM } from './units';
 /** ASCII DXF R2000, 2D LWPOLYLINE and annotation TEXT subset. No viewport or overlay data. */
-export function exportDXF(objects: readonly Shape[], includeArtwork = false): string {
+export function exportDXF(objects: readonly Shape[], includeArtwork = false, mode:DXFFormat='standard'): string {
+  if(mode==='laser')return exportLaserDXF(objects,includeArtwork);
   const entities: string[] = [];
   let handle = 256;
   const layerNames=new Map<string,string>(),layerColors=new Map<string,number>([['0',7],['CUTLINE',1],['ARTWORK',7],['ANNOTATIONS',7]]);
@@ -41,14 +44,8 @@ export function exportDXF(objects: readonly Shape[], includeArtwork = false): st
   return header+pair(0,'ENDTAB')+pair(0,'ENDSEC')+pair(0,'SECTION')+pair(2,'ENTITIES')+entities.join('')+pair(0,'ENDSEC')+pair(0,'EOF');
 }
 function format(value:number):string { return Number(value.toFixed(8)).toString(); }
-export function downloadDXF(contents:string):void {
+export function downloadDXF(contents:string,format:DXFFormat='standard'):void {
   const url=URL.createObjectURL(new Blob([contents],{type:'application/dxf'}));
-  const anchor=document.createElement('a'); anchor.href=url; anchor.download='vectora.dxf'; anchor.click();
+  const anchor=document.createElement('a'); anchor.href=url; anchor.download=format==='laser'?'vectora-laser.dxf':'vectora.dxf'; anchor.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-function exportContours(object:Shape){
-  if(!object.data.text||!isStrokeFont(object.data.text.fontId))return flattenInDocument(object);
-  const strokes=createTextShape(object.data.text,true);
-  try{return flattenInDocument(strokes);}finally{strokes.remove();}
 }
