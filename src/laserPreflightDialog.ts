@@ -19,10 +19,17 @@ export class LaserPreflightDialog {
   constructor(private editor:CADEditor,private trigger:HTMLButtonElement,private onExport:()=>void){
     const settings=editor.laserJobSettings;
     this.dialog.id='laser-preflight-dialog';this.dialog.className='laser-preflight-dialog menu-surface';this.dialog.setAttribute('aria-labelledby','laser-preflight-title');
-    this.dialog.innerHTML=`<header class="laser-header"><div><h2 id="laser-preflight-title">Laser preflight</h2><p>Check the job at actual size before exporting.</p></div><button type="button" class="tool" data-laser-close aria-label="Close laser preflight">${icon('close')}</button></header><div class="laser-body"><aside class="laser-settings"><h3>Job settings</h3><div class="laser-settings-grid">${input('bed-width','Bed width',settings.bedWidthMM,1,10000)}${input('bed-height','Bed height',settings.bedHeightMM,1,10000)}${input('kerf','Measured kerf',settings.kerfMM,0,10)}<label>Operation order<select class="number-input" data-laser-order aria-label="Operation order"><option value="engrave-cut">Engrave → Cut</option><option value="cut-engrave">Cut → Engrave</option></select></label></div><p class="laser-field-error" role="alert" hidden></p><div class="laser-checks"><h3>Preflight <span data-laser-status></span></h3><ul data-laser-issues></ul></div></aside><section class="laser-preview-panel" aria-label="Laser job preview"><div class="laser-preview-controls"><label>Show<select class="number-input" data-laser-stage aria-label="Preview stage"><option value="all">All operations</option><option value="engrave">Engrave</option><option value="cutline">Cut</option></select></label><label class="laser-check"><input type="checkbox" data-laser-kerf-overlay checked> Show kerf band</label></div><div class="laser-preview-frame"><svg data-laser-preview role="img" aria-label="Unscaled laser bed and job preview"></svg></div><p class="laser-measurements" data-laser-measurements></p><p class="laser-explanation">All Cut and Engrave layers are included, even when hidden or locked. Bed placement is illustrative and never scales the design.</p></section></div><footer class="laser-footer"><span>Order and kerf are planning settings. DXF exports original paths; set operation order and kerf in laser software.</span><button type="button" class="button" data-laser-close>Close</button><button type="button" class="button laser-export" data-laser-export>Continue to DXF export</button></footer>`;
+    this.dialog.innerHTML=`<header class="laser-header"><div><h2 id="laser-preflight-title">Laser preflight</h2><p>Check the job at actual size before exporting.</p></div><button type="button" class="tool" data-laser-close aria-label="Close laser preflight">${icon('close')}</button></header><div class="laser-body"><aside class="laser-settings"><h3>Job settings</h3><div class="laser-settings-grid">${input('bed-width','Bed width',settings.bedWidthMM,1,10000)}${input('bed-height','Bed height',settings.bedHeightMM,1,10000)}${input('kerf','Measured kerf',settings.kerfMM,0,10)}<label>Operation order<select class="number-input" data-laser-order aria-label="Operation order"><option value="engrave-cut">Engrave → Cut</option><option value="cut-engrave">Cut → Engrave</option></select></label></div><p class="laser-field-error" role="alert" hidden></p><div class="laser-checks"><h3>Preflight <span data-laser-status></span></h3><ul data-laser-issues></ul></div></aside><section class="laser-preview-panel" aria-label="Laser job preview"><div class="laser-preview-controls"><label>Show<select class="number-input" data-laser-stage aria-label="Preview stage"><option value="all">All operations</option><option value="engrave">Engrave</option><option value="cutline">Cut</option></select></label><label class="laser-check"><input type="checkbox" data-laser-kerf-overlay checked> Show kerf band</label></div><div class="laser-preview-frame"><svg data-laser-preview role="img" aria-label="Unscaled laser bed and job preview"></svg></div><p class="laser-measurements" data-laser-measurements></p><p class="laser-explanation">All Cut and Engrave layers are included, even when hidden or locked. Bed placement is illustrative and never scales the design.</p></section></div><footer class="laser-footer"><span>Order and kerf are planning settings. DXF exports original paths; set operation order and kerf in laser software.</span><button type="button" class="button" data-laser-close>Close</button><button type="button" class="button laser-export" data-laser-export disabled>Continue to DXF export</button></footer>`;
     document.body.append(this.dialog);
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-laser-close]').forEach(button=>button.onclick=()=>this.close());
-    this.dialog.querySelector<HTMLButtonElement>('[data-laser-export]')!.onclick=()=>{this.restoreFocus=false;this.close();this.onExport();};
+    this.dialog.querySelector<HTMLButtonElement>('[data-laser-export]')!.onclick=()=>{
+      try{
+        this.editor.setLaserJobSettings(this.draft());
+        this.report=analyzeLaserJob(this.editor.objects,this.editor.laserJobSettings);this.render();
+      }catch{this.commitSettings();return;}
+      if(this.get<HTMLButtonElement>('[data-laser-export]').disabled)return;
+      this.restoreFocus=false;this.close();this.onExport();
+    };
     this.dialog.addEventListener('close',()=>{clearTimeout(this.timer);this.generation++;this.trigger.setAttribute('aria-expanded','false');this.trigger.classList.remove('selected');if(this.restoreFocus)this.trigger.focus({preventScroll:true});});
     this.dialog.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();this.close();}});
     this.dialog.addEventListener('input',event=>{const target=event.target as HTMLElement;if(target.matches('[data-laser-bed-width],[data-laser-bed-height],[data-laser-kerf]'))this.validateDraft();});
@@ -38,6 +45,9 @@ export class LaserPreflightDialog {
     if(this.dialog.open||document.querySelector('dialog[open]'))return;
     this.restoreFocus=true;
     this.focusedId=null;this.stage='all';this.showKerf=true;
+    this.report=null;this.get<HTMLButtonElement>('[data-laser-export]').disabled=true;
+    const error=this.get<HTMLElement>('.laser-field-error');error.hidden=true;error.textContent='';
+    this.dialog.querySelectorAll<HTMLInputElement|HTMLSelectElement>('.laser-settings-grid input,.laser-settings-grid select').forEach(field=>field.setAttribute('aria-invalid','false'));
     this.get<HTMLSelectElement>('[data-laser-stage]').value='all';this.get<HTMLInputElement>('[data-laser-kerf-overlay]').checked=true;
     this.syncFields();this.dialog.showModal();this.trigger.setAttribute('aria-expanded','true');this.trigger.classList.add('selected');
     this.get<HTMLInputElement>('[data-laser-bed-width]').focus();this.refreshIfOpen();
@@ -60,8 +70,14 @@ export class LaserPreflightDialog {
     return validateLaserJobSettings({bedWidthMM:this.get<HTMLInputElement>('[data-laser-bed-width]').valueAsNumber,bedHeightMM:this.get<HTMLInputElement>('[data-laser-bed-height]').valueAsNumber,kerfMM:this.get<HTMLInputElement>('[data-laser-kerf]').valueAsNumber,order:this.get<HTMLSelectElement>('[data-laser-order]').value});
   }
   private validateDraft():void {
-    clearTimeout(this.timer);const revision=++this.generation;
-    this.timer=window.setTimeout(()=>{if(!this.dialog.open||revision!==this.generation)return;try{this.draft();this.get<HTMLElement>('.laser-field-error').hidden=true;}catch(error){const message=this.get<HTMLElement>('.laser-field-error');message.textContent=(error as Error).message;message.hidden=false;}},120);
+    const message=this.get<HTMLElement>('.laser-field-error');
+    try{
+      this.draft();message.hidden=true;
+      this.get<HTMLButtonElement>('[data-laser-export]').disabled=!this.report?.paths.length||!this.report.complete;
+    }catch(error){
+      message.textContent=(error as Error).message;message.hidden=false;
+      this.get<HTMLButtonElement>('[data-laser-export]').disabled=true;
+    }
   }
   private commitSettings():void {
     try{
@@ -70,6 +86,7 @@ export class LaserPreflightDialog {
       this.dialog.querySelectorAll<HTMLInputElement|HTMLSelectElement>('.laser-settings-grid input,.laser-settings-grid select').forEach(field=>field.setAttribute('aria-invalid','false'));
       this.get<HTMLElement>('.laser-field-error').hidden=true;this.refreshIfOpen();
     }catch(error){
+      this.get<HTMLButtonElement>('[data-laser-export]').disabled=true;
       const active=document.activeElement as HTMLInputElement|HTMLSelectElement;if(active?.matches('.laser-settings-grid input,.laser-settings-grid select'))active.setAttribute('aria-invalid','true');
       const message=this.get<HTMLElement>('.laser-field-error');message.textContent=(error as Error).message;message.hidden=false;
     }
@@ -88,7 +105,7 @@ export class LaserPreflightDialog {
       else row.textContent=issue.message;
       list.append(row);
     }
-    this.get<HTMLButtonElement>('[data-laser-export]').disabled=!report.paths.length||!report.complete;
+    this.get<HTMLButtonElement>('[data-laser-export]').disabled=!report.paths.length||!report.complete||!this.get<HTMLElement>('.laser-field-error').hidden;
     this.get<HTMLElement>('[data-laser-measurements]').textContent=`Job ${report.bounds.width.toFixed(2)} × ${report.bounds.height.toFixed(2)} mm · Cut ${report.cutLengthMM.toFixed(2)} mm · Engrave ${report.engraveLengthMM.toFixed(2)} mm`;
     this.renderPaths();
   }
@@ -105,15 +122,28 @@ export class LaserPreflightDialog {
     const report=this.report;if(!report)return;
     const settings=this.editor.laserJobSettings,svg=this.get<SVGSVGElement>('[data-laser-preview]');svg.replaceChildren();
     const margin=Math.max(8,Math.min(settings.bedWidthMM,settings.bedHeightMM)*.06);
-    const extentWidth=Math.max(settings.bedWidthMM,report.bounds.width+settings.kerfMM);
-    const extentHeight=Math.max(settings.bedHeightMM,report.bounds.height+settings.kerfMM);
+    const extentWidth=Math.max(settings.bedWidthMM,report.fitBounds.width);
+    const extentHeight=Math.max(settings.bedHeightMM,report.fitBounds.height);
     svg.setAttribute('viewBox',`${-margin-(extentWidth-settings.bedWidthMM)/2} ${-margin-(extentHeight-settings.bedHeightMM)/2} ${extentWidth+margin*2} ${extentHeight+margin*2}`);
     const bed=document.createElementNS(SVG_NS,'rect');bed.classList.add('laser-bed');bed.setAttribute('x','0');bed.setAttribute('y','0');bed.setAttribute('width',String(settings.bedWidthMM));bed.setAttribute('height',String(settings.bedHeightMM));svg.append(bed);
     if(!report.paths.length)return;
-    const dx=(settings.bedWidthMM-report.bounds.width)/2-report.bounds.x;
-    const dy=(settings.bedHeightMM-report.bounds.height)/2-report.bounds.y;
+    const dx=(settings.bedWidthMM-report.fitBounds.width)/2-report.fitBounds.x;
+    const dy=(settings.bedHeightMM-report.fitBounds.height)/2-report.fitBounds.y;
     const group=document.createElementNS(SVG_NS,'g');group.setAttribute('transform',`translate(${dx} ${dy})`);group.classList.add('laser-job-geometry');svg.append(group);
-    for(const path of report.paths)this.appendPath(group,path,settings.kerfMM);
+    const filled=new Map<string,string[]>();
+    for(const path of report.paths)if(path.filled){const contours=filled.get(path.objectId)??[];contours.push(path.d);filled.set(path.objectId,contours);}
+    const drawn=new Set<string>();
+    for(const path of report.paths){
+      if(path.filled&&!drawn.has(path.objectId)){
+        drawn.add(path.objectId);
+        const fill=document.createElementNS(SVG_NS,'path');fill.setAttribute('d',filled.get(path.objectId)!.join(' '));
+        fill.setAttribute('fill-rule','evenodd');fill.setAttribute('data-operation','engrave');fill.setAttribute('data-object-id',path.objectId);
+        fill.classList.add('laser-operation-path','laser-engrave','is-filled');
+        if(this.stage!=='all'&&this.stage!=='engrave')fill.classList.add('is-dimmed');
+        group.append(fill);
+      }
+      this.appendPath(group,path,settings.kerfMM);
+    }
   }
   private appendPath(group:SVGGElement,path:LaserJobPath,kerf:number):void {
     const dimmed=this.stage!=='all'&&this.stage!==path.role,highlighted=this.focusedId===path.objectId;
@@ -121,6 +151,6 @@ export class LaserPreflightDialog {
       const band=document.createElementNS(SVG_NS,'path');band.setAttribute('d',path.d);band.setAttribute('fill','none');band.setAttribute('stroke-width',String(kerf));band.setAttribute('data-kerf-band','');band.classList.add('laser-kerf-band');if(dimmed)band.classList.add('is-dimmed');group.append(band);
     }
     const element=document.createElementNS(SVG_NS,'path');element.setAttribute('d',path.d);element.setAttribute('data-operation',path.role);element.setAttribute('data-object-id',path.objectId);
-    element.classList.add('laser-operation-path',`laser-${path.role}`);if(path.filled)element.classList.add('is-filled');if(dimmed)element.classList.add('is-dimmed');if(highlighted)element.classList.add('is-highlighted');group.append(element);
+    element.classList.add('laser-operation-path',`laser-${path.role}`);if(dimmed)element.classList.add('is-dimmed');if(highlighted)element.classList.add('is-highlighted');group.append(element);
   }
 }

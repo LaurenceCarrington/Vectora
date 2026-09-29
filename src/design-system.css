@@ -1134,7 +1134,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .laser-operation-path { fill:none; stroke-width:1.5; vector-effect:non-scaling-stroke; }
 .laser-cutline { stroke:#ff0000; }
 .laser-engrave { stroke:#0000ff; }
-.laser-engrave.is-filled { fill:rgb(0 0 255 / .25); fill-rule:evenodd; }
+.laser-engrave.is-filled { fill:rgb(0 0 255 / .25); fill-rule:evenodd; stroke:none; }
 .laser-kerf-band { stroke:rgb(255 0 0 / .4); pointer-events:none; }
 .laser-operation-path.is-dimmed,.laser-kerf-band.is-dimmed { opacity:.14; }
 .laser-operation-path.is-highlighted { stroke:#ffcf51; stroke-width:3; opacity:1; }

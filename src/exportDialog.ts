@@ -53,6 +53,7 @@ export class ExportDialog {
  /** Open the existing DXF workflow with the exact layers checked by laser preflight. */
  openLaserJob(layerIds:ReadonlySet<string>):void {
   this.settings.dxf.layers=new Set(layerIds);
+  this.scope='drawing';
   this.open('laser');
  }
  private choose(format:ExportTab):void {

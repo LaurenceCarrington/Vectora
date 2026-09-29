@@ -110,7 +110,7 @@ test('laser warnings focus paths and invalid settings do not overwrite saved val
 test('laser preview opens from search, fits narrow screens and reports incomplete analysis',async({page})=>{
  await page.goto(DEV);await page.evaluate(()=>{const editor=(window as any).__vectora,p=(window as any).__paper;editor.newDocument();const dense=new p.Path({insert:false,segments:Array.from({length:20001},(_,i)=>[i/100,10])});dense.data={uid:'dense',name:'Dense',role:'cutline'};editor.cutlines.addChild(dense);});
  await page.setViewportSize({width:390,height:650});await page.getByRole('button',{name:'Search tools'}).click();const search=page.getByRole('dialog',{name:'Search tools'});await search.getByRole('combobox').fill('laser preflight');await search.getByRole('option',{name:/Laser preflight/}).click();
- const dialog=page.getByRole('dialog',{name:'Laser preflight'});await expect(dialog).toBeVisible();await expect(dialog).toContainText('too many path segments');
+ const dialog=page.getByRole('dialog',{name:'Laser preflight'});await expect(dialog).toBeVisible();await expect(dialog).toContainText('too many contours or path segments');
  const box=(await dialog.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(390);expect(box.y+box.height).toBeLessThanOrEqual(650);
  expect(await dialog.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
  await page.keyboard.press('Escape');await page.evaluate(()=>{localStorage.setItem('vectora.theme','light');});await page.reload();
@@ -147,4 +147,99 @@ test('empty laser jobs cannot continue to export',async({page})=>{
  await page.goto(DEV);await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'Laser preflight'});await expect(dialog).toContainText('Add a Cut Path or Engrave Path');
  await expect(dialog.getByRole('button',{name:'Continue to DXF export'})).toBeDisabled();
+});
+
+test('laser handoff resets a previous Selection export to the checked drawing',async({page})=>{
+ await page.goto(DEV);
+ await page.evaluate(()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('cutline');
+  e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,10,10,10]}),'Selected');
+  e.addShape(new p.Path.Rectangle({insert:false,rectangle:[50,10,10,10]}),'Other');
+  e.select(e.objects[0]);
+ });
+ await page.getByRole('button',{name:'File'}).click();
+ await page.getByRole('menuitem',{name:/Export/}).first().click();
+ const exportDialog=page.getByRole('dialog',{name:'Export',exact:true});
+ await exportDialog.getByLabel('Export area').selectOption('selection');
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
+ const preflight=page.getByRole('dialog',{name:'Laser preflight'});
+ await expect(preflight.locator('.laser-operation-path')).toHaveCount(2);
+ await preflight.getByRole('button',{name:'Continue to DXF export'}).click();
+ await expect(exportDialog.getByLabel('Export area')).toHaveValue('drawing');
+});
+
+test('preflight detects reversed duplicate open cuts and accepts two-anchor cubic loops',async({page})=>{
+ await page.goto(DEV);
+ const codes=await page.evaluate(async()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;
+  const {analyzeLaserJob}=await import('/src/laserPreflight.ts' as string);
+  e.newDocument();e.setActiveLayer('cutline');
+  e.addShape(new p.Path({insert:false,segments:[[0,0],[10,0]]}),'Open A');
+  e.addShape(new p.Path({insert:false,segments:[[10,0],[0,0]]}),'Open B');
+  const oval=new p.Path({insert:false,closed:true});
+  oval.add(new p.Segment(new p.Point(30,10),new p.Point(0,-10),new p.Point(0,10)));
+  oval.add(new p.Segment(new p.Point(50,10),new p.Point(0,10),new p.Point(0,-10)));
+  e.addShape(oval,'Two-anchor oval');
+  return analyzeLaserJob(e.objects,e.laserJobSettings).issues.map((issue:any)=>({code:issue.code,message:issue.message}));
+ });
+ expect(codes.filter((issue:any)=>issue.code==='duplicate-cut')).toHaveLength(1);
+ expect(codes.filter((issue:any)=>issue.code==='degenerate-cut')).toHaveLength(0);
+});
+
+test('kerf affects Cut extents but not an engraving-only bed fit',async({page})=>{
+ await page.goto(DEV);
+ const codes=await page.evaluate(async()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;
+  const {analyzeLaserJob}=await import('/src/laserPreflight.ts' as string);
+  e.newDocument();e.setActiveLayer('engrave');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,300,200]}),'Full bed engraving');
+  return analyzeLaserJob(e.objects,{bedWidthMM:300,bedHeightMM:200,kerfMM:1,order:'engrave-cut'}).issues.map((issue:any)=>issue.code);
+ });
+ expect(codes).not.toContain('bed-too-small');
+});
+
+test('preflight caps a large number of empty contours independently of segment count',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(async()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;
+  const {analyzeLaserJob}=await import('/src/laserPreflight.ts' as string);
+  const compound=new p.CompoundPath({insert:false});
+  for(let index=0;index<5001;index++)compound.addChild(new p.Path({insert:false}));
+  compound.data.uid='many-empty';e.cutlines.addChild(compound);
+  const report=analyzeLaserJob([compound],e.laserJobSettings);compound.remove();
+  return {complete:report.complete,codes:report.issues.map((issue:any)=>issue.code)};
+ });
+ expect(result.complete).toBe(false);expect(result.codes).toContain('analysis-limit');
+});
+
+test('filled engraving compound preview preserves an inner hole',async({page})=>{
+ await page.goto(DEV);
+ await page.evaluate(()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('engrave');
+  const ring=new p.CompoundPath({insert:false,fillColor:'#0000ff'});
+  ring.addChild(new p.Path.Rectangle({insert:false,rectangle:[0,0,40,40]}));
+  ring.addChild(new p.Path.Rectangle({insert:false,rectangle:[10,10,20,20]}));
+  ring.data.rasterTrace={mode:'fill'};e.addShape(ring,'Ring engraving');
+ });
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Laser preflight'});
+ await expect(dialog.locator('.laser-engrave.is-filled')).toHaveCount(1);
+ const fill=dialog.locator('.laser-engrave.is-filled');
+ expect(((await fill.getAttribute('d'))??'').match(/M(?=[-\d.])/gi)?.length).toBe(2);
+ expect(await fill.evaluate((element:any)=>element.isPointInFill(new DOMPoint(20,20)))).toBe(false);
+});
+
+test('reopening preflight clears stale field errors and does not permit export before analysis',async({page})=>{
+ await page.goto(DEV);
+ await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('cutline');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,10,10]}),'Cut');});
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Laser preflight'});
+ await expect(dialog.getByRole('button',{name:'Continue to DXF export'})).toBeEnabled();
+ await dialog.locator('[data-laser-bed-width]').fill('0');await dialog.locator('[data-laser-bed-width]').dispatchEvent('change');
+ await expect(dialog.locator('.laser-field-error')).toBeVisible();
+ await expect(dialog.getByRole('button',{name:'Continue to DXF export'})).toBeDisabled();
+ await dialog.getByRole('button',{name:'Close laser preflight'}).click();
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
+ await expect(dialog.locator('.laser-field-error')).toBeHidden();
+ await expect(dialog.locator('[data-laser-bed-width]')).toHaveAttribute('aria-invalid','false');
 });
