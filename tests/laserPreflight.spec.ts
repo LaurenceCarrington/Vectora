@@ -73,3 +73,45 @@ test('degenerate cuts and excessive segments prevent an all-clear result without
  });
  expect(result.degenerate).toContain('degenerate-cut');expect(result.complete).toBe(false);expect(result.large).toContain('analysis-limit');expect(result.elapsed).toBeLessThan(1500);
 });
+
+test('laser dialog previews true-size operations, stages and visual kerf without editing paths',async({page})=>{
+ await page.goto(DEV);
+ await page.evaluate(()=>{const editor=(window as any).__vectora,p=(window as any).__paper;editor.newDocument();editor.setActiveLayer('cutline');editor.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,10,100,50]}),'Cut panel');editor.setActiveLayer('engrave');editor.addShape(new p.Path({insert:false,segments:[[20,20],[80,20]]}),'Engrave line');});
+ const before=await page.evaluate(()=>JSON.stringify((window as any).__vectora.objects.map((item:any)=>item.exportJSON())));
+ const trigger=page.getByRole('button',{name:'Laser preflight',exact:true});await trigger.click();
+ const dialog=page.getByRole('dialog',{name:'Laser preflight'});await expect(dialog).toBeVisible();
+ await expect(dialog.locator('[data-laser-bed-width]')).toHaveValue('300');await expect(dialog.locator('[data-laser-bed-height]')).toHaveValue('200');
+ await expect(dialog.locator('.laser-bed')).toHaveAttribute('width','300');await expect(dialog.locator('.laser-bed')).toHaveAttribute('height','200');
+ await expect(dialog.locator('.laser-operation-path[data-operation="cutline"]')).toHaveCount(1);
+ await expect(dialog.locator('.laser-operation-path[data-operation="engrave"]')).toHaveCount(1);
+ expect(await dialog.locator('[data-laser-stage] option').allTextContents()).toEqual(['All operations','Step 1 · Engrave','Step 2 · Cut']);
+ await dialog.locator('[data-laser-order]').selectOption('cut-engrave');
+ expect(await dialog.locator('[data-laser-stage] option').allTextContents()).toEqual(['All operations','Step 1 · Cut','Step 2 · Engrave']);
+ await dialog.screenshot({path:'test-results/laser-preflight-dark.png'});
+ await dialog.locator('[data-laser-kerf]').fill('0.2');await dialog.locator('[data-laser-kerf]').dispatchEvent('change');
+ await expect(dialog.locator('[data-kerf-band]')).toHaveAttribute('stroke-width','0.2');
+ await dialog.locator('[data-laser-stage]').selectOption('cutline');await expect(dialog.locator('.laser-operation-path[data-operation="engrave"]')).toHaveClass(/is-dimmed/);
+ await dialog.locator('[data-laser-kerf-overlay]').uncheck();await expect(dialog.locator('[data-kerf-band]')).toHaveCount(0);
+ expect(await page.evaluate(()=>JSON.stringify((window as any).__vectora.objects.map((item:any)=>item.exportJSON())))).toBe(before);
+ await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(trigger).toBeFocused();
+});
+
+test('laser warnings focus paths and invalid settings do not overwrite saved values',async({page})=>{
+ await page.goto(DEV);await page.evaluate(()=>{const editor=(window as any).__vectora,p=(window as any).__paper;editor.newDocument();editor.setActiveLayer('cutline');editor.addShape(new p.Path({insert:false,segments:[[5,5],[25,5]]}),'Open cut');});
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Laser preflight'});
+ await expect(dialog.getByText(/open; the cut may not separate/)).toBeVisible();await dialog.getByRole('button',{name:/Open cut is open/}).click();
+ await expect(dialog.locator('.laser-operation-path.is-highlighted')).toHaveCount(1);
+ await dialog.locator('[data-laser-bed-width]').fill('0');await dialog.locator('[data-laser-bed-width]').dispatchEvent('change');
+ await expect(dialog.locator('[data-laser-bed-width]')).toHaveAttribute('aria-invalid','true');
+ expect(await page.evaluate(()=>(window as any).__vectora.laserJobSettings.bedWidthMM)).toBe(300);
+});
+
+test('laser preview opens from search, fits narrow screens and reports incomplete analysis',async({page})=>{
+ await page.goto(DEV);await page.evaluate(()=>{const editor=(window as any).__vectora,p=(window as any).__paper;editor.newDocument();const dense=new p.Path({insert:false,segments:Array.from({length:20001},(_,i)=>[i/100,10])});dense.data={uid:'dense',name:'Dense',role:'cutline'};editor.cutlines.addChild(dense);});
+ await page.setViewportSize({width:390,height:650});await page.getByRole('button',{name:'Search tools'}).click();const search=page.getByRole('dialog',{name:'Search tools'});await search.getByRole('combobox').fill('laser preflight');await search.getByRole('option',{name:/Laser preflight/}).click();
+ const dialog=page.getByRole('dialog',{name:'Laser preflight'});await expect(dialog).toBeVisible();await expect(dialog).toContainText('too many path segments');
+ const box=(await dialog.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(390);expect(box.y+box.height).toBeLessThanOrEqual(650);
+ expect(await dialog.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
+ await page.keyboard.press('Escape');await page.evaluate(()=>{localStorage.setItem('vectora.theme','light');});await page.reload();
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();await expect(dialog).toHaveCSS('background-color','rgb(245, 246, 248)');await dialog.screenshot({path:'test-results/laser-preflight-light-narrow.png'});
+});
