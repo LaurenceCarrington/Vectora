@@ -50,6 +50,11 @@ export class ExportDialog {
   const scope=this.get<HTMLSelectElement>('#export-scope');scope.querySelector<HTMLOptionElement>('[value="selection"]')!.disabled=!this.editor.selectedItems.length;if(!this.editor.selectedItems.length)this.scope='drawing';scope.value=this.scope;
   this.get<HTMLDetailsElement>('details').open=false;this.dialog.showModal();if(format==='laser')this.settings.dxf.compatibility='laser';this.choose(format==='laser'?'dxf':format??this.format);this.get<HTMLButtonElement>(`[data-format="${this.format}"]`).focus();
  }
+ /** Open the existing DXF workflow with the exact layers checked by laser preflight. */
+ openLaserJob(layerIds:ReadonlySet<string>):void {
+  this.settings.dxf.layers=new Set(layerIds);
+  this.open('laser');
+ }
  private choose(format:ExportTab):void {
   if(this.busy)return;this.format=format;const settings=this.settings[format],dxf=format==='dxf';
   const layers=this.editor.documentLayers.filter(layer=>layer.data.objectRole!=='construction');

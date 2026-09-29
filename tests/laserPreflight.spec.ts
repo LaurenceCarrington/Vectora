@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {readFileSync} from 'node:fs';
 
 const DEV='http://127.0.0.1:5174';
 
@@ -114,4 +115,36 @@ test('laser preview opens from search, fits narrow screens and reports incomplet
  expect(await dialog.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
  await page.keyboard.press('Escape');await page.evaluate(()=>{localStorage.setItem('vectora.theme','light');});await page.reload();
  await page.getByRole('button',{name:'Laser preflight',exact:true}).click();await expect(dialog).toHaveCSS('background-color','rgb(245, 246, 248)');await dialog.screenshot({path:'test-results/laser-preflight-light-narrow.png'});
+});
+
+test('laser handoff selects exactly Cut and Engrave and exports original coordinates',async({page})=>{
+ await page.goto(DEV);await page.evaluate(()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();
+  e.setActiveLayer('cutline');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,40,20]}),'Cut');
+  e.setActiveLayer('engrave');e.addShape(new p.Path({insert:false,segments:[[15,25],[35,25]]}),'Engrave');
+  e.setActiveLayer('artwork');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[300,300,30,30]}),'Artwork');
+  e.setActiveLayer('construction');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[400,400,30,30]}),'Guide');
+  e.setLayerState('cutline','visible',false);e.setLayerState('engrave','locked',true);
+ });
+ await page.getByRole('button',{name:'Laser preflight',exact:true}).click();const preflight=page.getByRole('dialog',{name:'Laser preflight'});
+ await expect(preflight.locator('.laser-operation-path')).toHaveCount(2);
+ await expect(preflight.locator('.laser-footer')).toContainText('set operation order and kerf in laser software');
+ await preflight.locator('[data-laser-kerf]').fill('0.8');await preflight.locator('[data-laser-kerf]').dispatchEvent('change');
+ await preflight.getByRole('button',{name:'Continue to DXF export'}).click();await expect(preflight).toBeHidden();
+ const exportDialog=page.getByRole('dialog',{name:'Export',exact:true});await expect(exportDialog).toBeVisible();
+ await expect(exportDialog.getByLabel('Compatibility',{exact:true})).toHaveValue('laser');await exportDialog.getByText('Advanced',{exact:true}).click();
+ await expect(exportDialog.getByLabel('Cut Path',{exact:true})).toBeChecked();await expect(exportDialog.getByLabel('Engrave Path',{exact:true})).toBeChecked();
+ await expect(exportDialog.getByLabel('Artwork',{exact:true})).not.toBeChecked();await expect(exportDialog.getByLabel('Construction Path',{exact:true})).toHaveCount(0);
+ const pending=page.waitForEvent('download');await exportDialog.getByRole('button',{name:'Export DXF'}).click();
+ const dxf=readFileSync((await (await pending).path())!,'utf8');expect(dxf).toContain('AC1009');expect(dxf).toContain('\r\n8\r\nCUTLINE\r\n');expect(dxf).toContain('\r\n8\r\nENGRAVE\r\n');expect(dxf).not.toContain('ARTWORK');expect(dxf).not.toContain('CONSTRUCTION');
+ const lines=dxf.split('\r\n'),cutXs:number[]=[];for(let i=0;i<lines.length-3;i++)if(lines[i]==='8'&&lines[i+1]==='CUTLINE'){
+  for(let j=i+2;j<Math.min(i+30,lines.length-1)&&lines[j]!=='0';j+=2)if(lines[j]==='10'||lines[j]==='11')cutXs.push(Number(lines[j+1]));
+ }
+ expect(cutXs).toContain(10);expect(cutXs).toContain(50);expect(cutXs).not.toContain(9.6);expect(cutXs).not.toContain(50.4);
+});
+
+test('empty laser jobs cannot continue to export',async({page})=>{
+ await page.goto(DEV);await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Laser preflight'});await expect(dialog).toContainText('Add a Cut Path or Engrave Path');
+ await expect(dialog.getByRole('button',{name:'Continue to DXF export'})).toBeDisabled();
 });

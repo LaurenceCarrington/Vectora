@@ -226,7 +226,7 @@ const exportDialog=new ExportDialog(editor,()=>{
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
 },notify);
 const laserTrigger=$<HTMLButtonElement>('[data-laser-preflight]');
-const laserDialog=new LaserPreflightDialog(editor,laserTrigger,()=>exportDialog.open('laser'));
+const laserDialog=new LaserPreflightDialog(editor,laserTrigger,()=>exportDialog.openLaserJob(new Set(editor.documentLayers.filter(layer=>!layer.data.deleted&&(layer.data.objectRole==='cutline'||layer.data.objectRole==='engrave')).map(layer=>layer.data.documentId))));
 laserTrigger.onclick=()=>{
  if(!inlineText.finish(false,false))return;
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();laserDialog.open();
