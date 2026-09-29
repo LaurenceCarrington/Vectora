@@ -1,7 +1,9 @@
 import type { CADEditor } from './editor';
+import { SelectionPopouts } from './selectionPopouts';
 
 /** The shared contextual menu, visible only while the document has a selection. */
 export class FloatingSelectionMenu {
+  readonly popouts:SelectionPopouts;
   private readonly stage: HTMLElement;
   private readonly grip: HTMLButtonElement;
   private readonly count: HTMLElement;
@@ -12,7 +14,8 @@ export class FloatingSelectionMenu {
   private positioned = false;
   private drag: { id: number; x: number; y: number; left: number; top: number; positioned: boolean } | null = null;
 
-  constructor(private menu: HTMLElement, private editor: CADEditor) {
+  constructor(private menu: HTMLElement, private editor: CADEditor, beforePopout:()=>void=()=>{}) {
+    this.popouts=new SelectionPopouts(menu,beforePopout);
     this.stage = menu.parentElement!;
     this.grip = menu.querySelector('.drag-handle')!;
     this.count = menu.querySelector('.selection-count')!;
@@ -23,6 +26,7 @@ export class FloatingSelectionMenu {
     this.largeStep = parseInt(tokens.getPropertyValue('--drag-step-large'), 10);
     this.grip.addEventListener('pointerdown', event => {
       if (event.button !== 0 || !event.isPrimary) return;
+      this.popouts.close();
       event.preventDefault();
       this.place();
       this.grip.focus({ preventScroll: true });
@@ -70,6 +74,7 @@ export class FloatingSelectionMenu {
     const label = `${count} selected`;
     if (this.count.textContent !== label) this.count.textContent = label;
     this.place();
+    this.popouts.refresh();
   }
 
   private place(): void {

@@ -1036,3 +1036,11 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
  .generator-actions { justify-content:flex-end; }
  .generator-header h2 { font-size:17px; }
 }
+
+
+.selection-icon-menu { position:fixed; inset:auto; margin:0; width:max-content; padding:4px; display:grid; grid-template-columns:repeat(4,32px); gap:4px; overflow:auto; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); }
+.selection-icon-menu[data-columns="3"] { grid-template-columns:repeat(3,32px); }
+.selection-icon-menu[hidden],.selection-icon-menu:not(:popover-open) { display:none; }
+.selection-icon-menu .floating-action { width:32px; height:32px; min-height:32px; padding:4px; }
+.selection-icon-menu .floating-action svg { width:16px; height:16px; }
+.selection-popout-trigger[aria-expanded="true"] { background:var(--chrome-selected); color:var(--chrome-accent); }

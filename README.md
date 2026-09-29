@@ -14,6 +14,6 @@ Add dimensions and callouts, generate offset sticker outlines, and export cut an
 
 Save editable projects as `.vectora` files and reopen them with their layers, text and geometry intact. Save As creates a separate file so you can keep different versions of a design.
 
-Combine closed shapes with Weld, Subtract and Intersect directly from the selection menu. Preserve curved outlines and holes, and undo each operation in one step.
+Combine closed shapes with Weld, Subtract and Intersect from the selection menu’s Shape operations group. Preserve curved outlines and holes, and undo each operation in one step.
 
-Align objects to the last selected reference or distribute their centres evenly, using direct selection-menu controls with exact positioning and Undo.
+Align objects to the last selected reference or distribute their centres evenly, using the selection menu’s Align and distribute group with exact positioning and Undo.
