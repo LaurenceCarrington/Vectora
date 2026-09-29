@@ -16,6 +16,7 @@ AGENTS.md
 agents.md
 /.agents/
 /.codex/
+/.worktrees/
 
 # Local environment files; keep shareable examples
 .env
