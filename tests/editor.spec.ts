@@ -1,5 +1,12 @@
 import {dragSelectionToLayer} from './layerHelpers';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+async function openDXFSettings(page:Page,artwork=false){
+ if(!await page.locator('#export-dialog').isVisible()){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export…',exact:true}).click();}
+ await page.getByRole('tab',{name:'DXF',exact:true}).click();
+ if(artwork){const d=page.locator('#export-dialog');if(!await d.locator('details').evaluate(el=>(el as HTMLDetailsElement).open))await d.locator('summary').click();await d.getByLabel('Artwork',{exact:true}).check();}
+}
+async function exportDXFFile(page:Page){await openDXFSettings(page);await page.locator('#export-dialog [data-export-submit]').click();}
+
 const DEV='http://127.0.0.1:5174';
 const PREVIEW='http://127.0.0.1:4173';
 async function draw(page:any,tool='r') {
@@ -74,7 +81,7 @@ for(const [name,url] of [['development',DEV],['production',PREVIEW]])test(`${nam
   expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(106,1);
   await page.locator('[aria-label="Undo"]').click();await expect(page.locator('#selection-name')).toContainText('Rectangle');
   await page.locator('[aria-label="Redo"]').click();await expect(page.locator('#selection-name')).toContainText('Sticker outline');
-  const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
   await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('Escape');
   await page.mouse.move(400,350);await page.mouse.wheel(0,-200);
   await page.keyboard.down('Space');await page.mouse.down();await page.mouse.move(450,400);await page.mouse.up();await page.keyboard.up('Space');
@@ -124,8 +131,8 @@ test('initialization failure and empty export produce useful feedback',async({pa
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*.wasm',route=>route.abort());await page.goto(DEV);
   await expect(page.locator('#wasm-status')).toHaveText('Outline engine unavailable. Reload to retry.');
-  await page.locator('[aria-label="Properties"]').click();await expect(page.locator('#properties-empty')).toBeVisible();await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export DXF',exact:true}).click();
-  await page.locator('#export-dxf').click();await expect(page.locator('.toast-error .toast-copy p').first()).toContainText('There are no cut lines');expect(errors).toEqual([]);
+  await page.locator('[aria-label="Properties"]').click();await expect(page.locator('#properties-empty')).toBeVisible();await openDXFSettings(page);
+  await expect(page.locator('#export-dialog .export-error')).toContainText('No objects');expect(errors).toEqual([]);
 });
 test('reference component styles and geometry match at the same viewport',async({page})=>{
   await page.goto(DEV+'/reference/design-system.html');
@@ -333,7 +340,7 @@ test('production ellipse and polygon menu tools draw and export',async({page})=>
     await page.getByRole('button',{name:'Properties',exact:true}).click();
     await expect(page.locator('#selection-name')).toContainText(name);
   }
-  await page.locator('#create-outline').click();const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  await page.locator('#create-outline').click();const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 test('marquee selection moves, resizes and deletes shapes together with atomic undo',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -399,7 +406,7 @@ test('moving selected artwork to Cut Path preserves geometry, selection, styling
   await page.getByRole('button',{name:'Undo',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before.snapshot);
   await expect(page.locator('[data-layer-id="artwork"] .layer-row')).toHaveClass(/is-selected/);
   await page.getByRole('button',{name:'Redo',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after.snapshot);
-  await page.getByRole('button',{name:'Properties',exact:true}).click();const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');expect(errors).toEqual([]);
+  await page.getByRole('button',{name:'Properties',exact:true}).click();const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');expect(errors).toEqual([]);
 });
 test('production artwork can become a cut path without creating an outline',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await draw(page);
@@ -407,7 +414,7 @@ test('production artwork can become a cut path without creating an outline',asyn
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);
   await expect(page.locator('[data-layer-id="artwork"] .layer-meta')).toHaveText('0 objects');await expect(page.locator('[data-layer-id="cutline"] .layer-meta')).toHaveText('1 object');
   await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Rectangle · Cut Path');await expect(page.locator('#field-width')).toHaveValue(width);
-  const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 test('line drawing supports snapped axis-aligned paths, endpoint editing and cut export',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -465,7 +472,7 @@ test('production Lines menu supports keyboard selection and polyline DXF downloa
   await expect(page.locator('#primary-lines-menu')).toBeHidden();await expect(page.getByRole('button',{name:'Lines',exact:true})).toHaveAttribute('aria-pressed','true');
   await page.mouse.click(260,350);await page.mouse.click(430,350);await page.mouse.click(430,500);await page.keyboard.press('Enter');await expect(page.locator('#properties-panel')).toBeHidden();
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Polyline · Cut Path');
-  const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
   await page.getByRole('button',{name:'Lines',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('#primary-lines-menu')).toBeHidden();await expect(page.getByRole('button',{name:'Lines',exact:true})).toBeFocused();
 });
 async function arcSetup(page:any){
@@ -521,7 +528,7 @@ test('production Arc menu draws and exports a semicircle with exact controls',as
   await page.mouse.move(440,500);await page.mouse.down();await page.mouse.move(590,500,{steps:5});await page.mouse.up();await expect(page.locator('#properties-panel')).toBeHidden();
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Arc · Cut Path');await expect(page.locator('#arc-sweep')).toHaveValue('180');
   await page.locator('#arc-radius').fill('25');await page.locator('#arc-radius').press('Tab');await expect(page.locator('#field-width')).toHaveValue('50');await expect(page.locator('#field-height')).toHaveValue('25');
-  const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 
 test('Three-point arc restores snapped drawing, validation, cancellation, history and cut export',async({page})=>{
@@ -661,7 +668,7 @@ test('production Freehand menu matches the reference and draws an exportable str
   const style=()=>page.locator('#primary-lines-menu').evaluate(el=>{const c=getComputedStyle(el);return [c.backgroundColor,c.width,c.padding,el.querySelectorAll('[role="menuitemradio"]').length];});const reference=await style();
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Lines',exact:true}).click();expect(await style()).toEqual(reference);await page.screenshot({path:'test-results/freehand-menu.png'});await page.getByRole('menuitemradio',{name:'Freehand',exact:true}).click();
   await page.mouse.move(300,350);await page.mouse.down();await page.mouse.move(380,450,{steps:12});await page.mouse.move(460,340,{steps:12});await page.mouse.move(540,430,{steps:12});await page.mouse.up();await expect(page.locator('#properties-panel')).toBeHidden();
-  await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Freehand · Cut Path');const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Freehand · Cut Path');const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 
 test('Rotation handle turns selected geometry with Shift snapping, cancellation and atomic history',async({page})=>{
@@ -694,18 +701,18 @@ test('Group rotation preserves spacing, cut style, circular arc metadata and DXF
 test('production numeric rotation supports flat lines and DXF export without changing layers',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Snapping',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('l');await page.mouse.move(300,350);await page.mouse.down();await page.mouse.move(500,350);await page.mouse.up();
   await page.getByRole('button',{name:'Properties',exact:true}).click();const length=Number(await page.locator('#field-width').inputValue());await page.locator('#field-rotation').fill('90');await page.locator('#field-rotation').press('Tab');expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(0,6);expect(Number(await page.locator('#field-height').inputValue())).toBeCloseTo(length,6);
-  await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#field-rotation')).toHaveValue('90');await expect(page.locator('#selection-name')).toHaveText('Line · Cut Path');const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#field-rotation')).toHaveValue('90');await expect(page.locator('#selection-name')).toHaveText('Line · Cut Path');const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 
 test('Properties empty state matches the reference and follows selection while preserving File export',async({page})=>{
   await page.goto(DEV+'/reference/design-system.html');
   const appearance=(selector:string)=>page.locator(selector).evaluate(el=>{const c=getComputedStyle(el);return [c.color,c.padding,c.gap,c.textAlign,getComputedStyle(el.querySelector('p')!).color];});const reference=await appearance('#example-properties-empty');
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Properties',exact:true}).click();
-  await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#field-width')).toBeHidden();await expect(page.locator('#export-dxf')).toBeHidden();expect(await appearance('#properties-empty')).toEqual(reference);await page.screenshot({path:'test-results/properties-empty.png'});
+  await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#field-width')).toBeHidden();await expect(page.locator('#properties-panel #export-dxf')).toHaveCount(0);expect(await appearance('#properties-empty')).toEqual(reference);await page.screenshot({path:'test-results/properties-empty.png'});
   await page.locator('#cad-canvas').focus();await page.keyboard.press('r');await page.mouse.move(280,300);await page.mouse.down();await page.mouse.move(500,450,{steps:5});await page.mouse.up();await expect(page.locator('#properties-empty')).toBeHidden();await expect(page.locator('#field-width')).toBeVisible();
   await page.keyboard.press('Delete');await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#field-width')).toBeHidden();await page.keyboard.press('Control+z');await expect(page.locator('#field-width')).toBeVisible();
-  await page.keyboard.press('Escape');await expect(page.locator('#properties-empty')).toBeVisible();await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export DXF',exact:true}).click();await expect(page.locator('#export-dxf')).toBeVisible();await expect(page.locator('#properties-empty')).toBeHidden();await page.locator('#include-artwork').check();const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
-  await page.locator('#close-properties').click();await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#export-dxf')).toBeHidden();
+  await page.keyboard.press('Escape');await expect(page.locator('#properties-empty')).toBeVisible();await openDXFSettings(page);await expect(page.locator('#export-dialog')).toBeVisible();await openDXFSettings(page,true);const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
+  await page.locator('#close-properties').click();await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#properties-panel #export-dxf')).toHaveCount(0);
 });
 
 test('Dissect breaks an unbroken outline edge by edge and preserves connected cut paths with undo',async({page})=>{
@@ -717,7 +724,7 @@ test('Dissect breaks an unbroken outline edge by edge and preserves connected cu
   await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects[0].length)).toBeCloseTo(20,7);
 });
 test('production Dissect deletes a polygon side without crossing lines',async({page})=>{
-  await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Snapping',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('y');await page.mouse.move(420,400);await page.mouse.down();await page.mouse.move(520,400);await page.mouse.up();await page.keyboard.press('k');await page.mouse.move(420,313.39746);await page.mouse.click(420,313.39746);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Trimmed path · Artwork');await expect(page.locator('#create-outline')).toBeDisabled();await page.locator('#include-artwork').check();const download=page.waitForEvent('download');await page.locator('#export-dxf').click();expect((await download).suggestedFilename()).toBe('vectora.dxf');
+  await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Snapping',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('y');await page.mouse.move(420,400);await page.mouse.down();await page.mouse.move(520,400);await page.mouse.up();await page.keyboard.press('k');await page.mouse.move(420,313.39746);await page.mouse.click(420,313.39746);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Trimmed path · Artwork');await expect(page.locator('#create-outline')).toBeDisabled();await openDXFSettings(page,true);const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 
 test('floating selection menu follows selection and supports bounded accessible movement',async({page})=>{
@@ -1050,7 +1057,7 @@ test('Text converts dotted letters and ligature pairs separately, and production
   await page.getByRole('button',{name:'Edit text',exact:true}).click();await expect(page.getByRole('textbox',{name:'Edit text on canvas',exact:true})).toHaveCSS('font-family','"Vectora PT Serif"');
   await page.getByRole('textbox',{name:'Edit text on canvas',exact:true}).press('Control+Enter');
   await page.getByRole('button',{name:'Convert to path',exact:true}).click();await expect(page.locator('#selection-menu .selection-count')).toHaveText('8 selected');
-  await page.locator('#include-artwork').check();const pending=page.waitForEvent('download');await page.locator('#export-dxf').click();const download=await pending;
+  await openDXFSettings(page,true);const pending=page.waitForEvent('download');await exportDXFFile(page);const download=await pending;
   const stream=await download.createReadStream();let text='';for await(const chunk of stream!)text+=chunk.toString();
   const entities=text.split('LWPOLYLINE\n').slice(1);expect(entities.length).toBeGreaterThan(4);for(const entity of entities)expect(entity).toContain('70\n1\n');
 });

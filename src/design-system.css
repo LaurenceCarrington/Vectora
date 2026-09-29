@@ -1054,8 +1054,44 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .offset-dialog :is(button,select):focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .offset-specimen { position:relative; inset:auto; max-width:100%; box-sizing:border-box; }
 
-.dxf-export-settings { display:grid; gap:12px; width:280px; max-width:100%; padding:20px; border:1px solid var(--menu-border); }
-.dxf-export-settings h3 { margin:0; }
-.dxf-format-label { font-size:12px; color:var(--menu-muted); }
-.dxf-format-field { min-width:0; }
-.dxf-format-hint { margin:0; color:var(--menu-muted); font-size:12px; line-height:18px; }
+/* Unified export: shared modal, format navigation and compact settings. */
+.export-dialog { width:min(960px,calc(100vw - 32px)); max-width:none; max-height:calc(100dvh - 32px); padding:0; border:1px solid var(--menu-border); color:var(--menu-foreground); background:var(--menu-background); }
+.export-dialog[open] { display:flex; flex-direction:column; }
+.export-dialog::backdrop { background:rgb(0 0 0 / .55); }
+.export-header { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px; border-bottom:1px solid var(--menu-border); }
+.export-header h2 { margin:0; font-size:22px; }
+.export-header p { margin:6px 0 0; color:var(--menu-muted); font-size:13px; }
+.export-header svg,.export-formats svg { width:20px; height:20px; flex:none; }
+.export-body { display:grid; grid-template-columns:184px minmax(0,1fr); min-height:0; overflow:hidden; }
+.export-formats { padding:12px 0; border-right:1px solid var(--menu-border); overflow:auto; }
+.export-formats button { display:flex; align-items:center; gap:10px; width:100%; border:0; padding:14px 16px; text-align:left; color:var(--menu-muted); background:transparent; font:inherit; font-size:13px; cursor:pointer; }
+.export-formats button:hover { background:var(--menu-hover); color:var(--menu-foreground); }
+.export-formats button[aria-selected="true"] { background:var(--menu-selected); color:var(--menu-selected-foreground); }
+.export-main { padding:20px 24px; min-width:0; overflow:auto; overscroll-behavior:contain; }
+.export-preview { height:200px; padding:18px; display:grid; place-items:center; overflow:hidden; background-color:#fff; background-image:conic-gradient(#e8e8e8 25%,#fff 0 50%,#e8e8e8 0 75%,#fff 0); background-size:16px 16px; border:1px solid var(--menu-border); }
+.export-preview img { display:block; width:100%; height:100%; min-height:0; object-fit:contain; }
+.export-preview [hidden] { display:none; }
+.export-preview p { color:#383838; font-size:13px; }
+.export-size { margin:10px 0 20px; min-height:18px; font-size:12px; text-align:center; color:var(--menu-muted); }
+.export-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
+.export-fields label { display:flex; flex-direction:column; gap:7px; font-size:12px; color:var(--menu-muted); min-width:0; }
+.export-options .number-input { width:100%; box-sizing:border-box; min-width:0; height:38px; padding:7px 10px; border:1px solid var(--menu-border); background:var(--menu-hover); color:var(--menu-foreground); font-family:inherit; font-size:14px; }
+.export-options input[type="color"] { width:100%; height:38px; padding:3px; background:var(--menu-hover); border:1px solid var(--menu-border); cursor:pointer; }
+.export-options :focus-visible { outline:2px solid var(--chrome-accent); outline-offset:2px; }
+.export-format-hint { font-size:12px; line-height:18px; color:var(--menu-muted); margin:18px 0; }
+.export-advanced { margin:20px 0 0; padding:0; border:0; border-top:1px solid var(--menu-border); border-radius:0; background:transparent; color:var(--menu-foreground); }
+.export-advanced summary { padding:16px 0; cursor:pointer; font-size:14px; font-weight:600; }
+.export-layers { border:0; border-top:1px solid var(--menu-border); margin:18px 0 0; padding:16px 0 0; }
+.export-layers legend { font-size:13px; padding:0 8px 0 0; }
+.export-layers p,.export-wide { font-size:12px; line-height:18px; color:var(--menu-muted); }
+.export-wide { grid-column:1 / -1; margin:0; }
+.export-layers [data-export-layers] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.export-options .export-check { display:flex; flex-direction:row; align-items:center; gap:8px; font-size:13px; color:var(--menu-foreground); }
+.export-check input { flex:none; }
+.export-error { font-size:13px; line-height:20px; color:var(--menu-foreground); padding:12px; border-left:3px solid #ee9999; background:var(--menu-hover); }
+.export-footer { margin:0; flex-direction:row; justify-content:flex-end; flex-shrink:0; display:flex; gap:12px; align-items:center; padding:16px 24px; border-top:1px solid var(--menu-border); }
+.export-footer>span { margin-right:auto; color:var(--menu-muted); font-size:12px; }
+.export-footer .button { min-height:38px; padding:8px 14px; font-size:13px; }
+.export-footer [data-export-submit] { background:var(--menu-selected); color:var(--menu-selected-foreground); }
+.export-dialog button:disabled { opacity:.45; cursor:default; }
+@media(max-width:620px) { .export-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px); } .export-body { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); overflow:hidden; } .export-formats { display:flex; overflow:auto; border-right:0; border-bottom:1px solid var(--menu-border); padding:0; flex-shrink:0; } .export-formats button { width:auto; flex:none; padding:12px; } .export-formats svg { display:none; } .export-main { overflow:auto; padding:16px; } .export-preview { height:150px; } .export-header,.export-footer { padding:12px 16px; } .export-footer { flex-wrap:wrap; } .export-footer>span { width:100%; } .export-fields { gap:12px; } }

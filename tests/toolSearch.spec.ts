@@ -35,11 +35,11 @@ test('Context actions explain requirements, preserve the selection, and reuse un
 
 test('Search opens existing settings, raster, properties and file workflows without losing dialog focus',async({page})=>{
  await ready(page);
- let ui=await open(page,'polar');await ui.input.press('Enter');const preferences=page.locator('#preferences-dialog');await expect(preferences).toBeVisible();await expect(preferences.getByRole('tab',{name:'Grid',exact:true})).toBeFocused();await page.keyboard.press('Escape');
+ let ui=await open(page,'polar');await ui.dialog.getByRole('option',{name:'Grid settings Preferences',exact:true}).click();const preferences=page.locator('#preferences-dialog');await expect(preferences).toBeVisible();await expect(preferences.getByRole('tab',{name:'Grid',exact:true})).toBeFocused();await page.keyboard.press('Escape');
  ui=await open(page,'trace');await ui.dialog.getByRole('option',{name:/Raster to vector/}).click();await expect(page.locator('#raster-dialog')).toBeVisible();await expect(page.locator('#raster-dialog')).toContainText('Start with an image');await page.keyboard.press('Escape');
  ui=await open(page,'properties');await ui.input.press('Enter');await expect(page.locator('#properties-panel')).toBeVisible();
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({rectangle:[30,30,20,20],insert:false,strokeColor:'white'}),'Rectangle');});
- ui=await open(page,'export svg');const download=page.waitForEvent('download');await ui.input.press('Enter');expect((await download).suggestedFilename()).toMatch(/\.svg$/);
+ ui=await open(page,'export svg');const download=page.waitForEvent('download');await ui.input.press('Enter');await page.locator('#export-dialog [data-export-submit]').click();expect((await download).suggestedFilename()).toMatch(/\.svg$/);
 });
 
 test('Search stays within small screens, supports both themes, and does not leak keys into the canvas',async({page})=>{

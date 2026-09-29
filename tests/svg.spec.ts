@@ -32,14 +32,14 @@ test('SVG includes outlined text and annotation labels, excludes hidden and cons
 });
 
 test('File menu and keyboard export downloadable SVG; empty drawings show the standard error',async({page})=>{
- await page.goto(DEV);await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export SVG',exact:true}).click();await expect(page.locator('.toast-error')).toContainText('There are no visible objects to export');
+ await page.goto(DEV);await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export…',exact:true}).click();await expect(page.locator('#export-dialog .export-error')).toContainText('No objects');await page.locator('#export-dialog [data-export-cancel]').click();
  await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,50,30],strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false}),'Rectangle');});
  for(const method of ['menu','keyboard']){
   const downloadPromise=page.waitForEvent('download');
-  if(method==='menu'){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export SVG',exact:true}).click();}else{await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+e');}
-  const download=await downloadPromise;expect(download.suggestedFilename()).toBe('vectora.svg');const text=await readFile((await download.path())!,'utf8');expect(text).toContain('viewBox=');expect(text).toContain('mm"');expect(text).not.toContain('Editor overlays');
+  if(method==='menu'){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export…',exact:true}).click();}else{await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+e');}
+  await page.locator('#export-dialog [data-export-submit]').click();const download=await downloadPromise;expect(download.suggestedFilename()).toBe('Untitled.svg');const text=await readFile((await download.path())!,'utf8');expect(text).toContain('viewBox=');expect(text).toContain('mm"');expect(text).not.toContain('Editor overlays');
  }
- await expect(page.locator('#properties-panel')).toBeHidden();await expect(page.locator('.toast-success').first()).toContainText('SVG downloaded in millimetres.');
+ await expect(page.locator('#properties-panel')).toBeHidden();await expect(page.locator('#export-dialog')).not.toBeVisible();
 });
 
 test('Default Artwork exports black in either theme without changing canvas colours or explicit fills',async({page})=>{

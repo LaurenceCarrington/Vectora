@@ -6,8 +6,8 @@ import type { Shape } from './types';
 import { signedArea } from './geometry';
 import { NUMERIC_EPSILON_MM } from './units';
 /** ASCII DXF R2000, 2D LWPOLYLINE and annotation TEXT subset. No viewport or overlay data. */
-export function exportDXF(objects: readonly Shape[], includeArtwork = false, mode:DXFFormat='standard'): string {
-  if(mode==='laser')return exportLaserDXF(objects,includeArtwork);
+export function exportDXF(objects: readonly Shape[], includeArtwork = false, mode:DXFFormat='standard',tolerance?:number): string {
+  if(mode==='laser')return exportLaserDXF(objects,includeArtwork,tolerance);
   const entities: string[] = [];
   let handle = 256;
   const layerNames=new Map<string,string>(),layerColors=new Map<string,number>([['0',7],['CUTLINE',1],['ARTWORK',7],['ANNOTATIONS',7]]);
@@ -24,7 +24,7 @@ export function exportDXF(objects: readonly Shape[], includeArtwork = false, mod
     const role = object.data.role;
     if (role !== 'cutline' && role !== 'engrave' && !(includeArtwork && role === 'artwork')) continue;
     const targetLayer=dxfLayer(object);
-    for (const contour of exportContours(object)) {
+    for (const contour of exportContours(object,tolerance)) {
       if (contour.points.length < (contour.closed ? 3 : 2)) continue;
       if (contour.closed && Math.abs(signedArea(contour.points)) < NUMERIC_EPSILON_MM) continue;
       let entity = pair(0,'LWPOLYLINE') + pair(5,(handle++).toString(16).toUpperCase()) + pair(100,'AcDbEntity') + pair(8,targetLayer) + pair(100,'AcDbPolyline') + pair(90,contour.points.length) + pair(70,contour.closed ? 1 : 0);

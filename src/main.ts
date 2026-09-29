@@ -20,8 +20,7 @@ import { DIMENSION_NAMES, isDimensionTool } from './dimensions';
 import { loadTextFont } from './text';
 import type { ObjectSnapMode } from './objectSnapping';
 import { initializeClipper } from './clipperService';
-import { downloadDXF, exportDXF, type DXFFormat } from './exportDXF';
-import { downloadSVG, exportSVG } from './exportSVG';
+import { ExportDialog, type ExportFormat } from './exportDialog';
 import { DocumentFiles } from './documentFiles';
 import { BASE_ZOOM } from './units';
 import type { ToolName } from './types';
@@ -96,15 +95,13 @@ duplicateButton.addEventListener('keydown',event=>{
   event.stopPropagation();
   if(event.key==='Escape'){event.preventDefault();editor.canvas.focus({preventScroll:true});}
 });
-let exportRequested=false;
+
 function updatePropertiesContent():void {
   const hasSelection=editor.selectedItems.length>0;
-  $('#properties-empty').hidden=hasSelection||exportRequested;
+  $('#properties-empty').hidden=hasSelection;
   $('#selection-properties').hidden=!hasSelection;
-  $('#properties-export').hidden=!hasSelection&&!exportRequested;
 }
-function setPanel(panel:HTMLElement,open:boolean,showExport=false):void {
-  exportRequested=panel===props&&open&&showExport;
+function setPanel(panel:HTMLElement,open:boolean):void {
   updatePropertiesContent();
   props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;
   if(panel===layers&&open)layersPanel.open();
@@ -194,8 +191,7 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
   if(button.dataset.fileAction){const action=button.dataset.fileAction;
     if(action==='New document'){button.tabIndex=0;button.onclick=()=>{closeMenus();void documentFiles.newDocument();};}
     else if(action==='Save changes'||action==='Save as…'||action==='Open file…'){button.tabIndex=0;button.onclick=()=>{closeMenus();void(action==='Open file…'?documentFiles.open():documentFiles.save(action==='Save as…'));};}
-    else if(action==='Export PDF'||action==='Export PNG'){button.tabIndex=0;button.onclick=()=>void exportDrawingImage(action==='Export PDF'?'pdf':'png');}
-    else if(action==='Export SVG'){button.tabIndex=0;button.onclick=exportDrawingSVG;}else if(action==='Export DXF'){button.tabIndex=0;button.onclick=()=>{closeMenus();setPanel(props,true,true);$('#export-dxf').focus();};}else disable(button);}
+    else if(action==='Export…'){button.tabIndex=0;button.onclick=()=>exportDialog.open();}else disable(button);}
 }
 function disable(button:HTMLButtonElement):void {button.disabled=true;button.title=(button.title||button.textContent?.trim()||'This control')+' — not yet available';}
 new RasterToVector($<HTMLDialogElement>('#raster-dialog'),editor,$<HTMLButtonElement>('[data-raster-open]'),()=>{editor.cancel();closeMenus();});
@@ -224,23 +220,10 @@ for(const key of ['radius','start','sweep'] as const){
 $('#arc-semicircle').onclick=()=>attempt(()=>editor.setArcProperty('sweep',Math.sign(editor.selectedArc?.sweep??1)*180));
 $('#arc-flip').onclick=()=>attempt(()=>editor.setArcProperty('sweep',-(editor.selectedArc?.sweep??180)));
 $('#create-outline').onclick=()=>attempt(()=>{editor.outline($<HTMLInputElement>('#outline-distance').valueAsNumber);notify('Sticker outline created. The source shape is unchanged.','success');});
-const dxfFormat=$<HTMLSelectElement>('#dxf-format');
-const updateDXFHint=()=>{$('#dxf-format-hint').textContent=dxfFormat.value==='laser'?'Basic lines for older laser software. Choose millimetres when importing.':'Standard DXF 2000 with polylines and millimetre units.';};
-dxfFormat.onchange=updateDXFHint;
-$('#export-dxf').onclick=()=>attempt(()=>{const format=dxfFormat.value as DXFFormat;downloadDXF(exportDXF(editor.objects,$<HTMLInputElement>('#include-artwork').checked,format),format);notify(format==='laser'?'Laser-compatible DXF downloaded. Choose millimetres when importing.':'DXF downloaded in millimetres.','success');});
-function exportDrawingSVG():void {closeMenus();attempt(()=>{downloadSVG(exportSVG(editor.objects));notify('SVG downloaded in millimetres.','success');});}
-let imageExportPending=false;
-async function exportDrawingImage(format:'pdf'|'png'):Promise<void> {
- closeMenus();if(imageExportPending)return;if(!inlineText.finish(false,false))return;
- imageExportPending=true;
- const buttons=[...document.querySelectorAll<HTMLButtonElement>('[data-file-action="Export PDF"],[data-file-action="Export PNG"]')];buttons.forEach(button=>{button.disabled=true;button.setAttribute('aria-busy','true');});
- try{
-  const contents=exportSVG(editor.objects),{downloadImage,exportPNG}=await import('./exportImage');
-  const blob=format==='png'?await exportPNG(contents):await (await import('./exportPDF')).exportPDF(contents);
-  downloadImage(blob,format);notify(format==='png'?'PNG prepared at 300 DPI with a transparent background.':'PDF prepared at actual size in millimetres.','success');
- }catch(error){notify(error instanceof Error?error.message:'The export failed. Try again.',true);}
- finally{imageExportPending=false;buttons.forEach(button=>{button.disabled=false;button.removeAttribute('aria-busy');});}
-}
+const exportDialog=new ExportDialog(editor,()=>{
+ if(!inlineText.finish(false,false))return false;
+ editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
+},notify);
 function update():void {
   rulers.update(paper.view.bounds,paper.view.zoom);
   updatePropertiesContent();
@@ -326,8 +309,8 @@ document.addEventListener('keydown',event=>{
   event.preventDefault();event.stopPropagation();closeMenus();void(key==='n'?documentFiles.newDocument():key==='o'?documentFiles.open():documentFiles.save(event.shiftKey));
 },true);
 document.addEventListener('keydown',e=>{
-  if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='e'&&!(e.target as Element)?.closest('input,textarea,select,[contenteditable="true"]')&&!document.querySelector('dialog[open]')){
-    e.preventDefault();e.stopPropagation();exportDrawingSVG();return;
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&e.key.toLowerCase()==='e'&&!(e.target as Element)?.closest('input,textarea,select,[contenteditable="true"]')&&!document.querySelector('dialog[open]')){
+    e.preventDefault();e.stopPropagation();exportDialog.open(e.shiftKey?'dxf':'svg');return;
   }
   if(e.key==='Escape'){
     const active=menus.find(([menu,trigger])=>!menu.hidden&&(menu.contains(e.target as Node)||trigger.contains(e.target as Node)));
@@ -405,7 +388,7 @@ for(const [tab,label,keywords] of [
  ['snapping','Snapping settings','intersection nearest centre center tangent perpendicular object snap grid'],
  ['appearance','Appearance','theme dark light mode'],
 ] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
-searchTools.push({id:'export-laser-dxf',label:'Laser-compatible DXF',group:'File',icon:'export-dxf',keywords:'export download legacy r12 techsoft laser cutter',run:()=>{closeMenus();dxfFormat.value='laser';updateDXFHint();setPanel(props,true,true);$('#export-dxf').focus();}});
+for(const [format,label] of [['svg','Export SVG'],['pdf','Export PDF'],['png','Export PNG'],['dxf','Export DXF'],['laser','Laser-compatible DXF']] as const)searchTools.push({id:`export-${format}`,label,group:'File',icon:format==='laser'?'export-dxf':`export-${format}`,keywords:'export download format legacy r12 laser cutter',run:()=>exportDialog.open(format as ExportFormat)});
 searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});
 for(const [id,label,words] of [['gear','Involute gear','spur helical bevel rack pinion module teeth'],['drive','Sprocket & timing pulley','chain roller belt groove'],['fastener','Thread & fastener','bolt nut washer thread pitch'],['cam','Cam profile','follower cycloidal harmonic polynomial'],['box','Box & finger joints','enclosure laser finger tabs t-slot nut joint'],['hinge','Flexure & living hinge','kerf bend wood acrylic slits slots'],['packaging','Packaging & die-cut nets','carton corrugated fold score glue tray'],['framework','Truss & framework','warren pratt howe structural lattice frame'],['voronoi','Voronoi pattern','cells seed organic panel webs'],['spirograph','Spirograph & cycloid','hypotrochoid epitrochoid rolling circle'],['maze','Maze & labyrinth','rectangular circular walls solution'],['halftone','Halftone & stipple','image photo holes dots tone'],['waveform','Noise & waveform','perlin sine wave strips panel']] as const)searchButton(`generator-${id}`,label,'Generators',`[data-generator="${id}"]`,words);
 new ToolSearch($<HTMLButtonElement>('[data-tool-search]'),searchTools,()=>{

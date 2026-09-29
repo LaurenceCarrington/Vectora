@@ -4,7 +4,7 @@ import {NUMERIC_EPSILON_MM,validNumber} from './units';
 import {exportContours} from './dxfGeometry';
 
 /** Legacy ASCII R12: independent 2D LINEs and optional annotation TEXT. One drawing unit is 1 mm. */
-export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean):string {
+export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean,tolerance?:number):string {
  const pair=(code:number,value:string|number)=>`${code}\r\n${value}\r\n`;
  const number=(n:number)=>{if(!validNumber(n))throw new Error('DXF geometry exceeds the supported coordinate range.');return String(Number(n.toFixed(8)));};
  const entities:string[]=[],layers=new Map<string,number>([['0',7]]),names=new Map<string,string>();
@@ -25,7 +25,7 @@ export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean):
    include(a.x,-a.y);include(b.x,-b.y);
    entities.push(pair(0,'LINE')+style+pair(10,number(a.x))+pair(20,number(-a.y))+pair(30,0)+pair(11,number(b.x))+pair(21,number(-b.y))+pair(31,0));
   };
-  for(const contour of exportContours(object)){
+  for(const contour of exportContours(object,tolerance)){
    const points=contour.points;if(points.length<(contour.closed?3:2))continue;
    for(let i=1;i<points.length;i++)line(points[i-1],points[i]);
    if(contour.closed)line(points[points.length-1],points[0]);
