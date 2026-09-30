@@ -12,7 +12,7 @@ export function hsvToHex(h:number,s:number,v:number):string {
 export class ColourPanel {
  private h=0;private s=1;private v=1;private opacity=1;private busy=false;private pointer:number|null=null;private start:Paint|null=null;
  private hex:HTMLInputElement;private hue:HTMLInputElement;private alpha:HTMLInputElement;private percent:HTMLInputElement;private plane:HTMLElement;
- constructor(readonly root:HTMLElement,private change:(paint:Paint,commit:boolean)=>void,private close:()=>void,private noFill:()=>void,embedded=false){
+ constructor(readonly root:HTMLElement,private change:(paint:Paint,commit:boolean)=>void,private close:()=>void,private noFill:()=>void,embedded=false,idPrefix='colour'){
   root.innerHTML=`<div class="layers-header"><div class="layer-heading"><span class="panel-eyebrow">Artwork &amp; fill</span><h2 class="panel-title" id="colour-panel-title">Colour</h2></div><button type="button" class="panel-icon" aria-label="Close Colour panel" title="Close"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></div>
   <div class="colour-panel-body">
    <div class="colour-plane" role="group" aria-label="Saturation and brightness" tabindex="0" aria-describedby="colour-plane-help"><span class="colour-cursor"></span></div>
@@ -25,13 +25,13 @@ export class ColourPanel {
    <div class="colour-swatches" aria-label="Colour presets"><button type="button" class="colour-swatch colour-none" aria-label="No fill" title="No fill"></button>${['#FF0000','#0000FF','#00FFFF','#FF00FF'].map(c=>`<button type="button" class="colour-swatch" data-colour="${c}" style="--swatch:${c}" aria-label="${c}" title="${c}"></button>`).join('')}</div>
    <div class="colour-saved" hidden><p class="subtext">Saved swatches</p><div class="colour-swatches" data-saved-swatches></div></div>
    <p class="subtext colour-hint" data-colour-hint>Sets the Fill tool colour. Selected Artwork uses this colour too.</p>
-  </div>`;
+  </div>`.replace(/(id|for|aria-describedby)="colour-/g,`$1="${idPrefix}-`);
   if(embedded)root.querySelector('.layers-header')!.remove();
-  const input=(selector:string)=>root.querySelector<HTMLInputElement>(selector)!;
+  const input=(selector:string)=>root.querySelector<HTMLInputElement>(selector.replace(/^#colour-/,`#${idPrefix}-`))!;
   this.hex=input('#colour-hex');this.hue=input('#colour-hue');this.alpha=input('#colour-opacity');this.percent=input('#colour-opacity-number');this.plane=root.querySelector('.colour-plane')!;
   root.querySelector<HTMLButtonElement>('[aria-label="Close Colour panel"]')?.addEventListener('click',close);
   root.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();this.cancel();close();}if(event.key==='Enter'&&event.target instanceof HTMLInputElement){event.preventDefault();event.target.dispatchEvent(new Event('change',{bubbles:true}));}});
-  this.hex.addEventListener('change',()=>{let hex=this.hex.value.trim();if(!hex.startsWith('#'))hex='#'+hex;if(/^#[0-9a-f]{3}$/i.test(hex))hex='#'+hex.slice(1).split('').map(c=>c+c).join('');const valid=/^#[0-9a-f]{6}$/i.test(hex);this.hex.setAttribute('aria-invalid',String(!valid));root.querySelector<HTMLElement>('#colour-error')!.hidden=valid;if(!valid)return;this.set({hex,opacity:this.opacity});this.publish(true);});
+  this.hex.addEventListener('change',()=>{let hex=this.hex.value.trim();if(!hex.startsWith('#'))hex='#'+hex;if(/^#[0-9a-f]{3}$/i.test(hex))hex='#'+hex.slice(1).split('').map(c=>c+c).join('');const valid=/^#[0-9a-f]{6}$/i.test(hex);this.hex.setAttribute('aria-invalid',String(!valid));root.querySelector<HTMLElement>(`#${idPrefix}-error`)!.hidden=valid;if(!valid)return;this.set({hex,opacity:this.opacity});this.publish(true);});
   const slider=(el:HTMLInputElement,assign:()=>void)=>{el.addEventListener('input',()=>{assign();this.render();this.publish(false);});el.addEventListener('change',()=>{assign();this.render();this.publish(true);});};
   slider(this.hue,()=>this.h=Number(this.hue.value));slider(this.alpha,()=>this.opacity=Number(this.alpha.value)/100);
   this.percent.addEventListener('change',()=>{if(!this.percent.value||!this.percent.checkValidity()){this.render();return;}this.opacity=Number(this.percent.value)/100;this.render();this.publish(true);});

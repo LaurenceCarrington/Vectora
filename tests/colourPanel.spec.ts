@@ -25,7 +25,7 @@ test('Picker controls fill opacity and leaves operation colours intact',async({p
 
 test('A colour-area drag commits once, keyboard controls work and invalid hex is harmless',async({page})=>{
  await ready(page);await shape(page);await open(page);await paint(page,'#8235DC');const before=await state(page);
- const plane=page.locator('.colour-plane'),r=(await plane.boundingBox())!;await page.mouse.move(r.x+r.width*.7,r.y+r.height*.2);await page.mouse.down();await page.mouse.move(r.x+r.width*.3,r.y+r.height*.6,{steps:12});await page.mouse.up();expect((await state(page)).stroke).not.toBe(before.stroke);
+ const plane=page.locator('#colour-panel .colour-plane'),r=(await plane.boundingBox())!;await page.mouse.move(r.x+r.width*.7,r.y+r.height*.2);await page.mouse.down();await page.mouse.move(r.x+r.width*.3,r.y+r.height*.6,{steps:12});await page.mouse.up();expect((await state(page)).stroke).not.toBe(before.stroke);
  await page.getByRole('button',{name:'Undo',exact:true}).click();expect((await state(page)).stroke).toBe(before.stroke);
  await plane.focus();await page.keyboard.press('ArrowLeft');expect((await state(page)).stroke).not.toBe(before.stroke);await page.getByRole('button',{name:'Undo',exact:true}).click();expect((await state(page)).stroke).toBe(before.stroke);
  await paint(page,'nonsense');await expect(page.locator('#colour-error')).toBeVisible();expect((await state(page)).stroke).toBe(before.stroke);
@@ -51,7 +51,7 @@ test('The picker matches the reference, fits both themes and remains usable on n
  const style=()=>page.locator('#colour-panel').evaluate(el=>({background:getComputedStyle(el).backgroundColor,width:el.getBoundingClientRect().width}));const dark=await style();
  const ref=await context.newPage();ref.on('pageerror',e=>errors.push(e.message));await ref.goto(DEV+'/reference/design-system.html');await ref.getByRole('button',{name:'Fill & appearance',exact:true}).click();await expect(ref.locator('#colour-panel')).toBeVisible();expect(await ref.locator('#colour-panel').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(dark.background);await ref.close();
  await page.evaluate(()=>{document.documentElement.dataset.theme='light';(window as any).__vectora.refreshTheme();});expect((await style()).background).not.toBe(dark.background);await page.screenshot({path:'test-results/colour-panel-light.png'});
- for(const width of [600,375]){await page.setViewportSize({width,height:700});const rect=await page.locator('#colour-panel').boundingBox();expect(rect!.x).toBeGreaterThanOrEqual(44);expect(rect!.x+rect!.width).toBeLessThanOrEqual(width-44);await expect(page.locator('#colour-hex')).toBeVisible();const overflow=await page.locator('.colour-panel-body').evaluate(el=>el.scrollWidth>el.clientWidth);expect(overflow).toBe(false);}
+ for(const width of [600,375]){await page.setViewportSize({width,height:700});const rect=await page.locator('#colour-panel').boundingBox();expect(rect!.x).toBeGreaterThanOrEqual(44);expect(rect!.x+rect!.width).toBeLessThanOrEqual(width-44);await expect(page.locator('#colour-hex')).toBeVisible();const overflow=await page.locator('#colour-panel .colour-panel-body').evaluate(el=>el.scrollWidth>el.clientWidth);expect(overflow).toBe(false);}
  expect(errors).toEqual([]);
 });
 
