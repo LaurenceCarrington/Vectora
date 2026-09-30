@@ -1150,7 +1150,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .colour-rgb { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
 .colour-rgb label { display:flex; flex-direction:column; gap:2px; color:var(--menu-muted); font-size:11px; }
 .colour-rgb input { width:100%; padding:5px; font-size:11px; }
-.colour-swatches { display:grid; grid-template-columns:repeat(6,calc((100% - 40px) / 24 - 1px)); gap:8px; padding:6px 0; }
+.colour-swatches { display:grid; grid-template-columns:repeat(6,14px); gap:8px; padding:6px; }
 .colour-swatch { aspect-ratio:1; width:100%; min-width:0; padding:0; cursor:pointer; border:1px solid var(--menu-muted); background:var(--swatch); border-radius:0; }
 .colour-none { background:linear-gradient(135deg,transparent calc(50% - .5px),#ef6060 calc(50% - .5px) calc(50% + .5px),transparent calc(50% + .5px)),var(--menu-hover); }
 .colour-swatch:hover { outline:1px solid var(--menu-foreground); outline-offset:2px; }
@@ -2539,7 +2539,7 @@ import {ColourPanel} from '../src/colourPanel.ts';
 const colourDock=document.querySelector('#colour-panel'),colourTrigger=document.querySelector('[data-colour-trigger]');
 const hideColour=()=>{colourDock.hidden=true;colourTrigger.classList.remove('selected');colourTrigger.setAttribute('aria-expanded','false');colourTrigger.setAttribute('aria-pressed','false');};
 const picker=new ColourPanel(colourDock,()=>{},()=>{hideColour();colourTrigger.focus();},()=>{});
-picker.hint('Compact internal picker with controls and spacing reduced by 2–4px within the unchanged 300px dock, for selected Artwork and Colour fill. Hue, opacity, hex/RGB and up to 12 session swatches. Swatches use one quarter of their previous width and height. Operation layer colours stay fixed.');
+picker.hint('Compact internal picker with controls and spacing reduced by 2–4px within the unchanged 300px dock, for selected Artwork and Colour fill. Hue, opacity, hex/RGB and up to 12 session swatches. Swatches are 14px squares with a 6px inset that keeps hover, focus and selection outlines inside the scrolling panel. Operation layer colours stay fixed.');
 picker.set({hex:'#8235DC',opacity:1});
 colourTrigger.onclick=()=>{const open=colourDock.hidden;document.querySelectorAll('.preview-inner > .layers-panel').forEach(panel=>panel.hidden=true);document.querySelectorAll('.right-toolbar .tool').forEach(button=>{button.classList.remove('selected');button.setAttribute('aria-pressed','false');});colourDock.hidden=!open;colourTrigger.classList.toggle('selected',open);colourTrigger.setAttribute('aria-expanded',String(open));colourTrigger.setAttribute('aria-pressed',String(open));};
 document.querySelectorAll('.right-toolbar .tool:not([data-colour-trigger])').forEach(button=>button.addEventListener('click',hideColour));
