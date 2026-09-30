@@ -47,3 +47,21 @@ test('Storage failures keep the live drawing usable and explain how to retain it
  await page.addInitScript(()=>{Object.defineProperty(window,'indexedDB',{get:()=>{throw new Error('Storage disabled');}});Storage.prototype.setItem=function(){throw new DOMException('Quota exceeded','QuotaExceededError');};});
  await page.goto(DEV);await ready(page);await shape(page);await expect(page.locator('.toast-warning')).toContainText('Browser recovery could not be saved');expect(await count(page)).toBe(1);
 });
+
+test('Recovery retries an unchanged document after both storage writes fail',async({page})=>{
+ await page.addInitScript(()=>{
+  const setItem=Storage.prototype.setItem,put=IDBObjectStore.prototype.put;
+  Storage.prototype.setItem=function(key,value){if(key==='vectora.recovery.pending')throw new DOMException('Quota exceeded','QuotaExceededError');return setItem.call(this,key,value);};
+  (window as any).recoveryAttempts=0;
+  IDBObjectStore.prototype.put=function(value,key){
+   if(this.name==='documents'&&key==='current'&&++(window as any).recoveryAttempts===1)throw new DOMException('Temporary failure','UnknownError');
+   return put.call(this,value,key!);
+  };
+ });
+ await page.goto(DEV);await ready(page);await shape(page);
+ await expect(page.locator('.toast-warning')).toContainText('Browser recovery could not be saved');
+ expect(await page.evaluate(()=>(window as any).recoveryAttempts)).toBe(1);
+ await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
+ await expect.poll(()=>page.evaluate(()=>(window as any).recoveryAttempts)).toBe(2);
+ await reload(page);expect(await count(page)).toBe(1);
+});

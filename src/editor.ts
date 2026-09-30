@@ -41,6 +41,7 @@ export class CADEditor {
   private extraLayers:paper.Layer[]=[];
   readonly overlays:paper.Layer;
   private selection:Shape[]=[];
+  private selectionBoundsCache:paper.Rectangle|null|undefined;
   private clipboard:Shape[]=[];
   private clipboardBounds:paper.Rectangle|null=null;
   private pasteCount=0;
@@ -69,7 +70,7 @@ export class CADEditor {
   set selected(item:Shape|null){this.selection=item?[item]:[];}
   get selectionRotation():number {return this.selected?.data.rotationDegrees??0;}
   private objectBounds(item:Shape):paper.Rectangle {const label=dimensionLabel(item),bounds=label?item.bounds.unite(label.bounds):item.bounds.clone();label?.remove();return bounds;}
-  get selectionBounds():paper.Rectangle|null {return this.selection.reduce<paper.Rectangle|null>((bounds,item)=>bounds?bounds.unite(this.objectBounds(item)):this.objectBounds(item),null);}
+  get selectionBounds():paper.Rectangle|null {if(this.selectionBoundsCache!==undefined)return this.selectionBoundsCache?.clone()??null;return this.selection.reduce<paper.Rectangle|null>((bounds,item)=>bounds?bounds.unite(this.objectBounds(item)):this.objectBounds(item),null);}
   tool:ToolName='select';
   fillColor='#FF0000';
   fillOpacity=1;
@@ -722,7 +723,20 @@ export class CADEditor {
     for(const item of [stem,knob,label]){item.data.role='overlay';this.overlays.addChild(item);}
     stem.data.control='rotation-stem';knob.data.control='rotate';
   }
-  private changed():void {const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>{applyArtworkTheme(item,themeColour);refreshFillPaint(item);});const signature=this.selectionSignature(),layer=this.selection[0]?.layer;if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);this.layerSelectionSignature=signature;this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
+  private changed():void {
+    // Translation, panning and marquee updates cannot change document paint styles.
+    if(!this.interaction||!['move','pan','marquee'].includes(this.interaction.kind)){
+      const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>{applyArtworkTheme(item,themeColour);refreshFillPaint(item);});
+    }
+    const signature=this.selectionSignature(),layer=this.selection[0]?.layer;
+    if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);
+    this.layerSelectionSignature=signature;
+    // Overlay and panel controls read the same combined bounds many times per frame.
+    // Cache only inside this refresh so edits outside it always see fresh geometry.
+    const previous=this.selectionBoundsCache;this.selectionBoundsCache=undefined;this.selectionBoundsCache=this.selectionBounds;
+    try{this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
+    finally{this.selectionBoundsCache=previous;}
+  }
   private drawOverlay():void {
     // A drawing preview also lives on this layer, so remove selection decorations only.
     for(const child of [...this.overlays.children]) if(child.data.role==='overlay')child.remove();
@@ -757,7 +771,8 @@ export class CADEditor {
       stem.data.role='overlay';stem.data.control='duplicate-stem';this.overlays.addChild(stem);
     }
     if(this.selectedArc){this.drawArcControls(this.selectedArc);return;}
-    for(const rectangle of this.selection.length>1?[...this.selection.map(item=>item.bounds),bounds]:[bounds]){
+    const compactPreview=this.selection.length>100&&state&&['move','resize','rotate','marquee'].includes(state.kind);
+    for(const rectangle of this.selection.length>1&&!compactPreview?[...this.selection.map(item=>item.bounds),bounds]:[bounds]){
       this.drawSelectionBorder(rectangle);
     }
     if(state?.kind==='marquee')return;
@@ -810,7 +825,7 @@ export class CADEditor {
         if(hit){
           if(event.shiftKey){this.select(hit,true);return;}
           if(!this.selection.includes(hit))this.selected=hit;
-          this.interaction={...base,before:this.snapshot(),kind:'move',items:[...this.selection],positions:this.selection.map(item=>item.position.clone()),bounds:this.selectionBounds!};
+          this.interaction={...base,before:{...base.before,selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid)},kind:'move',items:[...this.selection],positions:this.selection.map(item=>item.position.clone()),bounds:this.selectionBounds!};
         }else{
           const initialSelection=event.shiftKey?[...this.selection]:[];
           this.selection=initialSelection;
@@ -829,9 +844,12 @@ export class CADEditor {
     if(!state&&this.threePointArc){this.previewThreePointArc(paper.view.viewToProject(this.screen(event)),event.shiftKey);return;}
     if(!state&&this.polyline){this.previewPolyline(paper.view.viewToProject(this.screen(event)),event.shiftKey);return;}
     if(!state){
+      const previousSnap=this.activeObjectSnap;
       if(!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&this.tool!=='fill'&&this.tool!=='freehand'&&!this.isDeleteTool)this.snapPoint(paper.view.viewToProject(this.screen(event)),null);
       else this.activeObjectSnap=null;
-      this.changed();return;
+      const snap=this.activeObjectSnap;
+      if(snap?.mode!==previousSnap?.mode||!!snap!==!!previousSnap||snap&&previousSnap&&!snap.point.equals(previousSnap.point))this.changed();
+      return;
     }
     if(state.id!==event.pointerId)return;event.preventDefault();
     const screen=this.screen(event),point=paper.view.viewToProject(screen);
@@ -1063,7 +1081,7 @@ export class CADEditor {
       if(this.tool==='line'||this.tool==='freehand'?(state.item as paper.Path).length<MIN_DIMENSION_MM:state.item.bounds.width<MIN_DIMENSION_MM||state.item.bounds.height<MIN_DIMENSION_MM)state.item.remove();
       else {state.item.data={...state.item.data,role:'artwork',uid:crypto.randomUUID(),name:this.tool[0].toUpperCase()+this.tool.slice(1),...(this.tool==='polygon'?{sides:this.polygonSides}:{})};this.insertDrawing(state.item);this.selected=state.item;if(this.tool==='arc')this.tool='select';}
     }
-    if(state.kind!=='pan'&&state.kind!=='marquee')this.commit(state.before);
+    if(state.kind!=='pan'&&state.kind!=='marquee'&&state.hasDragged)this.commit(state.before);
     if(this.canvas.hasPointerCapture(event.pointerId))this.canvas.releasePointerCapture(event.pointerId);
     this.updateCursor();this.changed();
   };

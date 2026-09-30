@@ -14,6 +14,7 @@ export class DocumentRecovery {
  private last='';
  private time=0;
  private warned=false;
+ get needsRetry():boolean{return this.last==='';}
  constructor(private warn:(message:string)=>void){
   this.database=new Promise((resolve,reject)=>{
    const request=indexedDB.open('vectora-recovery',1),timer=setTimeout(()=>reject(new Error('Browser storage did not respond.')),4000);

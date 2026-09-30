@@ -26,6 +26,9 @@ export class DocumentFiles {
  private restoring=false;
  private changedDuringStartup=false;
  private timer:number|undefined;
+ private cachePending=true;
+ private cachedViewKey='';
+ private cachedSavedKey='';
  private draft:()=>RecoveryData['draft']=()=>undefined;
  private tabs:DocumentTab[]=[];
  private activeId:string=crypto.randomUUID();
@@ -50,15 +53,15 @@ export class DocumentFiles {
   window.addEventListener('pagehide',()=>this.cache());
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')this.cache();});
   const schedule=()=>{if(this.timer===undefined)this.timer=window.setTimeout(()=>{this.timer=undefined;this.cache();},250);};
-  editor.onDocumentChange=()=>this.cache();
+  editor.onDocumentChange=()=>{this.cachePending=true;this.cache();};
   editor.canvas.addEventListener('pointerup',schedule);editor.canvas.addEventListener('wheel',schedule,{passive:true});
   document.querySelector('#inline-text')!.addEventListener('input',schedule);
   document.addEventListener('click',schedule);document.addEventListener('keyup',schedule);
 
  }
  private get activeTab():DocumentTab {return this.tabs.find(tab=>tab.id===this.activeId)!;}
- private renderTabs():void {
-  this.tabBar.render(this.tabs.map(tab=>({id:tab.id,filename:tab.id===this.activeId?this.filename:tab.filename,dirty:tab.id===this.activeId?this.dirty||!!this.draft():tab.dirty})),this.activeId,this.busy);
+ private renderTabs(activeDirty?:boolean):void {
+  this.tabBar.render(this.tabs.map(tab=>({id:tab.id,filename:tab.id===this.activeId?this.filename:tab.filename,dirty:tab.id===this.activeId?(activeDirty??(this.dirty||!!this.draft())):tab.dirty})),this.activeId,this.busy);
  }
  private rememberActive():void {
   Object.assign(this.activeTab,{filename:this.filename,handle:this.handle,savedKey:this.savedKey,renamed:this.renamed,dirty:this.dirty,state:this.editor.captureSession(),contents:encodeDocument(this.editor)});
@@ -138,12 +141,16 @@ export class DocumentFiles {
   if(this.restoring)return;
   if(!this.recoveryReady){this.changedDuringStartup=true;return;}
   if(this.editor.hasPendingGesture)return;
-  const draft=this.draft();let contents=encodeDocument(this.editor);
+  const draft=this.draft(),viewKey=JSON.stringify([this.activeId,this.filename,this.renamed,this.editor.activeLayerId,paper.view.zoom,paper.view.center.x,paper.view.center.y,draft,this.tabs.map(tab=>tab.id)]);
+  if(!this.cachePending&&!this.recovery.needsRetry&&viewKey===this.cachedViewKey&&this.savedKey===this.cachedSavedKey)return;
+  let contents=encodeDocument(this.editor);
   // Inline editing temporarily hides the original glyphs behind its textarea.
   if(draft?.sourceId){const data=JSON.parse(contents);for(const layer of data.layers)for(const object of layer.objects)if(object.data.uid===draft.sourceId)object.visible=true;contents=JSON.stringify(data);}
-  this.activeTab.contents=contents;this.activeTab.filename=this.filename;this.activeTab.dirty=this.dirty||!!draft;
-  this.renderTabs();
-  this.recovery.write({contents,filename:this.filename,dirty:this.dirty||!!draft,draft,activeTabId:this.activeId,tabs:this.tabs.map(({id,filename,contents,dirty})=>({id,filename,contents,dirty}))});
+  const dirty=this.dirty||!!draft;
+  this.activeTab.contents=contents;this.activeTab.filename=this.filename;this.activeTab.dirty=dirty;
+  this.renderTabs(dirty);
+  this.cachePending=false;this.cachedViewKey=viewKey;this.cachedSavedKey=this.savedKey;
+  this.recovery.write({contents,filename:this.filename,dirty,draft,activeTabId:this.activeId,tabs:this.tabs.map(({id,filename,contents,dirty})=>({id,filename,contents,dirty}))});
  }
  private updateName():void {
   this.nameControl.setName(this.filename);

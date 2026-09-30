@@ -114,7 +114,8 @@ test('object snaps move and resize to exact targets without grid rounding or exp
   await move(10,10);await page.mouse.down();await move(15.5,14.2);
   expect(await page.evaluate(()=>(window as any).__vectora.activeObjectSnap?.mode)).toBe('centre');
   const exported=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects,true);});
-  expect(exported.match(/LWPOLYLINE/g)?.length).toBe(3);
+  expect(exported.match(/\r?\n0\r?\nLWPOLYLINE\r?\n/g)?.length).toBe(1);
+  expect(exported.match(/\r?\n0\r?\nCIRCLE\r?\n/g)?.length).toBe(2);
   await page.mouse.up();const resized=await bounds();expect(resized[2]).toBeCloseTo(15.2,8);expect(resized[3]).toBeCloseTo(14.4,8);
   await page.keyboard.press('Control+z');expect(await bounds()).toEqual([0,0,10,10]);
   await page.evaluate(()=>(window as any).__vectora.setProperty('width',12.3456));expect((await bounds())[2]).toBeCloseTo(12.3456,8);

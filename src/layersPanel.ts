@@ -11,6 +11,8 @@ export class LayersPanel {
   private set active(id:string){this.editor.setActiveLayer(id);}
   private expanded = new Set<string>();
   private lastRender = '';
+  private objectButtons=new Map<string,HTMLButtonElement>();
+  private selectedIds=new Set<string>();
   private draggedObjects: string[] = [];
   private scrollPointer: {x:number;y:number}|null = null;
   private scrollFrame = 0;
@@ -111,15 +113,16 @@ export class LayersPanel {
   }
 
   render(): void {
+    if(this.panel.hidden)return;
     const layers=this.editor.documentLayers;
     const roles=layers.map(layerId);
-    const key = JSON.stringify([this.active, this.editor.selectedItems.map(item=>item.data.uid), [...this.expanded], roles.map(role => {
+    const key = JSON.stringify([this.active, [...this.expanded], roles.map(role => {
       const layer = this.editor.documentLayer(role)!;
-      return [role,layer.name,layerRole(layer),layer.visible, layer.locked, layer.children.map(item => [item.data.uid, item.data.name])];
+      return [role,layer.name,layerRole(layer),layer.visible, layer.locked, layer.children.length,this.expanded.has(role)?layer.children.map(item => [item.data.uid, item.data.name,!!item.data.regionFill,!!item.data.text,!!item.data.dimension]):null];
     })]);
-    if (key === this.lastRender) return;
+    if (key === this.lastRender){this.updateSelection();return;}
     this.lastRender = key;
-    this.list.replaceChildren();
+    this.list.replaceChildren();this.objectButtons.clear();this.selectedIds.clear();
     this.panel.querySelector('[data-layer-count]')!.textContent = String(layers.length);
     if(!layers.length){const empty=document.createElement('p');empty.className='layers-empty';empty.textContent='No layers in this document. Start a new document to restore the default layers.';this.list.append(empty);}
     for (const role of roles) {
@@ -135,18 +138,26 @@ export class LayersPanel {
       </div>`;
       const objects = document.createElement('div');objects.id = objectsId;objects.className = 'layer-objects';objects.hidden = !expanded;
       if (!layer.children.length) objects.textContent = 'No objects in this layer.';
-      for (const item of layer.children) {
+      if(expanded)for (const item of layer.children) {
         const button = document.createElement('button');button.type = 'button';button.className = 'layer-object';button.dataset.objectId = item.data.uid;
-        button.disabled = !layer.visible || layer.locked;button.draggable=!button.disabled;button.setAttribute('aria-pressed', String(this.editor.selectedItems.includes(item as Shape)));
+        button.disabled = !layer.visible || layer.locked;button.draggable=!button.disabled;button.setAttribute('aria-pressed','false');this.objectButtons.set(item.data.uid,button);
         button.innerHTML = icon(['Circle', 'Rectangle', 'Ellipse', 'Polygon', 'Line', 'Polyline', 'Freehand', 'Arc'].includes(item.data.name) ? item.data.name.toLowerCase() : item.data.regionFill?'fill':item.data.text?'text':item.data.dimension?'dimension-aligned': 'path');
         const label=document.createElement('span');label.textContent=item.data.name||'Object';button.title=`${label.textContent} · Drag to another layer`;button.append(label);objects.append(button);
       }
       entry.append(objects);this.list.append(entry);
     }
+    this.updateSelection();
+  }
+
+  private updateSelection():void {
+    const selected=new Set(this.editor.selectedItems.map(item=>item.data.uid as string));
+    for(const id of this.selectedIds)if(!selected.has(id))this.objectButtons.get(id)?.setAttribute('aria-pressed','false');
+    for(const id of selected)if(!this.selectedIds.has(id))this.objectButtons.get(id)?.setAttribute('aria-pressed','true');
+    this.selectedIds=selected;
   }
 
   open(): void {
-    this.finishObjectDrag();
+    this.finishObjectDrag();this.render();
     this.panel.querySelector<HTMLButtonElement>('[data-panel-close]')!.focus({preventScroll:true});
   }
 
