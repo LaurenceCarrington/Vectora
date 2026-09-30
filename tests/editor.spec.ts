@@ -77,6 +77,8 @@ for(const [name,url] of [['development',DEV],['production',PREVIEW]])test(`${nam
   await page.screenshot({path:`test-results/${name}-dark-artwork.png`});
   for(const [field,value] of [['x','10'],['y','20'],['width','100'],['height','50']]){await page.locator('#field-'+field).fill(value);await page.locator('#field-'+field).press('Tab');}
   await expect(page.locator('#field-width')).toHaveValue('100');
+  await expect(page.locator('#properties-panel #create-outline')).toHaveCount(0);
+  await expect(page.locator('#selection-menu #create-outline')).toBeVisible();
   await page.locator('#create-outline').click();await expect(page.locator('#selection-name')).toContainText('Sticker outline');
   expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(106,1);
   await page.locator('[aria-label="Undo"]').click();await expect(page.locator('#selection-name')).toContainText('Rectangle');

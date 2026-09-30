@@ -219,7 +219,7 @@ for(const key of ['radius','start','sweep'] as const){
 }
 $('#arc-semicircle').onclick=()=>attempt(()=>editor.setArcProperty('sweep',Math.sign(editor.selectedArc?.sweep??1)*180));
 $('#arc-flip').onclick=()=>attempt(()=>editor.setArcProperty('sweep',-(editor.selectedArc?.sweep??180)));
-$('#create-outline').onclick=()=>attempt(()=>{editor.outline($<HTMLInputElement>('#outline-distance').valueAsNumber);notify('Sticker outline created. The source shape is unchanged.','success');});
+$('#create-outline').onclick=()=>attempt(()=>{editor.outline(3);notify('Sticker outline created. The source shape is unchanged.','success');});
 const exportDialog=new ExportDialog(editor,()=>{
  if(!inlineText.finish(false,false))return false;
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
@@ -276,7 +276,7 @@ function update():void {
   for(const key of ['radius','start','sweep'] as const){const input=$<HTMLInputElement>('#arc-'+key);if(document.activeElement!==input){input.value=editor.selectedArc?String(Number(editor.selectedArc[key].toFixed(6))):'';input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
   $('#selection-name').textContent=count>1?`${count} objects selected · Combined bounds`:selected?`${selected.data.name} · ${selected.layer.name}`:'Select an object to edit its bounds.';
   $<HTMLButtonElement>('#create-outline').disabled=!ready||!editor.canOutlineSelection;
-  $('#create-outline').title=!editor.canOutlineSelection?'Select one closed shape to create a sticker outline':'';
+  $('#create-outline').title=!editor.canOutlineSelection?'Select one closed shape to create a sticker outline':'Sticker Outline · 3 mm rounded outer cut';
   $<HTMLButtonElement>('[aria-label="Undo"]').disabled=!editor.canUndo;$<HTMLButtonElement>('[aria-label="Redo"]').disabled=!editor.canRedo;
   $('#tool-status').textContent=({fill:'Colour fill · B · Click an enclosed area',select:editor.selectedArc?'Arc · Drag handles · Shift: 15°':count>1?`Select · V · ${count} selected`:'Select · V',nodes:'Nodes · N · Double-click to add · Right-click for actions',text:'Text · T · Click to place',rectangle:'Rectangle · R · Shift for square',circle:'Circle · C · Drag from centre',ellipse:'Ellipse · E · Shift for circle',heart:'Heart · Drag opposite corners · Shift for equal proportions',polygon:`Polygon · Y · ${editor.polygonSides} sides · ↑/↓ · Shift: 15°`,star:`Star · ⇧ Y · ${editor.starPoints} points · ↑/↓ · Shift: 15°`,line:'Line · L · Drag · Shift: 45°',polyline:'Polyline · P · Click points · Enter to finish',freehand:'Freehand · F · Drag to draw · No snapping',arc:`Centre arc · A · ${editor.arcHint}`,'arc-endpoints':`Start–end arc · ${editor.endpointArcHint}`,'arc-three-point':`Three-point arc · ⇧ A · ${editor.threePointArcHint}`,'dissect-delete':'Dissect delete · K · Click a section','line-delete':'Line delete · ⇧ K · Click an outline'} as Record<ToolName,string>)[editor.tool];
   if(isDimensionTool(editor.tool))$('#tool-status').textContent=`${DIMENSION_NAMES[editor.tool]}${editor.tool==='dimension-aligned'?' · D':''} · ${editor.dimensions.hint}`;
