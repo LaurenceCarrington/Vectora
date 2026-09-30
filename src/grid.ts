@@ -1,6 +1,7 @@
 import paper from 'paper';
 import { GRID_BASE_SPACING_MM } from './units';
 import { GRID_TYPES, gridMarks, snapGridPoint, type GridType, type GridMark } from './gridGeometry';
+import {validateGridSettings} from './gridSettings';
 
 const STORAGE_KEY = 'vectora.gridSpacingMM';
 function validSpacing(value: number): boolean {
@@ -43,6 +44,13 @@ export class MillimetreGrid {
     if (!validSpacing(value)) throw new Error('Enter a grid size from 0.1 to 1000 mm.');
     this.spacingMM = value;
     try { localStorage.setItem(STORAGE_KEY, String(value)); } catch { /* Keep the session preference. */ }
+  }
+
+  get config(){return {type:this.type,spacing:this.spacingMM,angle:this.angleDegrees};}
+  applyConfig(value:unknown,persist=false):void {
+    const grid=validateGridSettings(value);
+    this.type=grid.type;this.spacingMM=grid.spacing;this.angleDegrees=grid.angle;
+    if(persist)try{localStorage.setItem(STORAGE_KEY,String(grid.spacing));localStorage.setItem('vectora.gridType',grid.type);localStorage.setItem('vectora.gridAngle',String(grid.angle));}catch{ /* Keep the document settings. */ }
   }
 
   setType(type:GridType):void {

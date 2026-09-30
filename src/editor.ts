@@ -1,7 +1,8 @@
 import {CanvasGuide} from './canvasGuide';
 import {validateCanvasSize,type CanvasSize} from './canvasSize';
 import {applyFillPaint,refreshFillPaint,validateFillPaint,paintColour,type FillPaint} from './fillPaint';
-import type { GridType } from './gridGeometry';
+import {validateGridSettings} from './gridSettings';
+import type { GridConfig, GridType } from './gridGeometry';
 import { applyArtworkTheme, artworkSnapshot, artworkColor } from './shapeStyles';
 import paper from 'paper';
 import {hasFilledArea} from './shapeStyles';
@@ -181,15 +182,15 @@ export class CADEditor {
     paper.view.zoom=BASE_ZOOM;this.changed();
   }
   snapshot():DocumentSnapshot {
-    return {canvasSize:structuredClone(this.canvasSize),activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
+    return {grid:this.grid.config,canvasSize:structuredClone(this.canvasSize),activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
   }
-  newDocument(canvasSize:CanvasSize={kind:'infinite'}):void {
+  newDocument(canvasSize:CanvasSize={kind:'infinite'},grid:GridConfig=this.grid.config):void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
-    this.loadDocument({canvasSize:validateCanvasSize(canvasSize),activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
+    this.loadDocument({grid:validateGridSettings(grid),canvasSize:validateCanvasSize(canvasSize),activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
     if(this.canvasSize.kind==='fixed')this.fitCanvas();
   }
-  setCanvasSize(value:CanvasSize):void {
-    const size=validateCanvasSize(value);this.cancel();const before=this.snapshot();this.canvasSize=size;
+  setCanvasSize(value:CanvasSize,grid:GridConfig=this.grid.config):void {
+    const size=validateCanvasSize(value),settings=validateGridSettings(grid);this.cancel();const before=this.snapshot();this.canvasSize=size;this.grid.applyConfig(settings,true);
     if(size.kind==='fixed')this.fitCanvas();this.commit(before);
   }
   private fitCanvas():void {
@@ -218,7 +219,7 @@ export class CADEditor {
     }catch(error){this.restore(before);paper.view.zoom=oldZoom;paper.view.center=oldCenter;this.changed();throw error;}
   }
   private restore(snapshot:DocumentSnapshot):void {
-    this.canvasSize=validateCanvasSize(snapshot.canvasSize);
+    this.canvasSize=validateCanvasSize(snapshot.canvasSize);this.grid.applyConfig(snapshot.grid);
     this.offsets.cancel();this.patterns.cancel();this.dimensions.cancel();this.nodes.clear();
     this.selected=null; this.artwork.removeChildren();this.cutlines.removeChildren();
     this.extraLayers.forEach(layer=>layer.remove());this.extraLayers=[];
@@ -239,7 +240,7 @@ export class CADEditor {
   }
   private commit(before:DocumentSnapshot):void {
     const after=this.snapshot();
-    if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers || JSON.stringify(before.canvasSize)!==JSON.stringify(after.canvasSize)) {
+    if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers || JSON.stringify(before.canvasSize)!==JSON.stringify(after.canvasSize) || JSON.stringify(before.grid)!==JSON.stringify(after.grid)) {
       this.undoStack.push({before,after}); if(this.undoStack.length>100)this.undoStack.shift();this.redoStack=[];
     }
     this.changed();this.onDocumentChange();
@@ -443,10 +444,12 @@ export class CADEditor {
     this.selectionArea=tokens.getPropertyValue('--color-selection-area').trim();
     this.grid.refreshColors();this.canvasGuide.refreshColors();this.changed();
   }
-  setGridType(type:GridType):void {this.cancel();this.grid.setType(type);this.changed();}
-  setGridAngle(degrees:number):void {this.cancel();this.grid.setAngle(degrees);this.changed();}
-  setGridSpacing(value:number):void {
-    this.grid.setSpacingMM(value);this.cancel();this.changed();
+  setGridType(type:GridType):void {this.setDocumentGrid({...this.grid.config,type});}
+  setGridAngle(angle:number):void {this.setDocumentGrid({...this.grid.config,angle});}
+  setGridSpacing(spacing:number):void {this.setDocumentGrid({...this.grid.config,spacing});}
+  private setDocumentGrid(value:GridConfig):void {
+    const settings=validateGridSettings(value);if(JSON.stringify(settings)===JSON.stringify(this.grid.config))return;
+    this.cancel();const before=this.snapshot();this.grid.applyConfig(settings,true);this.commit(before);
   }
   setSnapToGrid(enabled:boolean):void {
     if(this.snapToGridEnabled===enabled)return;

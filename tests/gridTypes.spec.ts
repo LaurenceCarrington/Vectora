@@ -78,12 +78,12 @@ test('Patterns remain fixed and bounded at extreme zoom and never export',async(
  await page.goto(DEV);
  await page.evaluate(async()=>{
   const e=(window as any).__vectora,p=(window as any).__paper,{GRID_TYPES}=await import('/src/gridGeometry.ts'),{exportDXF}=await import('/src/exportDXF.ts');
-  const before=JSON.stringify(e.snapshot());
+  const drawing=()=>{const {grid,...snapshot}=e.snapshot();return JSON.stringify(snapshot);};const before=drawing();
   for(const type of GRID_TYPES)for(const spacing of [.1,10,1000])for(const zoom of [.1,1,100]){
    e.setGridType(type);e.setGridSpacing(spacing);p.view.zoom=zoom;p.view.center=new p.Point(-230.5,124.25);e.setTool('select');
    if(e.grid.spacingMM!==spacing||e.grid.layer.children.length>30000)throw new Error('Unbounded or changing grid');
   }
-  if(JSON.stringify(e.snapshot())!==before)throw new Error('Grid settings changed document');
+  if(drawing()!==before)throw new Error('Grid settings changed artwork or canvas');
   e.setGridSpacing(10);p.view.zoom=4;e.setGridType('hexagonal');
   e.addShape(new p.Path.Rectangle({rectangle:[0,0,10,10],insert:false}),'Rectangle');
   for(const type of ['hexagonal','dot']){

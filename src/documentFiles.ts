@@ -1,3 +1,4 @@
+import type {GridConfig} from './gridGeometry';
 import {NewDocumentDialog} from './newDocumentDialog';
 import type {CanvasSize} from './canvasSize';
 import paper from 'paper';
@@ -91,10 +92,10 @@ export class DocumentFiles {
   if(id===this.activeId)this.activate(this.tabs[index+1]??this.tabs[index-1]);
   this.tabs.splice(index,1);this.renderTabs();
  });}
- private createBlank(append=true,canvasSize:CanvasSize={kind:'infinite'}):void {
+ private createBlank(append=true,canvasSize:CanvasSize={kind:'infinite'},grid:GridConfig=this.editor.grid.config):void {
   this.restoring=true;
   try{
-   this.editor.newDocument(canvasSize);this.handle=null;this.renamed=false;this.savedKey=documentKey(this.editor);
+   this.editor.newDocument(canvasSize,grid);this.handle=null;this.renamed=false;this.savedKey=documentKey(this.editor);
    let number=1,name='Untitled.vectora';while(append&&this.tabs.some(tab=>tab.filename===name))name=`Untitled ${++number}.vectora`;
    this.filename=name;this.activeId=crypto.randomUUID();
    const tab:DocumentTab={id:this.activeId,filename:name,handle:null,savedKey:this.savedKey,renamed:false,dirty:false,state:this.editor.captureSession(),contents:encodeDocument(this.editor)};
@@ -140,7 +141,7 @@ export class DocumentFiles {
   }catch(error){this.notify(`Could not fully restore the browser copy. ${error instanceof Error?error.message:String(error)}`,'warning');}
   finally{
    this.restoring=false;
-   if(!restored&&!this.changedDuringStartup){const size=await this.setup.open(undefined,'startup');this.createBlank(false,size??{kind:'infinite'});this.cachePending=true;}
+   if(!restored&&!this.changedDuringStartup){const settings=await this.setup.open(undefined,'startup',this.editor.grid.config);this.createBlank(false,settings?.canvasSize??{kind:'infinite'},settings?.grid??this.editor.grid.config);this.cachePending=true;}
    this.recoveryReady=true;workspace.inert=false;if(this.changedDuringStartup||!restored||this.cachePending)this.cache();if(!restored)this.editor.canvas.focus({preventScroll:true});
   }
  }
@@ -195,12 +196,12 @@ export class DocumentFiles {
  });}
  newDocument():Promise<void>{return this.run(async()=>{
   if(!this.prepareNavigation())return;
-  const size=await this.setup.open();if(!size)return;
-  this.rememberActive();this.createBlank(true,size);
+  const settings=await this.setup.open(undefined,'new',this.editor.grid.config);if(!settings)return;
+  this.rememberActive();this.createBlank(true,settings.canvasSize,settings.grid);
  });}
  editCanvasSize():Promise<void>{return this.run(async()=>{
   if(!this.prepareNavigation())return;
-  const size=await this.setup.open(this.editor.canvasSize,'edit');if(size)this.editor.setCanvasSize(size);
+  const settings=await this.setup.open(this.editor.canvasSize,'edit',this.editor.grid.config);if(settings)this.editor.setCanvasSize(settings.canvasSize,settings.grid);
  });}
  open():Promise<void>{
   if(this.busy||!this.prepare())return Promise.resolve();

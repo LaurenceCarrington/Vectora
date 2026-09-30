@@ -48,9 +48,9 @@ test('production Settings opens the placeholder Preferences dialog',async({page}
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
 });
 
-test('Grid size stays fixed through zoom, controls snapping and persists without editing the document',async({page})=>{
+test('Grid size stays fixed through zoom, controls snapping and persists without editing artwork',async({page})=>{
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
-  const before=await page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()));
+  const before=await page.evaluate(()=>{const {grid,...drawing}=(window as any).__vectora.snapshot();return JSON.stringify(drawing);});
   await page.getByRole('button',{name:'Settings',exact:true}).click();
   await page.getByRole('tab',{name:'Grid',exact:true}).click();
   const input=page.getByRole('spinbutton',{name:'Grid size'});
@@ -67,7 +67,7 @@ test('Grid size stays fixed through zoom, controls snapping and persists without
     for(const zoom of [.1,1,96/25.4,100]){p.view.zoom=zoom;e.setTool('select');if(e.grid.spacingMM!==2.5)throw new Error('Grid interval changed');}
     e.setGridSpacing(.1);p.view.zoom=.1;e.setTool('select');
     if(e.grid.layer.children.length>1500)throw new Error('Grid density unbounded');
-    e.setGridSpacing(2.5);return JSON.stringify(e.snapshot());
+    e.setGridSpacing(2.5);const {grid,...drawing}=e.snapshot();return JSON.stringify(drawing);
   })).toBe(before);
   await page.reload();await expect(page.locator('#grid-status')).toHaveText('Grid 2.5 mm');
   await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;p.view.center=new p.Point(50,50);e.setTool('rectangle');});

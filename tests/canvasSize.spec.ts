@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 const DEV='http://127.0.0.1:5174';
 const setup=(page:Page)=>page.getByRole('dialog',{name:'New document',exact:true});
-async function create(page:Page,preset='Infinite canvas') {const dialog=setup(page);await expect(dialog).toBeVisible();await dialog.getByRole('button',{name:preset,exact:true}).click();await dialog.getByRole('button',{name:'Create document',exact:true}).click();await expect(dialog).toBeHidden();await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');}
+async function create(page:Page,preset='Infinite canvas') {const dialog=setup(page);await expect(dialog).toBeVisible();if(['A4','A3','US Letter','US Tabloid'].includes(preset))await dialog.getByRole('tab',{name:'Sticker sheets',exact:true}).click();await dialog.getByRole('button',{name:preset,exact:true}).click();await dialog.getByRole('button',{name:'Create document',exact:true}).click();await expect(dialog).toBeHidden();await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');}
 test('Startup offers finite and infinite canvases; New can be cancelled or sized independently',async({page})=>{
  await page.goto(DEV);await create(page,'A4');
  expect(await page.evaluate(()=>(window as any).__vectora.canvasSize)).toEqual({kind:'fixed',width:210,height:297,unit:'mm'});

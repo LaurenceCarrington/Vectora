@@ -1,3 +1,4 @@
+import {validateGridSettings} from './gridSettings';
 import {validateCanvasSize} from './canvasSize';
 import {validateFillPaint,type GradientColour} from './fillPaint';
 import paper from 'paper';
@@ -35,7 +36,7 @@ function restoredColour(value:unknown):paper.Color|null {
 }
 
 export function documentKey(editor:CADEditor):string {
- const {artwork,cutlines,layers,canvasSize}=editor.snapshot();return JSON.stringify({artwork,cutlines,layers,canvasSize});
+ const {artwork,cutlines,layers,canvasSize,grid}=editor.snapshot();return JSON.stringify({artwork,cutlines,layers,canvasSize,grid});
 }
 export function encodeDocument(editor:CADEditor):string {
  const layers=editor.documentLayers.map(layer=>({id:layer.data.documentId,name:layer.name,role:layer.data.objectRole,visible:layer.visible,locked:layer.locked,objects:layer.children.map(child=>{
@@ -44,7 +45,7 @@ export function encodeDocument(editor:CADEditor):string {
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
   }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:savedColour(item.fillColor),stroke:savedColour(item.strokeColor),width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
  })}));
- return JSON.stringify({format:'vectora',version:1,units:'mm',canvasSize:editor.canvasSize,activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
+ return JSON.stringify({format:'vectora',version:1,units:'mm',grid:editor.grid.config,canvasSize:editor.canvasSize,activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
 }
 
 function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string>):JsonObject {
@@ -88,7 +89,7 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  if(file.version!==1)throw new Error('This Vectora document version is not supported.');
  if(!Array.isArray(file.layers)||file.layers.length>1000)fail();
  const view=record(file.view),zoom=number(view.zoom,MAX_ZOOM);if(zoom<MIN_ZOOM)fail();const center=tuple(view.center,2) as [number,number];
- const canvasSize=validateCanvasSize(file.canvasSize);
+ const canvasSize=validateCanvasSize(file.canvasSize),grid=validateGridSettings(file.grid);
  const layerIds=new Set<string>(),objectIds=new Set<string>(),fonts=new Set<string>();let objectCount=0,segmentCount=0;
  const states:any[]=[];let artwork='[]',cutlines='[]';
  for(const rawLayer of file.layers){
@@ -128,5 +129,5 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  for(const role of ['artwork','cutline'])if(!layerIds.has(role))states.push({id:role,name:role==='artwork'?'Artwork':'Cut Path',role,visible:false,locked:false,deleted:true});
  await Promise.all([...fonts].map(loadTextFont));
  const activeLayerId=file.activeLayerId===undefined?'artwork':id(file.activeLayerId);
- return {snapshot:{canvasSize,activeLayerId:layerIds.has(activeLayerId)?activeLayerId:'artwork',artwork,cutlines,layers:JSON.stringify(states),selected:null,selectedIds:[]},view:{zoom,center}};
+ return {snapshot:{grid,canvasSize,activeLayerId:layerIds.has(activeLayerId)?activeLayerId:'artwork',artwork,cutlines,layers:JSON.stringify(states),selected:null,selectedIds:[]},view:{zoom,center}};
 }
