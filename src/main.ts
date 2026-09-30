@@ -21,7 +21,6 @@ import { loadTextFont } from './text';
 import type { ObjectSnapMode } from './objectSnapping';
 import { initializeClipper } from './clipperService';
 import { ExportDialog, type ExportFormat } from './exportDialog';
-import {LaserPreflightDialog} from './laserPreflightDialog';
 import { DocumentFiles } from './documentFiles';
 import { BASE_ZOOM } from './units';
 import type { ToolName } from './types';
@@ -225,14 +224,7 @@ const exportDialog=new ExportDialog(editor,()=>{
  if(!inlineText.finish(false,false))return false;
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
 },notify);
-const laserTrigger=$<HTMLButtonElement>('[data-laser-preflight]');
-const laserDialog=new LaserPreflightDialog(editor,laserTrigger,()=>exportDialog.openLaserJob(new Set(editor.documentLayers.filter(layer=>!layer.data.deleted&&(layer.data.objectRole==='cutline'||layer.data.objectRole==='engrave')).map(layer=>layer.data.documentId))));
-laserTrigger.onclick=()=>{
- if(!inlineText.finish(false,false))return;
- editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();laserDialog.open();
-};
 function update():void {
-  laserDialog.refreshIfOpen();
   rulers.update(paper.view.bounds,paper.view.zoom);
   updatePropertiesContent();
   convertTextButton.hidden=!editor.selectedItems.some(item=>item.data.text);
@@ -351,7 +343,6 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['generators','Generators','[data-generator-trigger]','generator menu'],
   ['settings','Settings','[data-open-preferences]','preferences'],
   ['help','Help','[data-help-open]','guide keyboard shortcuts controls tutorials examples instructions','F1'],
-  ['laser-preflight','Laser preflight','[data-laser-preflight]','laser job preview bed kerf cut engrave checks'],
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
   ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],
 ] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');

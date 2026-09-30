@@ -23,7 +23,6 @@ import { findObjectSnap, SNAP_LABELS, type ObjectSnap, type ObjectSnapMode, type
 import { createStickerOutline } from './clipperService';
 import { BASE_ZOOM, MIN_ZOOM, MAX_ZOOM, MIN_DIMENSION_MM, validNumber, validDimension, snapMM } from './units';
 import type { DocumentSnapshot, Shape, ToolName, ObjectRole } from './types';
-import {defaultLaserJobSettings,validateLaserJobSettings,type LaserJobSettings} from './laserJob';
 
 type Interaction = {
   id:number; kind:'pan'|'draw'|'move'|'resize'|'marquee'|'endpoint'|'arc-handle'|'rotate'; start:paper.Point; screen:paper.Point;
@@ -69,12 +68,6 @@ export class CADEditor {
   get selectionBounds():paper.Rectangle|null {return this.selection.reduce<paper.Rectangle|null>((bounds,item)=>bounds?bounds.unite(this.objectBounds(item)):this.objectBounds(item),null);}
   tool:ToolName='select';
   fillColor='#FF0000';
-  laserJobSettings:LaserJobSettings=defaultLaserJobSettings();
-  setLaserJobSettings(patch:Partial<LaserJobSettings>):void {
-    const next=validateLaserJobSettings({...this.laserJobSettings,...patch});
-    if(JSON.stringify(next)===JSON.stringify(this.laserJobSettings))return;
-    const before=this.snapshot();this.laserJobSettings=next;this.commit(before);
-  }
   noFill=true;
   snappingEnabled=true;
   snapToGridEnabled=true;
@@ -177,11 +170,11 @@ export class CADEditor {
     paper.view.zoom=BASE_ZOOM;this.changed();
   }
   snapshot():DocumentSnapshot {
-    return {activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})}))),laserJob:{...this.laserJobSettings}};
+    return {activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
   }
   newDocument():void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
-    this.loadDocument({activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[],laserJob:defaultLaserJobSettings()},{zoom:BASE_ZOOM,center:[100,70]});
+    this.loadDocument({activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
   }
   loadDocument(snapshot:DocumentSnapshot,view:{zoom:number;center:[number,number]}):void {
     this.cancel();const before=this.snapshot(),oldZoom=paper.view.zoom,oldCenter=paper.view.center.clone();
@@ -191,7 +184,6 @@ export class CADEditor {
     }catch(error){this.restore(before);paper.view.zoom=oldZoom;paper.view.center=oldCenter;this.changed();throw error;}
   }
   private restore(snapshot:DocumentSnapshot):void {
-    this.laserJobSettings=validateLaserJobSettings(snapshot.laserJob??defaultLaserJobSettings());
     this.offsets.cancel();this.patterns.cancel();this.dimensions.cancel();this.nodes.clear();
     this.selected=null; this.artwork.removeChildren();this.cutlines.removeChildren();
     this.extraLayers.forEach(layer=>layer.remove());this.extraLayers=[];
@@ -212,7 +204,7 @@ export class CADEditor {
   }
   private commit(before:DocumentSnapshot):void {
     const after=this.snapshot();
-    if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers || JSON.stringify(before.laserJob)!==JSON.stringify(after.laserJob)) {
+    if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers) {
       this.undoStack.push({before,after}); if(this.undoStack.length>100)this.undoStack.shift();this.redoStack=[];
     }
     this.changed();this.onDocumentChange();

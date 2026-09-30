@@ -1,17 +1,6 @@
 import {test,expect,Page} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 const DEV='http://127.0.0.1:5174';
-test('preflight handoff replaces old DXF layer choices while retaining origin and tolerance',async({page})=>{
- await fixture(page);await open(page,'DXF');const dialog=page.getByRole('dialog',{name:'Export',exact:true});
- await dialog.getByText('Advanced',{exact:true}).click();await dialog.getByLabel('Artwork',{exact:true}).check();
- await dialog.getByLabel('Move to origin').check();await dialog.getByLabel('Curve tolerance (mm)').fill('0.08');await dialog.getByLabel('Curve tolerance (mm)').dispatchEvent('change');
- await page.keyboard.press('Escape');await page.getByRole('button',{name:'Laser preflight',exact:true}).click();
- await page.getByRole('dialog',{name:'Laser preflight'}).getByRole('button',{name:'Continue to DXF export'}).click();
- await expect(dialog).toBeVisible();await expect(dialog.getByLabel('Compatibility',{exact:true})).toHaveValue('laser');
- await expect(dialog.getByRole('tab',{name:'DXF',exact:true})).toBeFocused();
- await dialog.getByText('Advanced',{exact:true}).click();await expect(dialog.getByLabel('Artwork',{exact:true})).not.toBeChecked();
- await expect(dialog.getByLabel('Move to origin')).toBeChecked();await expect(dialog.getByLabel('Curve tolerance (mm)')).toHaveValue('0.08');
-});
 async function fixture(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('artwork');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[20,30,50,25],strokeColor:'#ffffff',strokeWidth:1.5,strokeScaling:false}),'Artwork');e.setActiveLayer('cutline');e.addShape(new p.Path.Circle({insert:false,center:[120,80],radius:20}),'Cut');});}
 async function open(page:Page,format='SVG'){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export…',exact:true}).click();await page.getByRole('tab',{name:format==='Laser-compatible DXF'?'DXF':format,exact:true}).click();if(format==='Laser-compatible DXF')await page.getByLabel('Compatibility',{exact:true}).selectOption('laser');}
 test('Unified export uses filename, selection and SVG margins without altering document',async({page})=>{

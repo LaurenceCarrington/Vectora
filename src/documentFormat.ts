@@ -6,7 +6,6 @@ import {pathsOf} from './geometry';
 import {loadTextFont,TEXT_FONTS} from './text';
 import {DIMENSION_TOOLS} from './dimensions';
 import {MAX_COORDINATE_MM,MIN_ZOOM,MAX_ZOOM} from './units';
-import {defaultLaserJobSettings,validateLaserJobSettings} from './laserJob';
 
 export const MAX_DOCUMENT_BYTES=50*1024*1024;
 type JsonObject=Record<string,any>;
@@ -21,7 +20,7 @@ const id=(value:unknown):string=>typeof value==='string'&&/^[\w-]{1,100}$/.test(
 const colour=(value:unknown):string|null=>value===null?null:typeof value==='string'&&/^(#[\da-f]{3,8}|rgba?\([\d.,\s]+\))$/i.test(value)?value:fail();
 
 export function documentKey(editor:CADEditor):string {
- const {artwork,cutlines,layers,laserJob}=editor.snapshot();return JSON.stringify({artwork,cutlines,layers,laserJob});
+ const {artwork,cutlines,layers}=editor.snapshot();return JSON.stringify({artwork,cutlines,layers});
 }
 export function encodeDocument(editor:CADEditor):string {
  const layers=editor.documentLayers.map(layer=>({id:layer.data.documentId,name:layer.name,role:layer.data.objectRole,visible:layer.visible,locked:layer.locked,objects:layer.children.map(child=>{
@@ -30,7 +29,7 @@ export function encodeDocument(editor:CADEditor):string {
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
   }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:item.fillColor?.toCSS(true)??null,stroke:item.strokeColor?.toCSS(true)??null,width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
  })}));
- return JSON.stringify({format:'vectora',version:1,units:'mm',activeLayerId:editor.activeLayerId,layers,laserJob:editor.laserJobSettings,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
+ return JSON.stringify({format:'vectora',version:1,units:'mm',activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
 }
 
 function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string>):JsonObject {
@@ -70,7 +69,6 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  let file:JsonObject;try{file=record(JSON.parse(contents));}catch{throw new Error('Choose a valid .vectora document.');}
  if(file.format!=='vectora'||file.units!=='mm')fail();
  if(file.version!==1)throw new Error('This Vectora document version is not supported.');
- const laserJob=file.laserJob===undefined?defaultLaserJobSettings():validateLaserJobSettings(file.laserJob);
  if(!Array.isArray(file.layers)||file.layers.length>1000)fail();
  const view=record(file.view),zoom=number(view.zoom,MAX_ZOOM);if(zoom<MIN_ZOOM)fail();const center=tuple(view.center,2) as [number,number];
  const layerIds=new Set<string>(),objectIds=new Set<string>(),fonts=new Set<string>();let objectCount=0,segmentCount=0;
@@ -109,5 +107,5 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  for(const role of ['artwork','cutline'])if(!layerIds.has(role))states.push({id:role,name:role==='artwork'?'Artwork':'Cut Path',role,visible:false,locked:false,deleted:true});
  await Promise.all([...fonts].map(loadTextFont));
  const activeLayerId=file.activeLayerId===undefined?'artwork':id(file.activeLayerId);
- return {snapshot:{activeLayerId:layerIds.has(activeLayerId)?activeLayerId:'artwork',artwork,cutlines,layers:JSON.stringify(states),selected:null,selectedIds:[],laserJob},view:{zoom,center}};
+ return {snapshot:{activeLayerId:layerIds.has(activeLayerId)?activeLayerId:'artwork',artwork,cutlines,layers:JSON.stringify(states),selected:null,selectedIds:[]},view:{zoom,center}};
 }

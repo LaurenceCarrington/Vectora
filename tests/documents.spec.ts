@@ -1,30 +1,5 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-
-test('laser settings round-trip, recover and validate old and malformed documents',async({page})=>{
- await page.goto('http://127.0.0.1:5174');
- const result=await page.evaluate(async()=>{
-  const editor=(window as any).__vectora;
-  const {encodeDocument,decodeDocument}=await import('/src/documentFormat.ts' as string);
-  editor.setLaserJobSettings({bedWidthMM:650,bedHeightMM:450,kerfMM:0.12,order:'cut-engrave'});
-  const saved=JSON.parse(encodeDocument(editor));
-  const loaded=await decodeDocument(JSON.stringify(saved));
-  const legacy=structuredClone(saved);delete legacy.laserJob;
-  const old=await decodeDocument(JSON.stringify(legacy));
-  let rejected=0;
-  for(const bad of [{...saved,laserJob:{...saved.laserJob,kerfMM:-1}},{...saved,laserJob:{...saved.laserJob,order:'unknown'}},{...saved,laserJob:{...saved.laserJob,bedWidthMM:Infinity}}]){
-   try{await decodeDocument(JSON.stringify(bad));}catch{rejected++;}
-  }
-  return {saved:saved.laserJob,loaded:loaded.snapshot.laserJob,legacy:old.snapshot.laserJob,rejected,live:editor.laserJobSettings};
- });
- expect(result.saved).toEqual({bedWidthMM:650,bedHeightMM:450,kerfMM:0.12,order:'cut-engrave'});
- expect(result.loaded).toEqual(result.saved);
- expect(result.legacy).toEqual({bedWidthMM:300,bedHeightMM:200,kerfMM:0,order:'engrave-cut'});
- expect(result.rejected).toBe(3);
- expect(result.live).toEqual(result.saved);
- page.once('dialog',dialog=>dialog.accept());await page.reload();
- await expect.poll(()=>page.evaluate(()=>(window as any).__vectora.laserJobSettings)).toEqual(result.saved);
-});
 const DEV='http://127.0.0.1:5174';
 async function shape(page:any){await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,30,40],strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false}),'Rectangle');});}
 async function fileAction(page:any,name:string){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name,exact:true}).click();}
