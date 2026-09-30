@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 test('Notifications retain every message behind the badge without taking focus',async({page})=>{
  await page.goto(DEV);const bell=page.getByRole('button',{name:'Notifications',exact:true}),panel=page.locator('#notifications-panel'),cards=page.locator('#toast-stack .toast-card');

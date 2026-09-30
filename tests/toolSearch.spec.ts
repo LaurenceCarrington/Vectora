@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function open(page:Page,query=''){
  await page.getByRole('button',{name:'Search tools',exact:true}).click();

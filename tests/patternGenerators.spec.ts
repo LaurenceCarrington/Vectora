@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function open(page:Page,family:string){await page.locator('[data-generator-trigger]').click();await page.locator(`[data-generator="${family}"]`).click();const d=page.locator('#generator-dialog');await expect(d).toBeVisible();return d;}
 // These tests catch leaking cell cut-outs, non-repeatable seeds, incorrect curve periods,

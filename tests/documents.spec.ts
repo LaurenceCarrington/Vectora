@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 import {readFile} from 'node:fs/promises';
 const DEV='http://127.0.0.1:5174';
 async function shape(page:any){await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,30,40],strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false}),'Rectangle');});}
@@ -33,7 +33,7 @@ test('Fallback saves download the active document and Open adds a tab without re
  const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
  await fileAction(page,'New document');await expect(page.locator('#document-dialog')).toBeHidden();await expect(page.locator('.document-tab')).toHaveCount(2);
  await page.getByRole('tab',{name:'Untitled.vectora, unsaved changes',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
- await openFile(page,{name:'Design one.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});
+ await openFile(page,{name:'Design one.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});await expect(page.locator('[data-document-name]')).toHaveText('Design one.vectora');
  await expect.poll(()=>page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);expect(await page.evaluate(()=>(window as any).__vectora.canUndo)).toBe(false);await expect(page.locator('.document-tab')).toHaveCount(3);
  await openFile(page,{name:'broken.vectora',mimeType:'application/json',buffer:Buffer.from('{broken')});await expect(page.locator('.toast-error')).toContainText('valid .vectora');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);await expect(page.locator('.document-tab')).toHaveCount(3);
 });

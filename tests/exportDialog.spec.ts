@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 import {readFileSync} from 'node:fs';
 const DEV='http://127.0.0.1:5174';
 async function fixture(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('artwork');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[20,30,50,25],strokeColor:'#ffffff',strokeWidth:1.5,strokeScaling:false}),'Artwork');e.setActiveLayer('cutline');e.addShape(new p.Path.Circle({insert:false,center:[120,80],radius:20}),'Cut');});}

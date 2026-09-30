@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 import {readFile} from 'node:fs/promises';
 const DEV='http://127.0.0.1:5174';
 

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 test('Stars preserve alternating radii, snapping, live point count, history and document/export geometry',async({page})=>{
  await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');

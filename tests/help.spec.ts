@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function open(page:Page){await page.getByRole('button',{name:'Help',exact:true}).click();return page.getByRole('dialog',{name:'Help & learning'});}
 

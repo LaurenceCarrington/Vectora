@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function setup(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('cutline');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[20,20,40,30]}),'Panel');});}
 const snapshot=(page:Page)=>page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()));

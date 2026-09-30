@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 import {readFile} from 'node:fs/promises';
 import {inflateSync} from 'node:zlib';
 const DEV='http://127.0.0.1:5174';

@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function choose(page:Page){await page.getByRole('button',{name:'Shapes',exact:true}).click();const heart=page.locator('#primary-shapes-menu [data-shape="Heart"]');await expect(heart).toHaveCount(1);await heart.click();}
 async function draw(page:Page,from:number[],to:number[],shift=false){const [a,b]=await page.evaluate(points=>{const p=(window as any).__paper;return points.map(point=>{const q=p.view.projectToView(new p.Point(point));return {x:q.x,y:q.y};});},[from,to]);await page.mouse.move(a.x,a.y);await page.mouse.down();if(shift)await page.keyboard.down('Shift');await page.mouse.move(b.x,b.y,{steps:4});await page.mouse.up();if(shift)await page.keyboard.up('Shift');}

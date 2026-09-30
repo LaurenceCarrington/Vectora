@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 
 test('Endpoint arc keeps its endpoints at minor, semicircle and major sweeps in both directions',async({page})=>{

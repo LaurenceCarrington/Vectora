@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function setup(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;for(const [i,r] of [[20,20,20,20],[30,30,20,20],[60,50,20,20]].entries())e.addShape(new p.Path.Rectangle({insert:false,rectangle:r,strokeColor:'white'}),'Shape '+i);e.select(e.objects[0],true);e.select(e.objects[1],true);});}
 

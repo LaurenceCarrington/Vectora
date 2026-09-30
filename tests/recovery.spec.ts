@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function ready(page:Page){await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');}
 async function count(page:Page){return page.evaluate(()=>(window as any).__vectora.objects.length);}
@@ -54,7 +54,7 @@ test('Recovery retries an unchanged document after both storage writes fail',asy
   Storage.prototype.setItem=function(key,value){if(key==='vectora.recovery.pending')throw new DOMException('Quota exceeded','QuotaExceededError');return setItem.call(this,key,value);};
   (window as any).recoveryAttempts=0;
   IDBObjectStore.prototype.put=function(value,key){
-   if(this.name==='documents'&&key==='current'&&++(window as any).recoveryAttempts===1)throw new DOMException('Temporary failure','UnknownError');
+   if(this.name==='documents'&&key==='current'&&JSON.parse(value.data.contents).layers.some((layer:any)=>layer.objects.length)&&++(window as any).recoveryAttempts===1)throw new DOMException('Temporary failure','UnknownError');
    return put.call(this,value,key!);
   };
  });

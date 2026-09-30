@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 const types=['square','isometric','polar','hexagonal','triangular','dot'];
 async function drag(page:any,from:number[],to:number[]){

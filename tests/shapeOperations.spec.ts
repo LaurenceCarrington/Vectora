@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function setup(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.newDocument();e.setActiveLayer('cutline');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[20,20,20,20]}),'Base');const base=e.selected;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[30,20,20,20]}),'Cutter');e.select(base,true);});}
 async function apply(page:Page,operation='Weld'){await page.getByRole('button',{name:'Shape operations',exact:true}).click();const button=page.locator('#selection-menu').getByRole('menuitem',{name:operation,exact:true});await expect(button).toHaveCount(1);await button.click();await expect(page.locator('dialog[open]')).toHaveCount(0);}

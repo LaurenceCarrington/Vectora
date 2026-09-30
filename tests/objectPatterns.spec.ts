@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 const snapshot=(page:Page)=>page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()));
 async function setup(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Circle({insert:false,center:[40,40],radius:5,strokeColor:'white',strokeWidth:1.5,strokeScaling:false}),'Hole');});}

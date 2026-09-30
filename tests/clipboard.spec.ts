@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function ready(page:Page){await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');}
 async function count(page:Page){return page.evaluate(()=>(window as any).__vectora.objects.length);}

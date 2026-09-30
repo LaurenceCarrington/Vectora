@@ -1,5 +1,5 @@
 import {dragSelectionToLayer} from './layerHelpers';
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function seed(page:any){await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[40,40,30,25],strokeColor:'#383838',strokeWidth:1.5}),'Rectangle');});}
 async function open(page:any){await page.getByRole('button',{name:'Layers',exact:true}).click();}

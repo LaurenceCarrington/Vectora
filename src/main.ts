@@ -189,6 +189,7 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
   if(button.dataset.lineTool){const tool=button.dataset.lineTool;if(tool==='line'||tool==='polyline'||tool==='freehand')button.onclick=()=>{editor.setTool(tool);closeMenus();$('#cad-canvas').focus();};}
   if(button.dataset.fileAction){const action=button.dataset.fileAction;
     if(action==='New document'){button.tabIndex=0;button.onclick=()=>{closeMenus();void documentFiles.newDocument();};}
+    else if(action==='Canvas size'){button.tabIndex=0;button.onclick=()=>{closeMenus();void documentFiles.editCanvasSize();};}
     else if(action==='Save changes'||action==='Save as…'||action==='Open file…'){button.tabIndex=0;button.onclick=()=>{closeMenus();void(action==='Open file…'?documentFiles.open():documentFiles.save(action==='Save as…'));};}
     else if(action==='Export…'){button.tabIndex=0;button.onclick=()=>exportDialog.open();}else disable(button);}
 }

@@ -1,3 +1,5 @@
+import {CanvasGuide} from './canvasGuide';
+import {validateCanvasSize,type CanvasSize} from './canvasSize';
 import {applyFillPaint,refreshFillPaint,validateFillPaint,paintColour,type FillPaint} from './fillPaint';
 import type { GridType } from './gridGeometry';
 import { applyArtworkTheme, artworkSnapshot, artworkColor } from './shapeStyles';
@@ -115,6 +117,8 @@ export class CADEditor {
   private observer:ResizeObserver;
   private selectionColor:string;
   private selectionArea:string;
+  canvasSize:CanvasSize={kind:'infinite'};
+  private canvasGuide:CanvasGuide;
   private readonly deletePreviewColor:string;
   private readonly rotationHandleOffset:number;
   private readonly rotationHandleRadius:number;
@@ -126,7 +130,7 @@ export class CADEditor {
     this.deletePreviewColor=tokens.getPropertyValue('--color-delete-preview').trim();
     this.rotationHandleOffset=parseFloat(tokens.getPropertyValue('--rotation-handle-offset'));
     this.rotationHandleRadius=parseFloat(tokens.getPropertyValue('--rotation-handle-radius'));
-    this.grid=new MillimetreGrid();
+    this.grid=new MillimetreGrid();this.canvasGuide=new CanvasGuide();
     this.artwork=new paper.Layer({name:'Artwork',data:{role:'artwork-layer',documentId:'artwork',objectRole:'artwork'}});
     this.cutlines=new paper.Layer({name:'Cut Path',data:{role:'cutline-layer',documentId:'cutline',objectRole:'cutline'}});
     this.overlays=new paper.Layer({name:'Editor overlays',data:{role:'overlay'}});
@@ -177,11 +181,26 @@ export class CADEditor {
     paper.view.zoom=BASE_ZOOM;this.changed();
   }
   snapshot():DocumentSnapshot {
-    return {activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
+    return {canvasSize:structuredClone(this.canvasSize),activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
   }
-  newDocument():void {
+  newDocument(canvasSize:CanvasSize={kind:'infinite'}):void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
-    this.loadDocument({activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
+    this.loadDocument({canvasSize:validateCanvasSize(canvasSize),activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
+    if(this.canvasSize.kind==='fixed')this.fitCanvas();
+  }
+  setCanvasSize(value:CanvasSize):void {
+    const size=validateCanvasSize(value);this.cancel();const before=this.snapshot();this.canvasSize=size;
+    if(size.kind==='fixed')this.fitCanvas();this.commit(before);
+  }
+  private fitCanvas():void {
+    if(this.canvasSize.kind!=='fixed')return;
+    const bounds=this.canvas.getBoundingClientRect(),r=(selector:string)=>document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+    const left=(r('.ruler-left')?.right??r('.left-toolbar')?.right??bounds.left)-bounds.left;
+    const right=(r('.layers-panel:not([hidden])')?.left??r('.right-toolbar')?.left??bounds.right)-bounds.left;
+    const top=(r('.document-tabs')?.bottom??r('.top-toolbar')?.bottom??bounds.top)-bounds.top;
+    const bottom=(r('.ruler-bottom')?.top??r('.workspace-footer')?.top??bounds.bottom)-bounds.top;
+    const {width,height}=this.canvasSize,zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,(Math.max(100,right-left)-64)/width,(Math.max(100,bottom-top)-64)/height));
+    paper.view.zoom=zoom;paper.view.center=new paper.Point(width/2+(paper.view.viewSize.width/2-(left+right)/2)/zoom,height/2+(paper.view.viewSize.height/2-(top+bottom)/2)/zoom);this.changed();
   }
   captureSession():EditorSession {
     return {snapshot:this.snapshot(),view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]},undo:[...this.undoStack],redo:[...this.redoStack],tool:this.tool};
@@ -199,6 +218,7 @@ export class CADEditor {
     }catch(error){this.restore(before);paper.view.zoom=oldZoom;paper.view.center=oldCenter;this.changed();throw error;}
   }
   private restore(snapshot:DocumentSnapshot):void {
+    this.canvasSize=validateCanvasSize(snapshot.canvasSize);
     this.offsets.cancel();this.patterns.cancel();this.dimensions.cancel();this.nodes.clear();
     this.selected=null; this.artwork.removeChildren();this.cutlines.removeChildren();
     this.extraLayers.forEach(layer=>layer.remove());this.extraLayers=[];
@@ -219,7 +239,7 @@ export class CADEditor {
   }
   private commit(before:DocumentSnapshot):void {
     const after=this.snapshot();
-    if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers) {
+    if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers || JSON.stringify(before.canvasSize)!==JSON.stringify(after.canvasSize)) {
       this.undoStack.push({before,after}); if(this.undoStack.length>100)this.undoStack.shift();this.redoStack=[];
     }
     this.changed();this.onDocumentChange();
@@ -421,7 +441,7 @@ export class CADEditor {
     const tokens=getComputedStyle(document.documentElement);
     this.selectionColor=tokens.getPropertyValue('--color-selection').trim();
     this.selectionArea=tokens.getPropertyValue('--color-selection-area').trim();
-    this.grid.refreshColors();this.changed();
+    this.grid.refreshColors();this.canvasGuide.refreshColors();this.changed();
   }
   setGridType(type:GridType):void {this.cancel();this.grid.setType(type);this.changed();}
   setGridAngle(degrees:number):void {this.cancel();this.grid.setAngle(degrees);this.changed();}
@@ -734,7 +754,7 @@ export class CADEditor {
     // Overlay and panel controls read the same combined bounds many times per frame.
     // Cache only inside this refresh so edits outside it always see fresh geometry.
     const previous=this.selectionBoundsCache;this.selectionBoundsCache=undefined;this.selectionBoundsCache=this.selectionBounds;
-    try{this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
+    try{this.grid.update(paper.view);this.canvasGuide.update(this.canvasSize);this.drawOverlay();this.onChange();paper.view.update();}
     finally{this.selectionBoundsCache=previous;}
   }
   private drawOverlay():void {

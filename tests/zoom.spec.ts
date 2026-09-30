@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 
 test('Zoom percentage resets to 100% with mouse and keyboard without changing artwork or view centre',async({page})=>{
   await page.goto('http://127.0.0.1:5174');

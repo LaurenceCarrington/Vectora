@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function point(page:any,x:number,y:number){return page.evaluate(([x,y]:number[])=>{const p=(window as any).__paper.view.projectToView(new (window as any).__paper.Point(x,y));return {x:p.x,y:p.y};},[x,y]);}
 async function click(page:any,x:number,y:number){const p=await point(page,x,y);await page.mouse.click(p.x,p.y);}

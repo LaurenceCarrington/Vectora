@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function ready(page:Page){await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');await expect(page.getByRole('tab',{name:/Untitled.vectora/})).toBeVisible();}
 async function shape(page:Page,name='Rectangle'){await page.evaluate(name=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,30,40]}),name);},name);}

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 test('Large drawings avoid hidden layer rows and idle pointer refreshes',async({page})=>{
  await page.goto(DEV);await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');

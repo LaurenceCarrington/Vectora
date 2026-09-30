@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 import {writeFileSync} from 'node:fs';
 const DEV='http://127.0.0.1:5174';
 function records(text:string){const lines=text.trimEnd().split(/\r?\n/),out:{kind:string;tags:[number,string][]}[]=[];for(let i=0;i<lines.length;i+=2){const code=Number(lines[i]),value=lines[i+1];if(code===0)out.push({kind:value,tags:[]});else out.at(-1)?.tags.push([code,value]);}return out;}

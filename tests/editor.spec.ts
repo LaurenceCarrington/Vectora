@@ -1,5 +1,5 @@
 import {dragSelectionToLayer} from './layerHelpers';
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 async function openDXFSettings(page:Page,artwork=false){
  if(!await page.locator('#export-dialog').isVisible()){await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export…',exact:true}).click();}
  await page.getByRole('tab',{name:'DXF',exact:true}).click();

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 const DEV='http://127.0.0.1:5174';
 
 test('millimetre rulers track document coordinates through pan, zoom and resize',async({page})=>{

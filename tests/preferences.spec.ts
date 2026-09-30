@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 const DEV='http://127.0.0.1:5174';
 
 test('Preferences matches the reference, navigates accessibly and keeps placeholders inert',async({page})=>{

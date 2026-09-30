@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function ready(page:Page){await page.goto(DEV);await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');}
 async function draw(page:Page){return page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,40,30],strokeColor:e.drawingColor}),'Box');e.select(null);});}

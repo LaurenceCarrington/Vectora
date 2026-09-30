@@ -1,4 +1,4 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function setup(page:Page,points:number[][],closed=false){await page.goto(DEV);await page.evaluate(({points,closed})=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path({insert:false,segments:points,closed,strokeColor:'white',strokeWidth:1.5,strokeScaling:false}),'Corners');}, {points,closed});await page.getByRole('button',{name:'Node editing',exact:true}).click();}
 async function at(page:Page,index:number){return page.evaluate(i=>{const e=(window as any).__vectora,p=(window as any).__paper,path=e.objects[0],q=p.view.projectToView(path.localToGlobal(path.segments[i].point));return {x:q.x,y:q.y};},index);}

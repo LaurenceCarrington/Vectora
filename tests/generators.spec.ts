@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function open(page:any,family='gear') {await page.locator('[data-generator-trigger]').click();await page.locator(`[data-generator="${family}"]`).click();const dialog=page.locator('#generator-dialog');await expect(dialog).toBeVisible();return dialog;}
 

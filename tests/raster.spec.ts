@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function open(page:any){await page.getByRole('button',{name:'Images',exact:true}).click();await page.getByRole('menuitem',{name:'Raster to vector',exact:true}).click();await expect(page.getByRole('dialog',{name:'Raster to vector',exact:true})).toBeVisible();}
 async function upload(page:any,kind='ring'){

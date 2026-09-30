@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 
 test('Font library loads every local face and Properties switches real text between all families',async({page})=>{

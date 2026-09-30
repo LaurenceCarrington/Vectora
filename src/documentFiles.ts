@@ -1,3 +1,5 @@
+import {NewDocumentDialog} from './newDocumentDialog';
+import type {CanvasSize} from './canvasSize';
 import paper from 'paper';
 import {loadTextFont} from './text';
 import {DocumentRecovery,type RecoveryData} from './documentRecovery';
@@ -33,6 +35,7 @@ export class DocumentFiles {
  private tabs:DocumentTab[]=[];
  private activeId:string=crypto.randomUUID();
  private tabBar:DocumentTabs;
+ private setup=new NewDocumentDialog();
 
  constructor(private editor:CADEditor,private dialog:HTMLDialogElement,private input:HTMLInputElement,private prepare:()=>boolean,private notify:(message:string,kind:AlertKind)=>void){
   this.savedKey=documentKey(editor);
@@ -88,10 +91,10 @@ export class DocumentFiles {
   if(id===this.activeId)this.activate(this.tabs[index+1]??this.tabs[index-1]);
   this.tabs.splice(index,1);this.renderTabs();
  });}
- private createBlank(append=true):void {
+ private createBlank(append=true,canvasSize:CanvasSize={kind:'infinite'}):void {
   this.restoring=true;
   try{
-   this.editor.newDocument();this.handle=null;this.renamed=false;this.savedKey=documentKey(this.editor);
+   this.editor.newDocument(canvasSize);this.handle=null;this.renamed=false;this.savedKey=documentKey(this.editor);
    let number=1,name='Untitled.vectora';while(append&&this.tabs.some(tab=>tab.filename===name))name=`Untitled ${++number}.vectora`;
    this.filename=name;this.activeId=crypto.randomUUID();
    const tab:DocumentTab={id:this.activeId,filename:name,handle:null,savedKey:this.savedKey,renamed:false,dirty:false,state:this.editor.captureSession(),contents:encodeDocument(this.editor)};
@@ -101,7 +104,7 @@ export class DocumentFiles {
  }
  async restoreRecovery(draft:()=>RecoveryData['draft']):Promise<void>{
   this.draft=draft;
-  const workspace=document.querySelector<HTMLElement>('#workspace')!;workspace.inert=true;
+  const workspace=document.querySelector<HTMLElement>('#workspace')!;workspace.inert=true;let restored=false;
   try{
    const data=await this.recovery.read();
    if(data&&!this.changedDuringStartup){
@@ -117,7 +120,7 @@ export class DocumentFiles {
     if(!recovered.length)throw new Error('No valid document tabs were found.');
     if(!this.changedDuringStartup){
      const active=recovered.find(tab=>tab.id===data.activeTabId)??recovered[0];
-     this.activate(active);this.tabs=recovered;this.renderTabs();this.restoring=true;
+     this.activate(active);this.tabs=recovered;restored=true;this.renderTabs();this.restoring=true;
      const pending=!data.activeTabId||active.id===data.activeTabId?data.draft:undefined;
      if(pending){
       if(typeof pending.content!=='string'||pending.content.length>500)throw new Error('The recovered text draft is invalid.');
@@ -135,7 +138,11 @@ export class DocumentFiles {
     }
    }
   }catch(error){this.notify(`Could not fully restore the browser copy. ${error instanceof Error?error.message:String(error)}`,'warning');}
-  finally{this.restoring=false;this.recoveryReady=true;workspace.inert=false;if(this.changedDuringStartup)this.cache();}
+  finally{
+   this.restoring=false;
+   if(!restored&&!this.changedDuringStartup){const size=await this.setup.open(undefined,'startup');this.createBlank(false,size??{kind:'infinite'});this.cachePending=true;}
+   this.recoveryReady=true;workspace.inert=false;if(this.changedDuringStartup||!restored||this.cachePending)this.cache();if(!restored)this.editor.canvas.focus({preventScroll:true});
+  }
  }
  private cache():void {
   if(this.restoring)return;
@@ -188,7 +195,12 @@ export class DocumentFiles {
  });}
  newDocument():Promise<void>{return this.run(async()=>{
   if(!this.prepareNavigation())return;
-  this.rememberActive();this.createBlank();
+  const size=await this.setup.open();if(!size)return;
+  this.rememberActive();this.createBlank(true,size);
+ });}
+ editCanvasSize():Promise<void>{return this.run(async()=>{
+  if(!this.prepareNavigation())return;
+  const size=await this.setup.open(this.editor.canvasSize,'edit');if(size)this.editor.setCanvasSize(size);
  });}
  open():Promise<void>{
   if(this.busy||!this.prepare())return Promise.resolve();

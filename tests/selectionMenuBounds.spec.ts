@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 
 test('Selection menu and grip stay reachable at every canvas edge and after layout changes',async({page})=>{
