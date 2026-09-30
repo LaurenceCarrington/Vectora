@@ -17,7 +17,7 @@ test('Layer rows direct all pointer drawing tools into the chosen layer with mat
  await page.screenshot({path:'test-results/active-drawing-layer.png'});
 });
 
-test('Additional layers receive text, filled engraving, traced vectors and dimensions, with history and saved active layer',async({page})=>{
+test('Additional layers receive drawing and tracing while Fill targets Artwork, with history and saved active layer',async({page})=>{
  await page.goto(DEV);
  const result=await page.evaluate(async()=>{
   const e=(window as any).__vectora,p=(window as any).__paper,{loadTextFont}=await import('/src/text.ts'),{createDimension}=await import('/src/dimensions.ts'),{encodeDocument,decodeDocument}=await import('/src/documentFormat.ts');
@@ -32,7 +32,7 @@ test('Additional layers receive text, filled engraving, traced vectors and dimen
   const decoded=await decodeDocument(encodeDocument(e));e.newDocument();const newActive=e.activeLayerId;e.loadDocument(decoded.snapshot,decoded.view);
   return {id,records,filled,count,undone,redone,newActive,loaded:e.activeLayerId};
  });
- expect(result.records).toHaveLength(5);for(const item of result.records)expect(item).toEqual({layer:result.id,role:'engrave',colour:'#0000ff'});
+ expect(result.records).toHaveLength(5);for(const [index,item] of result.records.entries())expect(item).toEqual(index===2?{layer:'artwork',role:'artwork',colour:'#ff0000'}:{layer:result.id,role:'engrave',colour:'#0000ff'});
  expect(result.filled).toBe(true);expect(result.undone).toEqual({count:result.count-1,active:result.id});expect(result.redone).toEqual({count:result.count,active:result.id});expect(result.newActive).toBe('artwork');expect(result.loaded).toBe(result.id);
 });
 

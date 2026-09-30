@@ -348,7 +348,8 @@ export class CADEditor {
   }
   fillAt(point:paper.Point):void {
     if(this.noFill){this.clearFillAt(point);return;}
-    const layer=this.drawingLayer();
+    const layer=this.artwork;
+    if(layer.data.deleted||!layer.visible||layer.locked)throw new Error('Show and unlock Artwork before filling.');
     const region=regionAt(this.objects,point);
     if(!region){this.onMessage('Click inside an enclosed area. Open gaps cannot be filled.','information');return;}
     const before=this.snapshot();
@@ -361,7 +362,9 @@ export class CADEditor {
       const index=painted.length?painted[painted.length-1].index+1:0;
       layer.insertChild(index,region);this.selected=region;
     }
-    if(this.selected){if(this.selected.data.role==='artwork')applyFillPaint(this.selected,this.fillPaint);else this.selected.opacity=this.fillOpacity;}
+    if(this.selected)applyFillPaint(this.selected,this.fillPaint);
+    // Filling selects the result without changing the layer used by drawing tools.
+    this.layerSelectionSignature=this.selectionSignature();
     this.commit(before);
   }
   private clearFillAt(point:paper.Point):void {
@@ -782,7 +785,7 @@ export class CADEditor {
   private pointerDown=(event:PointerEvent):void=>{
     if(this.interaction || ![0,1].includes(event.button))return;
     event.preventDefault();this.canvas.focus({preventScroll:true});
-    if(event.button===0&&!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&!this.isDeleteTool){try{this.drawingLayer();}catch(error){this.onMessage((error as Error).message,'warning');return;}}
+    if(event.button===0&&!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&this.tool!=='fill'&&!this.isDeleteTool){try{this.drawingLayer();}catch(error){this.onMessage((error as Error).message,'warning');return;}}
     const screen=this.screen(event),point=paper.view.viewToProject(screen);
     const base={id:event.pointerId,start:point,screen,center:paper.view.center.clone(),before:this.snapshot(),snapSpacing:this.gridSnappingActive?this.grid.spacingMM:null};
     if(event.button===1 || this.space){this.activeObjectSnap=null;this.clearDeletePreview();this.interaction={...base,kind:'pan'};}

@@ -245,7 +245,7 @@ function update():void {
   else if(lastFillPaint!==JSON.stringify(editor.fillPaint))colourPanel.setAppearance(editor.fillPaint);
   lastFillPaint=JSON.stringify(editor.fillPaint);
   colourPanel.setNoFill(editor.noFill);
-  colourPanel.hint(colourItems.length?`Colours ${colourItems.length} selected Artwork ${colourItems.length===1?'object':'objects'} and sets the Fill tool colour.`:'Sets the Fill tool colour. Cut, Engrave and Construction keep their layer colours.');
+  colourPanel.hint(colourItems.length?`Colours ${colourItems.length} selected Artwork ${colourItems.length===1?'object':'objects'} and sets the Fill tool colour.`:'New fills always go into Artwork. Cut, Engrave and Construction keep their layer colours.');
   for(const button of arrangementButtons){
     const action=button.dataset.arrange as ArrangementAction,distribute=action.startsWith('distribute-');
     button.disabled=!editor.canArrangeSelection(action);
