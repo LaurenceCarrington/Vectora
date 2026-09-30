@@ -1048,6 +1048,8 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .offset-dialog { position:fixed; inset:auto; width:300px; margin:0; padding:16px; overflow:auto; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); }
 .offset-dialog::backdrop { background:transparent; }
 .offset-dialog h2 { margin:0 0 12px; font-size:16px; line-height:22px; }
+.offset-source { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; color:var(--menu-muted); font-size:12px; }
+.offset-source .button { flex:none; min-height:32px; padding:7px 10px; white-space:nowrap; }
 .offset-dialog .pattern-actions { position:sticky; bottom:-16px; margin-bottom:-16px; padding:12px 0 16px; background:var(--menu-background); }
 .offset-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
 .offset-dialog select { width:100%; min-width:0; height:36px; padding:0 8px; border:1px solid var(--menu-border); border-radius:var(--radius-sm); background:var(--menu-background); color:var(--menu-foreground); font:inherit; font-size:13px; }

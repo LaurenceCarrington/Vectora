@@ -78,12 +78,16 @@ for(const [name,url] of [['development',DEV],['production',PREVIEW]])test(`${nam
   for(const [field,value] of [['x','10'],['y','20'],['width','100'],['height','50']]){await page.locator('#field-'+field).fill(value);await page.locator('#field-'+field).press('Tab');}
   await expect(page.locator('#field-width')).toHaveValue('100');
   await expect(page.locator('#properties-panel #create-outline')).toHaveCount(0);
-  await expect(page.locator('#selection-menu #create-outline')).toBeVisible();
-  await page.locator('#create-outline').click();await expect(page.locator('#selection-name')).toContainText('Sticker outline');
-  expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(106,1);
-  await page.locator('[aria-label="Undo"]').click();await expect(page.locator('#selection-name')).toContainText('Rectangle');
-  await page.locator('[aria-label="Redo"]').click();await expect(page.locator('#selection-name')).toContainText('Sticker outline');
-  const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
+  await expect(page.locator('#selection-menu #create-outline')).toHaveCount(0);
+  if(name==='development'){
+    await page.evaluate(()=>(window as any).__vectora.outline(3));await expect(page.locator('#selection-name')).toContainText('Sticker outline');
+    expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(106,1);
+    await page.locator('[aria-label="Undo"]').click();await expect(page.locator('#selection-name')).toContainText('Rectangle');
+    await page.locator('[aria-label="Redo"]').click();await expect(page.locator('#selection-name')).toContainText('Sticker outline');
+    const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
+  }else{
+    await openDXFSettings(page,true);const download=page.waitForEvent('download');await page.locator('#export-dialog [data-export-submit]').click();expect((await download).suggestedFilename()).toBe('Untitled.dxf');
+  }
   await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('Escape');
   await page.mouse.move(400,350);await page.mouse.wheel(0,-200);
   await page.keyboard.down('Space');await page.mouse.down();await page.mouse.move(450,400);await page.mouse.up();await page.keyboard.up('Space');
@@ -258,7 +262,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await page.locator('[aria-controls="primary-layers-panel"]').click();
   const reference=await panelStyles();
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
-  await draw(page);await page.locator('#create-outline').click();
+  await draw(page);await page.evaluate(()=>(window as any).__vectora.outline(3));
   await page.getByRole('button',{name:'Layers',exact:true}).click();
   const panel=page.locator('#primary-layers-panel');
   await expect(panel).toBeVisible();expect(await panelStyles()).toEqual(reference);
@@ -342,7 +346,7 @@ test('production ellipse and polygon menu tools draw and export',async({page})=>
     await page.getByRole('button',{name:'Properties',exact:true}).click();
     await expect(page.locator('#selection-name')).toContainText(name);
   }
-  await page.locator('#create-outline').click();const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
+  await openDXFSettings(page,true);const download=page.waitForEvent('download');await page.locator('#export-dialog [data-export-submit]').click();expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 test('marquee selection moves, resizes and deletes shapes together with atomic undo',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -368,7 +372,7 @@ test('marquee selection moves, resizes and deletes shapes together with atomic u
   await page.keyboard.press('s');await drag([480,380],[595,420],true);
   const ratio=await page.evaluate(()=>{const b=(window as any).__vectora.selectionBounds;return b.width/b.height;});expect(ratio).toBeCloseTo(230/80,8);
   await page.keyboard.press('Control+z');expect(await geometry()).toBe(original);
-  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('2 objects selected · Combined bounds');await expect(page.locator('#create-outline')).toBeDisabled();
+  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('2 objects selected · Combined bounds');await expect(page.locator('#create-outline')).toHaveCount(0);
   await page.locator('#field-x').fill('251.25');await page.locator('#field-x').press('Tab');
   expect(await page.evaluate(()=>(window as any).__vectora.selectedItems.map((s:any)=>s.bounds.x))).toEqual([251.25,401.25]);
   await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');expect(await geometry()).toBe(original);
@@ -390,7 +394,7 @@ test('marquee selection moves, resizes and deletes shapes together with atomic u
 test('moving selected artwork to Cut Path preserves geometry, selection, styling and export with undo',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await draw(page);
-  await page.locator('#create-outline').click();await page.locator('#close-properties').click();
+  await page.evaluate(()=>(window as any).__vectora.outline(3));await page.locator('#close-properties').click();
   await page.locator('#cad-canvas').focus();await page.keyboard.press('c');await page.mouse.move(300,600);await page.mouse.down();await page.mouse.move(350,620);await page.mouse.up();
   await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   await page.getByRole('button',{name:'Rectangle',exact:true}).click();await page.getByRole('button',{name:'Circle',exact:true}).click({modifiers:['Shift']});
@@ -430,7 +434,7 @@ test('line drawing supports snapped axis-aligned paths, endpoint editing and cut
   await page.getByRole('menuitemradio',{name:'Line',exact:true}).click();await drag([-34,-17],[-12,-17]);
   expect(await shape()).toEqual({name:'Line',closed:false,fill:null,points:[[-35,-15],[-10,-15]],bounds:[-35,-15,25,0]});
   await expect(page.locator('#properties-panel')).toBeHidden();await page.getByRole('button',{name:'Properties',exact:true}).click();
-  await expect(page.locator('#field-height')).toHaveValue('0');await expect(page.locator('#field-height')).toBeDisabled();await expect(page.locator('#create-outline')).toBeDisabled();
+  await expect(page.locator('#field-height')).toHaveValue('0');await expect(page.locator('#field-height')).toBeDisabled();await expect(page.locator('#create-outline')).toHaveCount(0);
   await page.locator('#field-x').fill('-35.25');await page.locator('#field-x').press('Tab');expect((await shape()).bounds).toEqual([-35.25,-15,25,0]);
   await page.locator('#field-width').fill('30');await page.locator('#field-width').press('Tab');expect((await shape()).bounds).toEqual([-35.25,-15,30,0]);
   await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');await page.keyboard.press('Control+z');
@@ -463,7 +467,7 @@ test('polyline commits only clicked points, cancels safely, selects by stroke an
   await click([5,5]);await page.keyboard.press('v');expect((await state()).count).toBe(2);
   // The implied closing triangle is not a selectable fill on an open path.
   await click([-17,-3]);expect((await state()).selection).toBeNull();await click([-20,-10]);expect((await state()).selection).toBe('Polyline');
-  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toBeDisabled();
+  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toHaveCount(0);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);
   const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toContain('90\n3\n70\n0\n');
   await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('p');await click([5,5]);await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');expect((await state()).count).toBe(2);expect(errors).toEqual([]);
@@ -508,7 +512,7 @@ test('Arc creates an exact snapped semicircle in one drag, with editable circula
   await page.locator('#arc-sweep').fill('180');await page.locator('#arc-sweep').press('Tab');
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);expect((await arcState(page)).color.toLowerCase()).toBe('#ff0000');
   const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toMatch(/90\n\d+\n70\n0\n/);
-  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toBeDisabled();await page.screenshot({path:'test-results/arc-controls.png'});expect(errors).toEqual([]);
+  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toHaveCount(0);await page.screenshot({path:'test-results/arc-controls.png'});expect(errors).toEqual([]);
 });
 test('Arc drafts cancel safely, angular snapping and group transforms preserve valid geometry',async({page})=>{
   await arcSetup(page);await arcDrag(page,[0,0],[20,0],true);expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);
@@ -649,7 +653,7 @@ test('Freehand follows the pointer, smooths an open stroke and supports history,
   await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(result.snapshot);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();await expect(page.locator('#layer-objects-artwork .layer-object use')).toHaveAttribute('href','#i-freehand');await dragSelectionToLayer(page);
   const dxf=await page.evaluate(async()=>{const e=(window as any).__vectora,{exportDXF}=await import('/src/exportDXF.ts');return {text:exportDXF(e.objects),color:e.selected.strokeColor.toCSS(true)};});expect(dxf.color.toLowerCase()).toBe('#ff0000');expect(dxf.text).toMatch(/90\n\d+\n70\n0\n/);
-  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toBeDisabled();await page.locator('#close-properties').click();
+  await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toHaveCount(0);await page.locator('#close-properties').click();
   await page.locator('#cad-canvas').focus();await page.keyboard.press('Shift+k');await page.mouse.click(...samples[20] as [number,number]);expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);expect(errors).toEqual([]);
 });
 test('Freehand ignores taps, accepts flat strokes and cancels drafts without changing existing objects',async({page})=>{
@@ -726,7 +730,7 @@ test('Dissect breaks an unbroken outline edge by edge and preserves connected cu
   await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects[0].length)).toBeCloseTo(20,7);
 });
 test('production Dissect deletes a polygon side without crossing lines',async({page})=>{
-  await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Snapping',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('y');await page.mouse.move(420,400);await page.mouse.down();await page.mouse.move(520,400);await page.mouse.up();await page.keyboard.press('k');await page.mouse.move(420,313.39746);await page.mouse.click(420,313.39746);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Trimmed path · Artwork');await expect(page.locator('#create-outline')).toBeDisabled();await openDXFSettings(page,true);const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
+  await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Snapping',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('y');await page.mouse.move(420,400);await page.mouse.down();await page.mouse.move(520,400);await page.mouse.up();await page.keyboard.press('k');await page.mouse.move(420,313.39746);await page.mouse.click(420,313.39746);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Trimmed path · Artwork');await expect(page.locator('#create-outline')).toHaveCount(0);await openDXFSettings(page,true);const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 
 test('floating selection menu follows selection and supports bounded accessible movement',async({page})=>{

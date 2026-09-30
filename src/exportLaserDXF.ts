@@ -38,7 +38,7 @@ export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean,t
    entities.push(pair(0,'TEXT')+style+pair(7,'STANDARD')+pair(10,number(p.x))+pair(20,number(-p.y))+pair(30,0)+pair(40,number(layout.fontSize))+pair(1,label)+pair(50,number(-layout.angle))+pair(72,layout.centered?1:0)+pair(11,number(p.x))+pair(21,number(-p.y))+pair(31,0)+pair(73,0));
   }
  }
- if(!entities.length)throw new Error(includeArtwork?'There are no exportable objects. Draw a shape first.':'There are no cut lines. Create a Sticker Outline or enable “Include artwork”.');
+ if(!entities.length)throw new Error(includeArtwork?'There are no exportable objects. Draw a shape first.':'There are no cut lines. Add a shape to Cut Path or enable “Include artwork”.');
  const point=(name:string,x:number,y:number)=>pair(9,name)+pair(10,number(x))+pair(20,number(y))+pair(30,0);
  // R12 has no standardized $INSUNITS. Keep numeric millimetres and ask for mm on import.
  let out=pair(0,'SECTION')+pair(2,'HEADER')+pair(9,'$ACADVER')+pair(1,'AC1009')+pair(9,'$LUNITS')+pair(70,2)+pair(9,'$LUPREC')+pair(70,8)+point('$INSBASE',0,0)+point('$EXTMIN',minX,minY)+point('$EXTMAX',maxX,maxY)+pair(0,'ENDSEC');

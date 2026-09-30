@@ -30,7 +30,6 @@ const rulers=new CanvasRulers(editor.canvas,document.querySelector<SVGSVGElement
 const resetZoom=$<HTMLButtonElement>('[data-reset-zoom]');
 resetZoom.onclick=()=>editor.resetZoom();
 resetZoom.addEventListener('keydown',event=>event.stopPropagation());
-let ready=false;
 const alerts=new Alerts($('#toast-stack'),editor.canvas,()=>closeMenus());
 function notify(message:string,kind:boolean|AlertKind=false):void {
   alerts.show(message,typeof kind==='boolean'?(kind?'error':'information'):kind);
@@ -219,7 +218,6 @@ for(const key of ['radius','start','sweep'] as const){
 }
 $('#arc-semicircle').onclick=()=>attempt(()=>editor.setArcProperty('sweep',Math.sign(editor.selectedArc?.sweep??1)*180));
 $('#arc-flip').onclick=()=>attempt(()=>editor.setArcProperty('sweep',-(editor.selectedArc?.sweep??180)));
-$('#create-outline').onclick=()=>attempt(()=>{editor.outline(3);notify('Sticker outline created. The source shape is unchanged.','success');});
 const exportDialog=new ExportDialog(editor,()=>{
  if(!inlineText.finish(false,false))return false;
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
@@ -275,8 +273,6 @@ function update():void {
   $('#arc-controls').hidden=!editor.selectedArc;
   for(const key of ['radius','start','sweep'] as const){const input=$<HTMLInputElement>('#arc-'+key);if(document.activeElement!==input){input.value=editor.selectedArc?String(Number(editor.selectedArc[key].toFixed(6))):'';input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
   $('#selection-name').textContent=count>1?`${count} objects selected · Combined bounds`:selected?`${selected.data.name} · ${selected.layer.name}`:'Select an object to edit its bounds.';
-  $<HTMLButtonElement>('#create-outline').disabled=!ready||!editor.canOutlineSelection;
-  $('#create-outline').title=!editor.canOutlineSelection?'Select one closed shape to create a sticker outline':'Sticker Outline · 3 mm rounded outer cut';
   $<HTMLButtonElement>('[aria-label="Undo"]').disabled=!editor.canUndo;$<HTMLButtonElement>('[aria-label="Redo"]').disabled=!editor.canRedo;
   $('#tool-status').textContent=({fill:'Colour fill · B · Click an enclosed area',select:editor.selectedArc?'Arc · Drag handles · Shift: 15°':count>1?`Select · V · ${count} selected`:'Select · V',nodes:'Nodes · N · Double-click to add · Right-click for actions',text:'Text · T · Click to place',rectangle:'Rectangle · R · Shift for square',circle:'Circle · C · Drag from centre',ellipse:'Ellipse · E · Shift for circle',heart:'Heart · Drag opposite corners · Shift for equal proportions',polygon:`Polygon · Y · ${editor.polygonSides} sides · ↑/↓ · Shift: 15°`,star:`Star · ⇧ Y · ${editor.starPoints} points · ↑/↓ · Shift: 15°`,line:'Line · L · Drag · Shift: 45°',polyline:'Polyline · P · Click points · Enter to finish',freehand:'Freehand · F · Drag to draw · No snapping',arc:`Centre arc · A · ${editor.arcHint}`,'arc-endpoints':`Start–end arc · ${editor.endpointArcHint}`,'arc-three-point':`Three-point arc · ⇧ A · ${editor.threePointArcHint}`,'dissect-delete':'Dissect delete · K · Click a section','line-delete':'Line delete · ⇧ K · Click an outline'} as Record<ToolName,string>)[editor.tool];
   if(isDimensionTool(editor.tool))$('#tool-status').textContent=`${DIMENSION_NAMES[editor.tool]}${editor.tool==='dimension-aligned'?' · D':''} · ${editor.dimensions.hint}`;
@@ -299,7 +295,7 @@ editor.onChange=update;editor.onMessage=notify;
 initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
 update();
 void documentFiles.restoreRecovery(()=>inlineText.recoveryDraft);
-initializeClipper().then(()=>{ready=true;$('#wasm-status').textContent='Outline engine ready';update();}).catch(error=>{$('#wasm-status').textContent='Outline engine unavailable. Reload to retry.';notify(`Could not load the outline engine: ${error instanceof Error?error.message:String(error)}`,true);});
+initializeClipper().then(()=>{$('#wasm-status').textContent='Outline engine ready';update();}).catch(error=>{$('#wasm-status').textContent='Outline engine unavailable. Reload to retry.';notify(`Could not load the outline engine: ${error instanceof Error?error.message:String(error)}`,true);});
 document.addEventListener('pointerdown',e=>{if(!(e.target instanceof Element))return;for(const [menu,trigger] of menus)if(!menu.contains(e.target)&&!trigger.contains(e.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});
 document.addEventListener('keydown',event=>{
   const key=event.key.toLowerCase();
@@ -356,13 +352,12 @@ for(const [id,label,selector,keywords,reason] of [
  ['flip-v','Flip vertical','[data-flip="vertical"]','mirror top bottom','Select an object'],
  ['convert','Convert to path','#convert-text','text outline letters contours','Select text to convert'],
  ['edit-text','Edit text','#edit-text','font type lettering','Select a text object'],
- ['outline','Sticker outline','#create-outline','offset contour border cut','Select one closed shape'],
 ] as const){
  searchButton(id,label,'Selection',selector,keywords,'',reason);
  if(id==='edit-text')searchTools.at(-1)!.unavailable=()=>editor.selected?.data.text&&!$<HTMLButtonElement>('#edit-text').disabled?undefined:reason;
 }
 for(const [id,label,keywords] of [['fillet','Fillet','round corner radius'],['chamfer','Chamfer','bevel corner distance']] as const)searchTools.push({id,label,group:'Node editing',icon:id,keywords,unavailable:()=>editor.tool==='nodes'&&editor.nodes.canEditCorners?undefined:'Select corners between straight edges with Node editing',run:()=>editor.nodes.openCorner(id)});
-searchButton('offset-path','Offset path','Selection','[data-offset-open]','inset outset expand shrink contour border distance round bevel sharp','','Select visible, unlocked closed paths; convert text first');
+searchButton('offset-path','Offset path','Selection','[data-offset-open]','inset outset expand shrink contour border distance round bevel sharp','','Finish the current edit or choose an eligible closed path');
 for(const [kind,label,icon,keywords] of [['rectangular','Rectangular pattern','pattern-rectangular','array repeat rows columns holes slots spacing'],['circular','Circular pattern','pattern-circular','array repeat radial polar holes slots centre angle']] as const)searchTools.push({id:`pattern-${kind}`,label,group:'Selection',icon,keywords,unavailable:()=>editor.patterns.available?undefined:'Select visible, unlocked objects to repeat',run:()=>editor.patterns.open(kind)});
 for(const [kind,label,keywords] of [['weld','Weld','boolean union merge overlapping outlines'],['subtract','Subtract','boolean difference cut hole remove'],['intersect','Intersect','boolean intersection shared overlap']] as const)searchButton(`shape-${kind}`,label,'Selection',`#selection-menu [data-shape-operation="${kind}"]`,keywords,'','Select two or more closed paths on the same layer; convert text first');
 for(const button of arrangementButtons){

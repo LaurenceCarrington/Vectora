@@ -43,7 +43,7 @@ export function exportDXF(objects:readonly Shape[],includeArtwork=false,mode:DXF
    entities.push({kind:'TEXT',layer,tags:[[100,'AcDbText'],[10,number(p.x)],[20,number(-p.y)],[30,0],[40,number(layout.fontSize)],[1,label],[50,number(-layout.angle)],[7,'STANDARD'],[72,layout.centered?1:0],[11,p.x],[21,-p.y],[31,0],[100,'AcDbText'],[73,0]]});
   }
  }
- if(!entities.length)throw new Error(includeArtwork?'There are no exportable objects. Draw a shape first.':'There are no cut lines. Create a Sticker Outline or enable “Include artwork”.');
+ if(!entities.length)throw new Error(includeArtwork?'There are no exportable objects. Draw a shape first.':'There are no cut lines. Add a shape to Cut Path or enable “Include artwork”.');
  return standardDXF(entities,layers,{minX,minY,maxX,maxY});
 }
 export function downloadDXF(contents:string,format:DXFFormat='standard'):void {

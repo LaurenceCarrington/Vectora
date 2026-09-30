@@ -22,6 +22,42 @@ test('Cancel, invalid input and unavailable selections never change the document
  await page.evaluate(()=>{const e=(window as any).__vectora;e.selected.closed=false;e.select(e.selected);});await expect(page.locator('[data-offset-open]')).toBeDisabled();
 });
 
+test('Select path picks a source on the canvas without moving it, then returns to Offset path',async({page})=>{
+ await setup(page);
+ const target=await page.evaluate(()=>{
+  const e=(window as any).__vectora,p=(window as any).__paper;
+  const first=e.selected;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[100,20,40,30]}),'Second panel');
+  const point=p.view.projectToView(first.bounds.topCenter),rect=e.canvas.getBoundingClientRect();
+  return {x:rect.left+point.x,y:rect.top+point.y};
+ });
+ const before=await page.evaluate(()=>JSON.stringify((window as any).__vectora.objects.map((item:any)=>item.exportJSON())));
+ await open(page);await page.getByRole('button',{name:'Select path'}).click();
+ await expect(page.locator('#offset-dialog')).toBeHidden();
+ await page.mouse.click(target.x,target.y);
+ await expect(page.locator('#offset-dialog')).toBeVisible();
+ await expect(page.locator('[data-offset-source]')).toContainText('Panel');
+ expect(await page.evaluate(()=>JSON.stringify((window as any).__vectora.objects.map((item:any)=>item.exportJSON())))).toBe(before);
+ await page.getByRole('button',{name:'Create offset'}).click();
+ expect(await page.evaluate(()=>Number((window as any).__vectora.selected.bounds.x.toFixed(2)))).toBe(18);
+});
+
+test('Offset path opens without a selection and Escape cancels Select path mode',async({page})=>{
+ await setup(page);await page.evaluate(()=>(window as any).__vectora.select(null));
+ await page.getByRole('button',{name:'Search tools'}).click();await page.getByRole('combobox',{name:'Search tools'}).fill('offset path');await page.keyboard.press('Enter');
+ await expect(page.locator('#offset-dialog')).toBeVisible();await expect(page.getByRole('button',{name:'Create offset'})).toBeDisabled();
+ await page.getByRole('button',{name:'Select path'}).click();await page.keyboard.press('Escape');
+ await expect(page.locator('#offset-dialog')).toBeHidden();
+ const target=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper,r=e.canvas.getBoundingClientRect(),q=p.view.projectToView(e.objects[0].bounds.topCenter);return {x:r.left+q.x,y:r.top+q.y};});
+ await page.mouse.click(target.x,target.y);await expect(page.locator('#offset-dialog')).toBeHidden();
+});
+
+test('Cancelling Select path keeps the previous selection',async({page})=>{
+ await setup(page);
+ const selected=await page.evaluate(()=>(window as any).__vectora.selected.data.uid);
+ await open(page);await page.getByRole('button',{name:'Select path'}).click();await page.keyboard.press('Escape');
+ expect(await page.evaluate(()=>(window as any).__vectora.selected.data.uid)).toBe(selected);
+});
+
 test('Context menu and tool search open the same panel; responsive placement stays visible',async({page})=>{
  await setup(page);const pt=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper,r=e.canvas.getBoundingClientRect(),q=p.view.projectToView(e.selected.bounds.center);return {x:r.left+q.x,y:r.top+q.y};});await page.mouse.click(pt.x,pt.y,{button:'right'});await page.getByRole('menuitem',{name:'Offset path',exact:true}).click();await expect(page.locator('#offset-dialog')).toBeVisible();await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Search tools',exact:true}).click();await page.getByRole('combobox',{name:'Search tools'}).fill('offset path');await page.keyboard.press('Enter');await expect(page.locator('#offset-dialog')).toBeVisible();
