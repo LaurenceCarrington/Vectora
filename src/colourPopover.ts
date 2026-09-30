@@ -10,7 +10,7 @@ export class ColourPopover {
   this.root.className='colour-panel colour-popover';this.root.id='paint-colour-popover';this.root.hidden=true;
   this.root.setAttribute('role','dialog');document.body.append(this.root);
   this.picker=new ColourPanel(this.root,(paint,commit)=>this.change?.(paint,commit),()=>this.close(true),()=>{},false,'paint-picker');
-  this.root.querySelector('.panel-eyebrow')!.remove();this.root.querySelector('.colour-none')!.remove();this.root.querySelector('.colour-hint')!.remove();
+  this.root.querySelector('.panel-eyebrow')!.remove();this.root.querySelector('[data-colour-none]')!.remove();this.root.querySelector('.colour-hint')!.remove();
   this.root.querySelector('[aria-label="Close Colour panel"]')!.setAttribute('aria-label','Close colour picker');
   document.addEventListener('pointerdown',event=>{if(!this.root.hidden&&!this.root.contains(event.target as Node)&&!this.anchor?.contains(event.target as Node))this.close();},true);
   document.addEventListener('focusin',event=>{if(!this.root.hidden&&!this.root.contains(event.target as Node)&&!this.anchor?.contains(event.target as Node))this.close();});

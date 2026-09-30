@@ -22,7 +22,7 @@ export class ColourPanel {
    <div class="colour-hex-row"><span class="colour-preview" aria-hidden="true"><span></span></span><label class="sr-only" for="colour-hex">Hex colour</label><input id="colour-hex" type="text" spellcheck="false" maxlength="7" aria-describedby="colour-error"><button type="button" class="panel-icon" data-save-colour aria-label="Save colour swatch" title="Save colour swatch for this session"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button></div>
    <p id="colour-error" class="colour-error" role="status" hidden>Enter a hex colour such as #8235DC.</p>
    <div class="colour-rgb">${['R','G','B'].map(c=>`<label>${c}<input type="number" min="0" max="255" step="1" aria-label="${{R:'Red',G:'Green',B:'Blue'}[c]}" data-colour-channel="${c}"></label>`).join('')}</div>
-   <div class="colour-swatches" aria-label="Colour presets"><button type="button" class="colour-swatch colour-none" aria-label="No fill" title="No fill"></button>${['#FF0000','#0000FF','#00FFFF','#FF00FF'].map(c=>`<button type="button" class="colour-swatch" data-colour="${c}" style="--swatch:${c}" aria-label="${c}" title="${c}"></button>`).join('')}</div>
+   <button type="button" class="button paint-none" data-colour-none aria-pressed="false">No fill</button>
    <div class="colour-saved" hidden><p class="subtext">Saved swatches</p><div class="colour-swatches" data-saved-swatches></div></div>
    <p class="subtext colour-hint" data-colour-hint>Sets the Fill tool colour. Selected Artwork uses this colour too.</p>
   </div>`.replace(/(id|for|aria-describedby)="colour-/g,`$1="${idPrefix}-`);
@@ -41,12 +41,12 @@ export class ColourPanel {
   this.plane.addEventListener('pointerup',event=>{if(event.pointerId!==this.pointer)return;this.position(event);this.pointer=null;this.start=null;this.publish(true);});
   this.plane.addEventListener('pointercancel',()=>this.cancel());this.plane.addEventListener('lostpointercapture',()=>this.cancel());
   this.plane.addEventListener('keydown',event=>{const step=event.shiftKey?.1:.01;if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();this.s=Math.max(0,Math.min(1,this.s+(event.key==='ArrowRight'?step:event.key==='ArrowLeft'?-step:0)));this.v=Math.max(0,Math.min(1,this.v+(event.key==='ArrowUp'?step:event.key==='ArrowDown'?-step:0)));this.render();this.publish(true);});
-  root.querySelector<HTMLButtonElement>('.colour-none')!.onclick=()=>noFill();
+  root.querySelector<HTMLButtonElement>('[data-colour-none]')!.onclick=()=>noFill();
   root.addEventListener('click',event=>{const button=(event.target as Element).closest<HTMLButtonElement>('[data-colour]');if(button){this.set({hex:button.dataset.colour!,opacity:Number(button.dataset.opacity??1)});this.publish(true);}});
   root.querySelector<HTMLButtonElement>('[data-save-colour]')!.onclick=()=>{const list=root.querySelector<HTMLElement>('[data-saved-swatches]')!,paint=this.paint;if([...list.children].some(b=>(b as HTMLElement).dataset.colour===paint.hex&&(b as HTMLElement).dataset.opacity===String(paint.opacity)))return;const button=document.createElement('button');button.type='button';button.className='colour-swatch';button.dataset.colour=paint.hex;button.dataset.opacity=String(paint.opacity);button.style.setProperty('--swatch',paint.hex);button.title=`${paint.hex} · ${Math.round(paint.opacity*100)}%`;button.setAttribute('aria-label',button.title);list.append(button);if(list.children.length>12)list.firstElementChild!.remove();root.querySelector<HTMLElement>('.colour-saved')!.hidden=false;};
   this.render();
  }
- setNoFill(value:boolean):void {this.root.querySelector('.colour-none')!.setAttribute('aria-pressed',String(value));}
+ setNoFill(value:boolean):void {this.root.querySelector('[data-colour-none]')!.setAttribute('aria-pressed',String(value));}
  private get paint():Paint{return {hex:hsvToHex(this.h,this.s,this.v),opacity:this.opacity};}
  private publish(commit:boolean):void {this.busy=true;try{this.change(this.paint,commit);}finally{this.busy=false;}}
  private cancel():void {if(this.pointer===null)return;this.pointer=null;if(this.start){this.set(this.start);this.publish(false);}this.start=null;}

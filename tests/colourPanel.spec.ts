@@ -58,7 +58,7 @@ test('The picker matches the reference, fits both themes and remains usable on n
 test('Repainting a region uses the new colour and No fill enables region clearing',async({page})=>{
  await ready(page);await shape(page);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.setFillColor('#112233');e.fillAt(new p.Point(25,35));});await open(page);await paint(page,'#445566');
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.setFillColor('#778899');e.fillAt(new p.Point(25,35));});expect((await state(page)).fill).toBe('#778899');
- await page.getByRole('button',{name:'No fill',exact:true}).click();expect((await state(page)).noFill).toBe(true);await expect(page.locator('.colour-none')).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'No fill',exact:true}).click();expect((await state(page)).noFill).toBe(true);await expect(page.locator('[data-colour-none]')).toHaveAttribute('aria-pressed','true');
 });
 
 test('Production colour panel runs without errors',async({page})=>{

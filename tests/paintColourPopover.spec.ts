@@ -15,7 +15,7 @@ test('Gradient swatches open independent internal pickers with colour, opacity a
  await picker.press('Escape');await expect(picker).toBeHidden();await expect(stop).toBeFocused();await expect(page.locator('#colour-panel')).toBeVisible();
  await page.getByRole('button',{name:'Undo',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.selected.data.fillPaint.stops[0].opacity)).toBe(1);
  await page.getByRole('button',{name:'Choose stop 2 colour',exact:true}).click();const second=page.getByRole('dialog',{name:'Stop 2 colour',exact:true});await expect(second.getByRole('textbox',{name:'Hex colour',exact:true})).toHaveValue('#0000FF');
- await second.getByRole('button',{name:'#00FFFF',exact:true}).click();await page.getByRole('tab',{name:'Pattern',exact:true}).click();await expect(second).toBeHidden();
+ await second.getByRole('textbox',{name:'Hex colour',exact:true}).fill('#00FFFF');await second.getByRole('textbox',{name:'Hex colour',exact:true}).press('Enter');await page.getByRole('tab',{name:'Pattern',exact:true}).click();await expect(second).toBeHidden();
 });
 test('Pattern foreground and background pickers respect transparency and stay on screen',async({page})=>{
  await open(page,'Pattern');const background=page.getByRole('button',{name:'Choose background colour',exact:true});await expect(background).toBeDisabled();
