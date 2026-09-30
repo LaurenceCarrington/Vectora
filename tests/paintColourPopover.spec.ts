@@ -48,3 +48,25 @@ test('Picker drag commits once and both themes and the reference share the pop-o
  await picker.getByRole('button',{name:'Close colour picker',exact:true}).click();
  const ref=await context.newPage();await ref.goto(DEV+'/reference/design-system.html');await ref.getByRole('button',{name:'Fill & appearance',exact:true}).click();await ref.getByRole('tab',{name:'Gradient',exact:true}).click();await ref.getByRole('button',{name:'Choose stop 1 colour',exact:true}).click();await expect(ref.getByRole('dialog',{name:'Stop 1 colour',exact:true})).toBeVisible();await ref.close();expect(errors).toEqual([]);
 });
+
+test('Gradient and pattern pickers drag by the header without changing paint and stay recoverable',async({page})=>{
+ await open(page);
+ for(const [tab,trigger,name] of [['Gradient','Choose stop 1 colour','Stop 1 colour'],['Pattern','Choose foreground colour','Foreground colour']]){
+  await page.getByRole('tab',{name:tab,exact:true}).click();await page.getByRole('button',{name:trigger,exact:true}).click();
+  const picker=page.getByRole('dialog',{name,exact:true}),handle=picker.getByRole('button',{name:'Move colour picker',exact:true});
+  const paint=await page.evaluate(()=>(window as any).__vectora.fillPaint),before=(await picker.boundingBox())!,grip=(await handle.boundingBox())!;
+  const x=grip.x+grip.width/2,y=grip.y+grip.height/2;
+  await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x-160,y-100,{steps:8});await page.mouse.up();
+  let moved=(await picker.boundingBox())!;expect(moved.x).toBeCloseTo(before.x-160);expect(moved.y).toBeCloseTo(Math.max(8,before.y-100));
+  // Editing colours must not snap a moved menu back to its swatch.
+  await picker.getByRole('textbox',{name:'Hex colour',exact:true}).fill('#AABBCC');await picker.getByRole('textbox',{name:'Hex colour',exact:true}).press('Enter');expect((await picker.boundingBox())!.x).toBe(moved.x);
+  await handle.focus();await page.keyboard.press('Shift+ArrowLeft');expect((await picker.boundingBox())!.x).toBeCloseTo(moved.x-10);
+  moved=(await picker.boundingBox())!;const next=(await handle.boundingBox())!;
+  await page.mouse.move(next.x+30,next.y+10);await page.mouse.down();await page.mouse.move(5,5,{steps:6});await page.keyboard.press('Escape');await page.mouse.up();await expect(picker).toBeVisible();expect((await picker.boundingBox())!.x).toBe(moved.x);expect((await picker.boundingBox())!.y).toBe(moved.y);
+  const start=(await handle.boundingBox())!;await page.mouse.move(start.x+30,start.y+10);await page.mouse.down();await page.mouse.move(1,1,{steps:6});await page.mouse.up();moved=(await picker.boundingBox())!;expect(moved.x).toBeGreaterThanOrEqual(8);expect(moved.y).toBeGreaterThanOrEqual(8);
+  // Dragging itself must leave paint/history alone.
+  expect(await page.evaluate(()=>(window as any).__vectora.fillPaint)).toMatchObject(tab==='Gradient'?{...paint,stops:[{...paint.stops[0],colour:'#AABBCC'},...paint.stops.slice(1)]}:{...paint,foreground:'#AABBCC'});
+  await page.setViewportSize({width:375,height:450});await expect.poll(async()=>{const box=(await picker.boundingBox())!;return box.x>=0&&box.y>=0&&box.x+box.width<=375&&box.y+box.height<=450;}).toBe(true);
+  await picker.getByRole('button',{name:'Close colour picker',exact:true}).click();await page.setViewportSize({width:1280,height:900});
+ }
+});
