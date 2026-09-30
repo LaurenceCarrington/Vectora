@@ -473,15 +473,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 /* Colour fill uses the shared charcoal pop-out and field styles. */
 .fill-tools { position:relative; --fill-icon-colour:var(--fill-colour,#FF0000); }
 .fill-tools.is-no-fill { --fill-icon-colour:none; }
-.fill-menu { top:0; left:calc(100% + var(--toolbar-padding)); width:248px; max-width:calc(100vw - 120px); }
 .fill-tools > .tool { position:relative; }
-.fill-swatches { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:var(--space-8); margin-bottom:var(--space-16); }
-.fill-swatch { height:32px; border:1px solid #FFFFFF; border-radius:var(--radius-sm); background:var(--fill-swatch); }
-.fill-swatch-none { background:linear-gradient(135deg,white 46%,var(--color-cutline) 47%,var(--color-cutline) 53%,white 54%); }
-.fill-swatch[aria-pressed="true"] { outline:2px solid var(--menu-foreground); outline-offset:3px; }
-.fill-picker-row { display:flex; align-items:center; justify-content:space-between; gap:var(--space-12); font-size:var(--text-sm); margin-bottom:var(--space-12); }
-.fill-picker-row input { width:44px; height:32px; padding:2px; border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-sm); background:var(--menu-hover); cursor:pointer; }
-.fill-hex-field { margin-bottom:0; }
 
 /* Number fields: use the same neutral surfaces and even spacing as the menus. */
 .number-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--input-row-gap); margin-top: var(--space-24); align-items: start; }

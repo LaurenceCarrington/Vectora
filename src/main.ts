@@ -117,8 +117,8 @@ propertiesButton.onclick=()=>setPanel(props,props.hidden);
 layersButton.onclick=()=>setPanel(layers,layers.hidden);
 colourButton.onclick=()=>{if(!inlineText.finish(false,false))return;setPanel(colour,colour.hidden);};
 $('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
-const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu'),generatorMenu=$('#primary-generators-menu');
-const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')],[generatorMenu,$('[data-generator-trigger]')]] as const;
+const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),generatorMenu=$('#primary-generators-menu');
+const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[generatorMenu,$('[data-generator-trigger]')]] as const;
 function closeMenus():void {selectionMenu.popouts.close();alerts.close();for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}
 function toggleMenu(menu:HTMLElement,trigger:HTMLElement):void {const open=menu.hidden;closeMenus();menu.hidden=!open;trigger.setAttribute('aria-expanded',String(open));if(open){if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);(menu.querySelector<HTMLButtonElement>('button:not(:disabled)')??menu).focus({preventScroll:true});}}
 window.addEventListener('resize',()=>{for(const [menu,trigger] of menus)if(menu!==fileMenu)alignPopoutWithTrigger(menu,trigger);});
@@ -147,12 +147,7 @@ for(const button of generatorMenu.querySelectorAll<HTMLButtonElement>('[data-gen
     generatorWorkbench.open(button.dataset.generator as Family);
   }catch(error){notify((error as Error).message,true);}finally{generatorLoading=false;}
 };
-$('[data-fill-trigger]').onclick=()=>{editor.setTool('fill');toggleMenu(fillMenu,$('[data-fill-trigger]'));};
-const fillPicker=$<HTMLInputElement>('[data-fill-picker]'),fillHex=$<HTMLInputElement>('[data-fill-hex]');
-function chooseFill(value:string):void {try{editor.setFillColor(value);fillHex.removeAttribute('aria-invalid');}catch(error){fillHex.setAttribute('aria-invalid','true');notify((error as Error).message,true);}}
-fillPicker.addEventListener('input',()=>chooseFill(fillPicker.value));fillHex.addEventListener('change',()=>chooseFill(fillHex.value));
-fillMenu.querySelectorAll<HTMLButtonElement>('[data-fill-colour]').forEach(button=>button.onclick=()=>chooseFill(button.dataset.fillColour!));
-fillMenu.addEventListener('keydown',event=>{if(event.key!=='Escape')event.stopPropagation();});
+$('[data-fill-trigger]').onclick=()=>{closeMenus();editor.setTool('fill');editor.canvas.focus({preventScroll:true});};
 
 $('[data-dimension-trigger]').onclick=()=>toggleMenu(dimensionMenu,$('[data-dimension-trigger]'));
 $('[data-delete-trigger]').onclick=()=>toggleMenu(deleteMenu,$('[data-delete-trigger]'));
@@ -251,8 +246,6 @@ function update():void {
   lastFillPaint=`${editor.fillColor}:${editor.fillOpacity}`;
   colourPanel.setNoFill(editor.noFill);
   colourPanel.hint(colourItems.length?`Colours ${colourItems.length} selected Artwork ${colourItems.length===1?'object':'objects'} and sets the Fill tool colour.`:'Sets the Fill tool colour. Cut, Engrave and Construction keep their layer colours.');
-  fillPicker.value=editor.fillColor;if(document.activeElement!==fillHex)fillHex.value=editor.fillColor;
-  fillMenu.querySelectorAll<HTMLButtonElement>('[data-fill-colour]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.fillColour?.toLowerCase()===(editor.noFill?'none':editor.fillColor.toLowerCase()))));
   for(const button of arrangementButtons){
     const action=button.dataset.arrange as ArrangementAction,distribute=action.startsWith('distribute-');
     button.disabled=!editor.canArrangeSelection(action);
