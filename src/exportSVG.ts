@@ -1,3 +1,4 @@
+import {paintDefinition,paintColour,type FillPaint} from './fillPaint';
 import paper from 'paper';
 import {documentPath} from './deletion';
 import {pathsOf} from './geometry';
@@ -13,6 +14,7 @@ const format=(value:number)=>String(Number(value.toFixed(8)));
 export function exportSVG(objects:readonly Shape[],includeHidden=false):string {
   const svg=document.createElementNS(NS,'svg');
   svg.setAttribute('version','1.1');
+  let paintIndex=0;
   const groups=new Map<paper.Layer,SVGGElement>();
   let bounds:paper.Rectangle|null=null;
   const items=objects.filter(item=>['artwork','cutline','engrave'].includes(item.data.role)&&(includeHidden||(item.visible&&item.layer.visible))&&!item.layer.data.deleted&&item.opacity>0)
@@ -24,6 +26,9 @@ export function exportSVG(objects:readonly Shape[],includeHidden=false):string {
     const label=dimensionLabel(item);
     try{
       copy.style=item.style;copy.opacity=item.opacity;
+      const paint=item.data.role==='artwork'?item.data.fillPaint as FillPaint|undefined:undefined;
+      let paintId:string|undefined;
+      if(paint&&paint.kind!=='colour'&&item.fillColor?.type==='gradient'){paintId=`fill-paint-${++paintIndex}`;const defs=document.createElementNS(NS,'defs');defs.append(paintDefinition(paint,item.fillColor,paintId));svg.append(defs);copy.fillColor=new paper.Color(paintColour(paint));}
       if(item.data.role==='artwork'){
         // Canvas white/charcoal is a theme affordance, not the exported ink colour.
         // Keep explicit filled regions, including white fills, unchanged.
@@ -44,6 +49,7 @@ export function exportSVG(objects:readonly Shape[],includeHidden=false):string {
       }
       for(const shape of [copy,...(label?[label]:[])]){
         const node=shape.exportSVG({asString:false,precision:8,matchShapes:false}) as SVGElement;
+        if(shape===copy&&paintId)node.setAttribute('fill',`url(#${paintId})`);
         node.removeAttribute('data-paper-data');group.append(node);
         const extent=shape.strokeBounds;
         bounds=bounds?bounds.unite(extent):extent.clone();

@@ -1,14 +1,14 @@
 import {test,expect,type Page} from '@playwright/test';
 const DEV='http://127.0.0.1:5174';
 async function ready(page:Page){await page.goto(DEV);await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');}
-async function open(page:Page){await page.getByRole('button',{name:'Colour',exact:true}).click();}
+async function open(page:Page){await page.getByRole('button',{name:'Fill & appearance',exact:true}).click();}
 async function paint(page:Page,hex:string){const field=page.getByRole('textbox',{name:'Hex colour',exact:true});await field.fill(hex);await field.press('Enter');}
 async function shape(page:Page){await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,30,40],strokeColor:e.drawingColor,strokeWidth:1.5}),'Rectangle');});}
 const state=(page:Page)=>page.evaluate(()=>{const e=(window as any).__vectora,s=e.selected;return {stroke:s?.strokeColor?.toCSS(true),fill:s?.fillColor?.toCSS(true),opacity:s?.opacity,fillColour:e.fillColor,fillOpacity:e.fillOpacity,noFill:e.noFill};});
 test('Colour docks alongside the canvas, toggles with other panels and closes with Escape',async({page})=>{
- await ready(page);await open(page);await expect(page.getByRole('region',{name:'Colour',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Colour',exact:true})).toHaveAttribute('aria-expanded','true');
+ await ready(page);await open(page);await expect(page.getByRole('region',{name:'Fill & appearance',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Fill & appearance',exact:true})).toHaveAttribute('aria-expanded','true');
  await page.getByRole('button',{name:'Layers',exact:true}).click();await expect(page.locator('#colour-panel')).toBeHidden();await open(page);await expect(page.locator('#primary-layers-panel')).toBeHidden();
- await page.getByRole('textbox',{name:'Hex colour',exact:true}).focus();await page.keyboard.press('Escape');await expect(page.locator('#colour-panel')).toBeHidden();await expect(page.getByRole('button',{name:'Colour',exact:true})).toBeFocused();
+ await page.getByRole('textbox',{name:'Hex colour',exact:true}).focus();await page.keyboard.press('Escape');await expect(page.locator('#colour-panel')).toBeHidden();await expect(page.getByRole('button',{name:'Fill & appearance',exact:true})).toBeFocused();
 });
 test('Colour and opacity edit artwork with undo and survive themes and document roundtrips',async({page})=>{
  await ready(page);await shape(page);await open(page);await paint(page,'#8235DC');expect((await state(page)).stroke).toBe('#8235dc');expect((await state(page)).fill).toBeUndefined();
@@ -49,7 +49,7 @@ test('The picker matches the reference, fits both themes and remains usable on n
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);await open(page);await paint(page,'#8235DC');
  await page.screenshot({path:'test-results/colour-panel-dark.png'});
  const style=()=>page.locator('#colour-panel').evaluate(el=>({background:getComputedStyle(el).backgroundColor,width:el.getBoundingClientRect().width}));const dark=await style();
- const ref=await context.newPage();ref.on('pageerror',e=>errors.push(e.message));await ref.goto(DEV+'/reference/design-system.html');await ref.getByRole('button',{name:'Colour',exact:true}).click();await expect(ref.locator('#colour-panel')).toBeVisible();expect(await ref.locator('#colour-panel').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(dark.background);await ref.close();
+ const ref=await context.newPage();ref.on('pageerror',e=>errors.push(e.message));await ref.goto(DEV+'/reference/design-system.html');await ref.getByRole('button',{name:'Fill & appearance',exact:true}).click();await expect(ref.locator('#colour-panel')).toBeVisible();expect(await ref.locator('#colour-panel').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(dark.background);await ref.close();
  await page.evaluate(()=>{document.documentElement.dataset.theme='light';(window as any).__vectora.refreshTheme();});expect((await style()).background).not.toBe(dark.background);await page.screenshot({path:'test-results/colour-panel-light.png'});
  for(const width of [600,375]){await page.setViewportSize({width,height:700});const rect=await page.locator('#colour-panel').boundingBox();expect(rect!.x).toBeGreaterThanOrEqual(44);expect(rect!.x+rect!.width).toBeLessThanOrEqual(width-44);await expect(page.locator('#colour-hex')).toBeVisible();const overflow=await page.locator('.colour-panel-body').evaluate(el=>el.scrollWidth>el.clientWidth);expect(overflow).toBe(false);}
  expect(errors).toEqual([]);

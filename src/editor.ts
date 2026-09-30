@@ -1,3 +1,4 @@
+import {applyFillPaint,refreshFillPaint,validateFillPaint,paintColour,type FillPaint} from './fillPaint';
 import type { GridType } from './gridGeometry';
 import { applyArtworkTheme, artworkSnapshot, artworkColor } from './shapeStyles';
 import paper from 'paper';
@@ -54,10 +55,12 @@ export class CADEditor {
   private styleForLayer(item:Shape,layer:paper.Layer):void {
     // Resolve Paper's lazy colour values before replacing or clearing them.
     void item.fillColor;void item.strokeColor;
+    const preservedPaint=layerRole(layer)==='artwork'&&item.data.fillPaint&&item.fillColor?.type==='gradient'?item.fillColor.clone():null;
     const role=layerRole(layer),color=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(role).color).trim());
     if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
     else if(item.data.text||(role==='engrave'&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
     else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=item.data.dimension?1:1.5;item.strokeScaling=false;}
+    if(role==='artwork'&&item.data.fillPaint){if(preservedPaint){item.fillColor=preservedPaint;refreshFillPaint(item);}else applyFillPaint(item,item.data.fillPaint);return;}
     if(role==='artwork'&&item.data.customColour){if(item.strokeColor)item.strokeColor=new paper.Color(item.data.customColour);if(item.fillColor)item.fillColor=new paper.Color(item.data.customColour);}
   }
   private insertDrawing(item:Shape,layer=this.drawingLayer()):void {item.data.role=layerRole(layer);this.styleForLayer(item,layer);layer.addChild(item);}
@@ -70,6 +73,7 @@ export class CADEditor {
   tool:ToolName='select';
   fillColor='#FF0000';
   fillOpacity=1;
+  fillPaint:FillPaint={kind:'colour',colour:'#FF0000',opacity:1};
   noFill=true;
   snappingEnabled=true;
   snapToGridEnabled=true;
@@ -318,19 +322,28 @@ export class CADEditor {
   setFillColor(color:string):void {
     if(color==='none'){this.noFill=true;this.changed();return;}
     if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Enter a six-digit hex colour, such as #2678A8.');
-    this.noFill=false;this.fillColor=color.toUpperCase();this.changed();
+    this.noFill=false;this.fillColor=color.toUpperCase();this.fillPaint={kind:'colour',colour:this.fillColor,opacity:this.fillOpacity};this.changed();
   }
   setPaint(color:string,opacity:number,applySelection=false):void {
     if(!/^#[0-9a-f]{6}$/i.test(color)||!Number.isFinite(opacity)||opacity<0||opacity>1)throw new Error('Enter a valid colour and opacity.');
-    this.fillColor=color.toUpperCase();this.fillOpacity=opacity;this.noFill=false;
+    this.fillColor=color.toUpperCase();this.fillOpacity=opacity;this.noFill=false;this.fillPaint={kind:'colour',colour:this.fillColor,opacity};
     const items=applySelection&&!this.hasPendingGesture&&!this.textEditing?this.selectedItems.filter(item=>item.data.role==='artwork'&&item.visible&&!item.locked&&this.isEditable(item)):[];
     if(!items.length){this.changed();return;}
     const before=this.snapshot();
     for(const item of items){
       const visit=(child:paper.Item):void=>{if(child.strokeColor)child.strokeColor=new paper.Color(color);if(child.fillColor)child.fillColor=new paper.Color(color);child.children?.forEach(visit);};
-      visit(item);item.opacity=opacity;item.data.customColour=color.toUpperCase();
+      visit(item);delete item.data.fillPaint;item.opacity=opacity;item.data.customColour=color.toUpperCase();
       if(item.data.regionFill)item.data.regionFillColor=color.toUpperCase();
     }
+    this.commit(before);
+  }
+  setFillPaint(value:FillPaint,applySelection=false):void {
+    const paint=validateFillPaint(value);
+    if(paint.kind==='colour'){this.setPaint(paint.colour,paint.opacity,applySelection);return;}
+    this.fillPaint=paint;this.fillColor=paintColour(paint);this.fillOpacity=paint.opacity;this.noFill=false;
+    const items=applySelection&&!this.hasPendingGesture&&!this.textEditing?this.selectedItems.filter(item=>item.data.role==='artwork'&&item.fillColor&&item.visible&&!item.locked&&this.isEditable(item)):[];
+    if(!items.length){this.changed();return;}const before=this.snapshot();
+    for(const item of items)applyFillPaint(item,paint);
     this.commit(before);
   }
   fillAt(point:paper.Point):void {
@@ -348,7 +361,7 @@ export class CADEditor {
       const index=painted.length?painted[painted.length-1].index+1:0;
       layer.insertChild(index,region);this.selected=region;
     }
-    if(this.selected)this.selected.opacity=this.fillOpacity;
+    if(this.selected){if(this.selected.data.role==='artwork')applyFillPaint(this.selected,this.fillPaint);else this.selected.opacity=this.fillOpacity;}
     this.commit(before);
   }
   private clearFillAt(point:paper.Point):void {
@@ -374,11 +387,11 @@ export class CADEditor {
     for(const {item,remainder} of plans){
       if(remainder){
         remainder.style=item.style;remainder.opacity=item.opacity;remainder.strokeColor=null;
-        remainder.data={uid:item.strokeColor?crypto.randomUUID():item.data.uid,name:'Colour fill',role:item.data.role,regionFill:true,regionFillColor:item.fillColor!.toCSS(true)};
+        remainder.data={uid:item.strokeColor?crypto.randomUUID():item.data.uid,name:'Colour fill',role:item.data.role,regionFill:true,regionFillColor:item.data.regionFillColor??item.fillColor!.toCSS(true),fillPaint:item.data.fillPaint?structuredClone(item.data.fillPaint):undefined,customColour:item.data.customColour};
         item.layer.insertChild(item.index,remainder);
       }
       // Keep the original outline intact; only its painted area changes.
-      if(item.strokeColor)item.fillColor=null;else item.remove();
+      if(item.strokeColor){item.fillColor=null;delete item.data.fillPaint;}else item.remove();
     }
     this.selection=this.selection.filter(item=>item.isInserted());this.commit(before);
   }
@@ -458,7 +471,7 @@ export class CADEditor {
       counts.forEach((count,i)=>{
         const contours=paths.slice(offset,offset+count).map(documentPath);offset+=count;
         contours.forEach((contour,part)=>{
-          contour.style=item.style;contour.opacity=item.opacity;contour.strokeColor=item.fillColor??item.strokeColor;contour.fillColor=null;
+          contour.style=item.style;contour.opacity=item.opacity;contour.strokeColor=item.data.role==='artwork'&&item.data.fillPaint?new paper.Color(item.data.customColour):item.fillColor??item.strokeColor;contour.fillColor=null;
           contour.data={uid:crypto.randomUUID(),role:item.data.role,name:`Letter ${text.glyphLabels?.[i]||i+1}${count>1?` · Contour ${part+1}`:''}`,rotationDegrees:item.data.rotationDegrees??0,customColour:item.data.customColour};
           item.parent.insertChild(index++,contour);selection.push(contour);
         });
@@ -509,7 +522,7 @@ export class CADEditor {
     if(!this.canJoinSelection)return;
     const before=this.snapshot(),sources=[...this.selection].sort((a,b)=>a.index-b.index),first=sources[0];
     const joined=new paper.CompoundPath({insert:false,children:sources.flatMap(pathsOf).map(documentPath)});
-    joined.style=first.style;joined.opacity=first.opacity;joined.strokeColor=first.strokeColor??first.fillColor;joined.fillColor=null;
+    joined.style=first.style;joined.opacity=first.opacity;joined.strokeColor=first.strokeColor??(first.data.role==='artwork'&&first.data.fillPaint?new paper.Color(first.data.customColour):first.fillColor);joined.fillColor=null;
     joined.data={uid:crypto.randomUUID(),role:first.data.role,name:'Joined shape',joined:true,customColour:first.data.customColour};
     first.parent.insertChild(first.index,joined);sources.forEach(item=>item.remove());
     this.selected=joined;this.commit(before);
@@ -525,7 +538,7 @@ export class CADEditor {
       if(!(source instanceof paper.CompoundPath)||source.data.text||source.data.dimension||!this.isEditable(source)){selection.push(source);continue;}
       let index=source.index;
       pathsOf(source).forEach((contour,i)=>{
-        const path=documentPath(contour);path.style=source.style;path.opacity=source.opacity;path.strokeColor=source.strokeColor??source.fillColor;path.fillColor=null;
+        const path=documentPath(contour);path.style=source.style;path.opacity=source.opacity;path.strokeColor=source.strokeColor??(source.data.role==='artwork'&&source.data.fillPaint?new paper.Color(source.data.customColour):source.fillColor);path.fillColor=null;
         path.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Shape'} · Path ${i+1}`,rotationDegrees:source.data.rotationDegrees??0,customColour:source.data.customColour};
         source.parent.insertChild(index++,path);selection.push(path);
       });
@@ -548,9 +561,9 @@ export class CADEditor {
     const contours=sources.flatMap(pathsOf),open=contours.filter(path=>!path.closed&&path.segments.length>1);
     const closed=closeNearestPaths(open),retained=contours.filter(path=>!open.includes(path)).map(documentPath);
     const result:Shape=retained.length?new paper.CompoundPath({insert:false,children:[...retained,closed]}):closed;
-    result.style=first.style;result.opacity=first.opacity;result.strokeColor=first.strokeColor??first.fillColor;result.fillColor=null;
+    result.style=first.style;result.opacity=first.opacity;result.strokeColor=first.strokeColor??(first.data.role==='artwork'&&first.data.fillPaint?new paper.Color(first.data.customColour):first.fillColor);result.fillColor=null;
     result.data={...structuredClone(first.data),name:'Closed path'};
-    delete result.data.arc;delete result.data.sides;
+    delete result.data.arc;delete result.data.sides;delete result.data.fillPaint;
     if(sources.length>1)delete result.data.rotationDegrees;
     first.parent.insertChild(first.index,result);
     const unchanged=this.selection.filter(item=>!sources.includes(item));
@@ -706,7 +719,7 @@ export class CADEditor {
     for(const item of [stem,knob,label]){item.data.role='overlay';this.overlays.addChild(item);}
     stem.data.control='rotation-stem';knob.data.control='rotate';
   }
-  private changed():void {const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>applyArtworkTheme(item,themeColour));const signature=this.selectionSignature(),layer=this.selection[0]?.layer;if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);this.layerSelectionSignature=signature;this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
+  private changed():void {const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>{applyArtworkTheme(item,themeColour);refreshFillPaint(item);});const signature=this.selectionSignature(),layer=this.selection[0]?.layer;if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);this.layerSelectionSignature=signature;this.grid.update(paper.view);this.drawOverlay();this.onChange();paper.view.update();}
   private drawOverlay():void {
     // A drawing preview also lives on this layer, so remove selection decorations only.
     for(const child of [...this.overlays.children]) if(child.data.role==='overlay')child.remove();
@@ -920,8 +933,8 @@ export class CADEditor {
       let replacement:Shape|null=null;
       if(plan.remaining?.length){
         replacement=plan.remaining.length===1?plan.remaining[0]:new paper.CompoundPath({children:plan.remaining,insert:false});
-        replacement.style=owner.style;if(owner.fillColor&&!owner.strokeColor)replacement.strokeColor=owner.fillColor;replacement.fillColor=null;
-        replacement.data={...owner.data,name:'Trimmed path'};delete replacement.data.arc;delete replacement.data.sides;delete replacement.data.text;
+        replacement.style=owner.style;if(owner.fillColor&&!owner.strokeColor)replacement.strokeColor=owner.data.role==='artwork'&&owner.data.fillPaint?new paper.Color(owner.data.customColour):owner.fillColor;replacement.fillColor=null;
+        replacement.data={...owner.data,name:'Trimmed path'};delete replacement.data.arc;delete replacement.data.sides;delete replacement.data.text;delete replacement.data.fillPaint;
         owner.parent.insertChild(owner.index,replacement);plan.remaining=null;
       }
       this.selection=this.selection.flatMap(item=>item===owner?(replacement?[replacement]:[]):[item]);

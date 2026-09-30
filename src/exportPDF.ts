@@ -2,6 +2,7 @@ import {jsPDF} from 'jspdf';
 import {svg2pdf} from 'svg2pdf.js';
 import type {Font} from 'opentype.js';
 import {exportImageSource} from './exportImage';
+import {preparePDFPaint} from './pdfPaint';
 let captionFont:Promise<Font>|undefined;
 function loadCaptionFont():Promise<Font> {
  return captionFont??=(async()=>{const response=await fetch(`${import.meta.env.BASE_URL}fonts/Lato-Regular.ttf`);if(!response.ok)throw new Error('Could not load the PDF label font. Try again.');const {parse}=await import('opentype.js');return parse(await response.arrayBuffer());})().catch(error=>{captionFont=undefined;throw error;});
@@ -28,13 +29,13 @@ async function outlineLabels(svg:SVGSVGElement):Promise<void> {
   path.setAttribute('d',d);path.setAttribute('transform',`${text.getAttribute('transform')??''} translate(${x-offset} ${y}) scale(${sx} ${sy})`);text.replaceWith(path);
  }
 }
-/** A single content-fitted vector page. All lettering is exported as vector outlines. */
+/** A content-fitted page. Lettering stays vector; only alpha-gradient fills need raster fallback. */
 export async function exportPDF(contents:string):Promise<Blob> {
  const {svg,width,height}=exportImageSource(contents);
  // jsPDF caps ordinary page dimensions at 14,400 PDF points. Never silently scale or crop.
  if(width>5080||height>5080)throw new Error('PDF is too large at actual size (maximum 5,080 mm per side). Reduce the drawing size or export SVG.');
  const doc=new jsPDF({unit:'mm',format:[width,height],orientation:width>height?'landscape':'portrait',compress:true,putOnlyUsedFonts:true,floatPrecision:12});
- doc.setProperties({title:'Vectora drawing',creator:'Vectora'});await outlineLabels(svg);
+ doc.setProperties({title:'Vectora drawing',creator:'Vectora'});await outlineLabels(svg);await preparePDFPaint(svg);
  svg.setAttribute('width',String(width));svg.setAttribute('height',String(height));
  await svg2pdf(svg,doc,{x:0,y:0,width,height});return doc.output('blob');
 }

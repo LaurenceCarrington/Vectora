@@ -1,4 +1,4 @@
-import {ColourPanel} from './colourPanel';
+import {AppearancePanel} from './appearancePanel';
 import type {ArrangementAction} from './arrangement';
 import type {ShapeOperation} from './shapeOperationGeometry';
 import type { Family } from './generators/catalog';
@@ -38,7 +38,7 @@ function notify(message:string,kind:boolean|AlertKind=false):void {
 function attempt(action:()=>void):void {try{action();}catch(error){notify(error instanceof Error?error.message:String(error),true);}}
 const props=$('#properties-panel'),layers=$('#primary-layers-panel'),colour=$('#colour-panel');
 const colourButton=$<HTMLButtonElement>('[data-colour-trigger]');
-const colourPanel=new ColourPanel(colour,(paint,commit)=>attempt(()=>editor.setPaint(paint.hex,paint.opacity,commit)),()=>{setPanel(colour,false);colourButton.focus();},()=>editor.setFillColor('none'));
+const colourPanel=new AppearancePanel(colour,(paint,commit)=>attempt(()=>editor.setPaint(paint.hex,paint.opacity,commit)),()=>{setPanel(colour,false);colourButton.focus();},()=>editor.setFillColor('none'),(paint,commit)=>attempt(()=>editor.setFillPaint(paint,commit)));
 let colourSelection='',lastFillPaint='';
 const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersButton=$<HTMLButtonElement>('[aria-label="Layers"]');
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});
@@ -240,10 +240,10 @@ function update():void {
   $('.fill-tools').style.setProperty('--fill-colour',editor.fillColor);
   $('.fill-tools').classList.toggle('is-no-fill',editor.noFill);
   const colourItems=editor.selectedItems.filter(item=>item.data.role==='artwork'&&item.visible&&!item.locked&&item.layer.visible&&!item.layer.locked);
-  const signature=colourItems.map(item=>`${item.data.uid}:${item.strokeColor?.toCSS(true)}:${item.fillColor?.toCSS(true)}:${item.opacity}`).join('|');
-  if(signature!==colourSelection){colourSelection=signature;const item=colourItems.at(-1),paint=item?.strokeColor??item?.fillColor;colourPanel.set({hex:paint?'#'+[paint.red,paint.green,paint.blue].map(n=>Math.round(n*255).toString(16).padStart(2,'0')).join(''):editor.fillColor,opacity:item?.opacity??editor.fillOpacity});}
-  else if(lastFillPaint!==`${editor.fillColor}:${editor.fillOpacity}`)colourPanel.set({hex:editor.fillColor,opacity:editor.fillOpacity});
-  lastFillPaint=`${editor.fillColor}:${editor.fillOpacity}`;
+  const signature=colourItems.map(item=>`${item.data.uid}:${item.strokeColor?.toCSS(true)}:${item.fillColor?.toCSS(true)}:${item.opacity}:${JSON.stringify(item.data.fillPaint)}`).join('|');
+  if(signature!==colourSelection){colourSelection=signature;const item=colourItems.at(-1),paint=item?.strokeColor??item?.fillColor;if(item?.data.fillPaint)colourPanel.setAppearance({...item.data.fillPaint,opacity:item.opacity});else if(!item)colourPanel.setAppearance(editor.fillPaint);else colourPanel.set({hex:paint?'#'+[paint.red,paint.green,paint.blue].map(n=>Math.round(n*255).toString(16).padStart(2,'0')).join(''):editor.fillColor,opacity:item?.opacity??editor.fillOpacity});}
+  else if(lastFillPaint!==JSON.stringify(editor.fillPaint))colourPanel.setAppearance(editor.fillPaint);
+  lastFillPaint=JSON.stringify(editor.fillPaint);
   colourPanel.setNoFill(editor.noFill);
   colourPanel.hint(colourItems.length?`Colours ${colourItems.length} selected Artwork ${colourItems.length===1?'object':'objects'} and sets the Fill tool colour.`:'Sets the Fill tool colour. Cut, Engrave and Construction keep their layer colours.');
   for(const button of arrangementButtons){
@@ -347,7 +347,7 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
   ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],
 ] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');
-searchTools.push({id:'colour',label:'Colour',group:'Panels',icon:'palette',keywords:'color picker hex rgb hue saturation brightness opacity fill',run:()=>{setPanel(colour,true);colourButton.focus();}});
+searchTools.push({id:'colour',label:'Fill & appearance',group:'Panels',icon:'palette',keywords:'colour color picker hex rgb hue saturation brightness opacity fill gradient radial linear pattern stripes dots checkerboard crosshatch',run:()=>{setPanel(colour,true);colourButton.focus();}});
 searchTools.push({id:'layers',label:'Layers',group:'Panels',icon:'layers',keywords:'artwork cut engrave construction visibility lock move objects',run:()=>{setPanel(layers,true);layersButton.focus();}},
  {id:'properties',label:'Properties',group:'Panels',icon:'sliders',keywords:'position size width height rotation radius',run:()=>{setPanel(props,true);propertiesButton.focus();}});
 for(const [id,label,selector,keywords,reason] of [

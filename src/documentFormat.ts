@@ -1,3 +1,4 @@
+import {validateFillPaint,type GradientColour} from './fillPaint';
 import paper from 'paper';
 import type {CADEditor} from './editor';
 import type {DocumentSnapshot,ObjectRole,Shape} from './types';
@@ -19,6 +20,19 @@ const tuple=(value:unknown,length:number):number[]=>Array.isArray(value)&&value.
 const id=(value:unknown):string=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value)?value:fail();
 const colour=(value:unknown):string|null=>value===null?null:typeof value==='string'&&/^(#[\da-f]{3,8}|rgba?\([\d.,\s]+\))$/i.test(value)?value:fail();
 
+function savedColour(c:paper.Color|null):unknown {
+ if(!c)return null;if(c.type!=='gradient')return c.toCSS(true);
+ const frame=c as GradientColour;
+ return {type:'gradient',radial:c.gradient.radial,stops:c.gradient.stops.map((s,i)=>({colour:s.color.toCSS(true),opacity:s.color.alpha,offset:s.offset??i/(c.gradient.stops.length-1)})),origin:[frame.origin.x,frame.origin.y],destination:[frame.destination.x,frame.destination.y],highlight:c.highlight?[c.highlight.x,c.highlight.y]:null};
+}
+function restoredColour(value:unknown):paper.Color|null {
+ if(value===null||typeof value==='string'){const c=colour(value);return c?new paper.Color(c):null;}
+ const v=record(value);if(v.type!=='gradient'||!Array.isArray(v.stops)||v.stops.length<2||v.stops.length>8)fail();
+ const stops=v.stops.map((raw:unknown)=>{const s=record(raw),c=new paper.Color(colour(s.colour)??fail()),opacity=number(s.opacity,1),offset=number(s.offset,1);if(opacity<0||offset<0)fail();c.alpha=opacity;return new paper.GradientStop(c,offset);});
+ const origin=tuple(v.origin,2),destination=tuple(v.destination,2),highlight=v.highlight===null?null:tuple(v.highlight,2);
+ return new paper.Color({gradient:{stops,radial:bool(v.radial)},origin:new paper.Point(origin[0],origin[1]),destination:new paper.Point(destination[0],destination[1]),...(highlight?{highlight:new paper.Point(highlight[0],highlight[1])}:{})});
+}
+
 export function documentKey(editor:CADEditor):string {
  const {artwork,cutlines,layers}=editor.snapshot();return JSON.stringify({artwork,cutlines,layers});
 }
@@ -27,7 +41,7 @@ export function encodeDocument(editor:CADEditor):string {
   const item=child as Shape;
   return {kind:item instanceof paper.Path?'path':'compound',contours:pathsOf(item).map(path=>{
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
-  }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:item.fillColor?.toCSS(true)??null,stroke:item.strokeColor?.toCSS(true)??null,width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
+  }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:savedColour(item.fillColor),stroke:savedColour(item.strokeColor),width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
  })}));
  return JSON.stringify({format:'vectora',version:1,units:'mm',activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
 }
@@ -39,6 +53,7 @@ function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string
  if(data.joined!==undefined)out.joined=bool(data.joined);
  if(data.sides!==undefined){out.sides=number(data.sides,64);if(!Number.isInteger(out.sides)||out.sides<3)fail();}
  if(data.regionFill!==undefined)out.regionFill=bool(data.regionFill);
+ if(data.fillPaint!==undefined){try{out.fillPaint=validateFillPaint(data.fillPaint);}catch{fail();}}
  if(data.customColour!==undefined)out.customColour=colour(data.customColour);
  if(data.regionFillColor!==undefined)out.regionFillColor=colour(data.regionFillColor);
  if(data.rasterTrace!==undefined){
@@ -92,7 +107,10 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
     }
     shape=o.kind==='path'?contours[0]:new paper.CompoundPath({insert:false,children:contours});
     shape.data=data;shape.visible=bool(o.visible);shape.locked=bool(o.locked);
-    const fill=colour(style.fill),stroke=colour(style.stroke);shape.fillColor=fill?new paper.Color(fill):null;shape.strokeColor=stroke?new paper.Color(stroke):null;
+    shape.fillColor=restoredColour(style.fill);shape.strokeColor=restoredColour(style.stroke);
+    if(data.role==='artwork'&&data.fillPaint&&data.fillPaint.kind!=='colour'){
+     if(shape.fillColor?.type!=='gradient'||data.fillPaint.kind==='pattern'&&!shape.fillColor.highlight)fail();
+    }
     shape.strokeWidth=number(style.width,10000);if(style.width<0)fail();shape.strokeScaling=bool(style.scaling);
     if(!['nonzero','evenodd'].includes(style.fillRule)||!['butt','round','square'].includes(style.cap)||!['miter','round','bevel'].includes(style.join))fail();
     shape.fillRule=style.fillRule;shape.strokeCap=style.cap;shape.strokeJoin=style.join;shape.miterLimit=number(style.miter,10000);

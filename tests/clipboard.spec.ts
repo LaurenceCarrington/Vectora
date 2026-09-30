@@ -76,7 +76,7 @@ test('Paste rejects locked layers atomically, snaps context placement, and leave
  await ready(page);
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Circle({center:[60,45],radius:8,insert:false}),'Circle');e.copySelection();e.setActiveLayer('cutline');e.cutlines.locked=true;});
  await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+v');expect(await count(page)).toBe(1);
- await expect(page.getByText('Show and unlock Cut Path before drawing.',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Notifications',exact:true}).click();await expect(page.getByText('Show and unlock Cut Path before drawing.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Notifications',exact:true}).click();
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.cutlines.locked=false;e.snappingEnabled=true;e.grid.setType('square');e.pasteSelection(new p.Point(113,67));});
  expect(await page.evaluate(()=>{const s=(window as any).__vectora.selected;return [s.bounds.center.x,s.bounds.center.y,s.data.role];})).toEqual([110,70,'cutline']);
  const title=page.getByRole('textbox',{name:'Project name'});await title.click();await page.keyboard.press('Control+c');await page.keyboard.press('Control+v');expect(await count(page)).toBe(2);await page.keyboard.press('Escape');

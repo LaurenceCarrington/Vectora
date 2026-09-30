@@ -190,7 +190,7 @@ export class NodeEditing {
       const first=documentPath(path),location=first.curves[segment.index].getLocationAtTime(0),second=first.splitAt(location);
       if(!second){first.remove();return;}
       const parts=second===first?[first]:[first,second],parent=owner.parent;let index=owner.index+1;
-      for(const part of parts){part.firstSegment.handleIn=new paper.Point(0,0);part.lastSegment.handleOut=new paper.Point(0,0);part.style=owner.style;if(owner.data.rasterTrace&&owner.fillColor){part.strokeColor=owner.fillColor;part.fillColor=null;}part.data={...structuredClone(owner.data),uid:crypto.randomUUID(),name:'Split path'};delete part.data.arc;delete part.data.sides;delete part.data.joined;parent.insertChild(index++,part);}
+      for(const part of parts){part.firstSegment.handleIn=new paper.Point(0,0);part.lastSegment.handleOut=new paper.Point(0,0);part.style=owner.style;if(owner.data.rasterTrace&&owner.fillColor){part.strokeColor=owner.data.role==='artwork'&&owner.data.fillPaint?new paper.Color(owner.data.customColour):owner.fillColor;part.fillColor=null;}part.data={...structuredClone(owner.data),uid:crypto.randomUUID(),name:'Split path'};delete part.data.arc;delete part.data.sides;delete part.data.joined;if(!part.fillColor)delete part.data.fillPaint;parent.insertChild(index++,part);}
       path.remove();if(owner!==path&&!pathsOf(owner).length)owner.remove();
       this.editor.select(parts[0]);if(parts.length>1)this.editor.select(parts[1],true);this.active=null;
     }else return;
