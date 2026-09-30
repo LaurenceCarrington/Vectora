@@ -1,3 +1,4 @@
+import {ColourPanel} from './colourPanel';
 import type {ArrangementAction} from './arrangement';
 import type {ShapeOperation} from './shapeOperationGeometry';
 import type { Family } from './generators/catalog';
@@ -35,7 +36,10 @@ function notify(message:string,kind:boolean|AlertKind=false):void {
   alerts.show(message,typeof kind==='boolean'?(kind?'error':'information'):kind);
 }
 function attempt(action:()=>void):void {try{action();}catch(error){notify(error instanceof Error?error.message:String(error),true);}}
-const props=$('#properties-panel'),layers=$('#primary-layers-panel');
+const props=$('#properties-panel'),layers=$('#primary-layers-panel'),colour=$('#colour-panel');
+const colourButton=$<HTMLButtonElement>('[data-colour-trigger]');
+const colourPanel=new ColourPanel(colour,(paint,commit)=>attempt(()=>editor.setPaint(paint.hex,paint.opacity,commit)),()=>{setPanel(colour,false);colourButton.focus();},()=>editor.setFillColor('none'));
+let colourSelection='',lastFillPaint='';
 const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersButton=$<HTMLButtonElement>('[aria-label="Layers"]');
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});
 const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor,()=>{closeMenus();selectionContextMenu.close();});
@@ -102,15 +106,16 @@ function updatePropertiesContent():void {
 }
 function setPanel(panel:HTMLElement,open:boolean):void {
   updatePropertiesContent();
-  props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;
+  props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;colour.hidden=panel!==colour||!open;
   if(panel===layers&&open)layersPanel.open();
-  for(const [button,target] of [[propertiesButton,props],[layersButton,layers]] as const){button.classList.toggle('selected',!target.hidden);button.setAttribute('aria-pressed',String(!target.hidden));button.setAttribute('aria-expanded',String(!target.hidden));}
+  for(const [button,target] of [[propertiesButton,props],[layersButton,layers],[colourButton,colour]] as const){button.classList.toggle('selected',!target.hidden);button.setAttribute('aria-pressed',String(!target.hidden));button.setAttribute('aria-expanded',String(!target.hidden));}
   selectionMenu.render();selectionContextMenu.refresh();
 }
 setPanel(props,false);
 propertiesButton.setAttribute('aria-controls','properties-panel');
 propertiesButton.onclick=()=>setPanel(props,props.hidden);
 layersButton.onclick=()=>setPanel(layers,layers.hidden);
+colourButton.onclick=()=>{if(!inlineText.finish(false,false))return;setPanel(colour,colour.hidden);};
 $('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
 const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),fillMenu=$('#primary-fill-menu'),generatorMenu=$('#primary-generators-menu');
 const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[fillMenu,$('[data-fill-trigger]')],[generatorMenu,$('[data-generator-trigger]')]] as const;
@@ -239,6 +244,13 @@ function update():void {
   $('[data-fill-trigger]').setAttribute('aria-pressed',String(editor.tool==='fill'));
   $('.fill-tools').style.setProperty('--fill-colour',editor.fillColor);
   $('.fill-tools').classList.toggle('is-no-fill',editor.noFill);
+  const colourItems=editor.selectedItems.filter(item=>item.data.role==='artwork'&&item.visible&&!item.locked&&item.layer.visible&&!item.layer.locked);
+  const signature=colourItems.map(item=>`${item.data.uid}:${item.strokeColor?.toCSS(true)}:${item.fillColor?.toCSS(true)}:${item.opacity}`).join('|');
+  if(signature!==colourSelection){colourSelection=signature;const item=colourItems.at(-1),paint=item?.strokeColor??item?.fillColor;colourPanel.set({hex:paint?'#'+[paint.red,paint.green,paint.blue].map(n=>Math.round(n*255).toString(16).padStart(2,'0')).join(''):editor.fillColor,opacity:item?.opacity??editor.fillOpacity});}
+  else if(lastFillPaint!==`${editor.fillColor}:${editor.fillOpacity}`)colourPanel.set({hex:editor.fillColor,opacity:editor.fillOpacity});
+  lastFillPaint=`${editor.fillColor}:${editor.fillOpacity}`;
+  colourPanel.setNoFill(editor.noFill);
+  colourPanel.hint(colourItems.length?`Colours ${colourItems.length} selected Artwork ${colourItems.length===1?'object':'objects'} and sets the Fill tool colour.`:'Sets the Fill tool colour. Cut, Engrave and Construction keep their layer colours.');
   fillPicker.value=editor.fillColor;if(document.activeElement!==fillHex)fillHex.value=editor.fillColor;
   fillMenu.querySelectorAll<HTMLButtonElement>('[data-fill-colour]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.fillColour?.toLowerCase()===(editor.noFill?'none':editor.fillColor.toLowerCase()))));
   for(const button of arrangementButtons){
@@ -342,6 +354,7 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
   ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],
 ] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');
+searchTools.push({id:'colour',label:'Colour',group:'Panels',icon:'palette',keywords:'color picker hex rgb hue saturation brightness opacity fill',run:()=>{setPanel(colour,true);colourButton.focus();}});
 searchTools.push({id:'layers',label:'Layers',group:'Panels',icon:'layers',keywords:'artwork cut engrave construction visibility lock move objects',run:()=>{setPanel(layers,true);layersButton.focus();}},
  {id:'properties',label:'Properties',group:'Panels',icon:'sliders',keywords:'position size width height rotation radius',run:()=>{setPanel(props,true);propertiesButton.focus();}});
 for(const [id,label,selector,keywords,reason] of [

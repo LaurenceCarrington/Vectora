@@ -39,6 +39,7 @@ function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string
  if(data.joined!==undefined)out.joined=bool(data.joined);
  if(data.sides!==undefined){out.sides=number(data.sides,64);if(!Number.isInteger(out.sides)||out.sides<3)fail();}
  if(data.regionFill!==undefined)out.regionFill=bool(data.regionFill);
+ if(data.customColour!==undefined)out.customColour=colour(data.customColour);
  if(data.regionFillColor!==undefined)out.regionFillColor=colour(data.regionFillColor);
  if(data.rasterTrace!==undefined){
   const trace=record(data.rasterTrace);if(!['outline','centerline','fill'].includes(trace.mode))fail();out.rasterTrace={mode:trace.mode};

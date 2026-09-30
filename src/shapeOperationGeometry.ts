@@ -34,7 +34,7 @@ export function buildShapeOperation(sources:readonly Shape[],operation:ShapeOper
   }
   if(pathsOf(result).some(p=>!p.closed||p.segments.some(s=>[s.point,s.point.add(s.handleIn),s.point.add(s.handleOut)].some(q=>!validNumber(q.x)||!validNumber(q.y)))))throw new Error('The result exceeds the document bounds. Move the shapes closer to the origin.');
   result.style=base.style;result.opacity=base.opacity;result.fillRule='evenodd';
-  result.data={uid:crypto.randomUUID(),role:base.data.role,name:OPERATION_LABELS[operation],rotationDegrees:0};
+  result.data={uid:crypto.randomUUID(),role:base.data.role,name:OPERATION_LABELS[operation],rotationDegrees:0,customColour:base.data.customColour};
   // Preserve fill semantics when the result is transferred to another document layer.
   if(base.data.regionFill){result.data.regionFill=true;result.data.regionFillColor=base.data.regionFillColor;}
   if(base.data.rasterTrace?.mode==='fill')result.data.rasterTrace={mode:'fill'};

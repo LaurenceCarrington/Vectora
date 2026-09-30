@@ -58,6 +58,7 @@ export class CADEditor {
     if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
     else if(item.data.text||(role==='engrave'&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
     else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=item.data.dimension?1:1.5;item.strokeScaling=false;}
+    if(role==='artwork'&&item.data.customColour){if(item.strokeColor)item.strokeColor=new paper.Color(item.data.customColour);if(item.fillColor)item.fillColor=new paper.Color(item.data.customColour);}
   }
   private insertDrawing(item:Shape,layer=this.drawingLayer()):void {item.data.role=layerRole(layer);this.styleForLayer(item,layer);layer.addChild(item);}
   get selectedItems():readonly Shape[] {return this.selection;}
@@ -68,6 +69,7 @@ export class CADEditor {
   get selectionBounds():paper.Rectangle|null {return this.selection.reduce<paper.Rectangle|null>((bounds,item)=>bounds?bounds.unite(this.objectBounds(item)):this.objectBounds(item),null);}
   tool:ToolName='select';
   fillColor='#FF0000';
+  fillOpacity=1;
   noFill=true;
   snappingEnabled=true;
   snapToGridEnabled=true;
@@ -318,6 +320,19 @@ export class CADEditor {
     if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Enter a six-digit hex colour, such as #2678A8.');
     this.noFill=false;this.fillColor=color.toUpperCase();this.changed();
   }
+  setPaint(color:string,opacity:number,applySelection=false):void {
+    if(!/^#[0-9a-f]{6}$/i.test(color)||!Number.isFinite(opacity)||opacity<0||opacity>1)throw new Error('Enter a valid colour and opacity.');
+    this.fillColor=color.toUpperCase();this.fillOpacity=opacity;this.noFill=false;
+    const items=applySelection&&!this.hasPendingGesture&&!this.textEditing?this.selectedItems.filter(item=>item.data.role==='artwork'&&item.visible&&!item.locked&&this.isEditable(item)):[];
+    if(!items.length){this.changed();return;}
+    const before=this.snapshot();
+    for(const item of items){
+      const visit=(child:paper.Item):void=>{if(child.strokeColor)child.strokeColor=new paper.Color(color);if(child.fillColor)child.fillColor=new paper.Color(color);child.children?.forEach(visit);};
+      visit(item);item.opacity=opacity;item.data.customColour=color.toUpperCase();
+      if(item.data.regionFill)item.data.regionFillColor=color.toUpperCase();
+    }
+    this.commit(before);
+  }
   fillAt(point:paper.Point):void {
     if(this.noFill){this.clearFillAt(point);return;}
     const layer=this.drawingLayer();
@@ -325,7 +340,7 @@ export class CADEditor {
     if(!region){this.onMessage('Click inside an enclosed area. Open gaps cannot be filled.','information');return;}
     const before=this.snapshot();
     const existing=this.objects.find(item=>item.data.regionFill&&this.isEditable(item)&&item.layer===layer&&item.compare(region));
-    if(existing){region.remove();existing.fillColor=new paper.Color(this.fillColor);existing.data.regionFillColor=this.fillColor;this.styleForLayer(existing,layer);this.selected=existing;}
+    if(existing){region.remove();existing.fillColor=new paper.Color(this.fillColor);existing.data.regionFillColor=this.fillColor;delete existing.data.customColour;this.styleForLayer(existing,layer);this.selected=existing;}
     else{
       region.data={uid:crypto.randomUUID(),name:'Colour fill',role:layerRole(layer),regionFill:true,regionFillColor:this.fillColor};region.fillColor=new paper.Color(this.fillColor);region.strokeColor=null;
       this.styleForLayer(region,layer);
@@ -333,6 +348,7 @@ export class CADEditor {
       const index=painted.length?painted[painted.length-1].index+1:0;
       layer.insertChild(index,region);this.selected=region;
     }
+    if(this.selected)this.selected.opacity=this.fillOpacity;
     this.commit(before);
   }
   private clearFillAt(point:paper.Point):void {
@@ -357,7 +373,7 @@ export class CADEditor {
     const before=this.snapshot();
     for(const {item,remainder} of plans){
       if(remainder){
-        remainder.style=item.style;remainder.strokeColor=null;
+        remainder.style=item.style;remainder.opacity=item.opacity;remainder.strokeColor=null;
         remainder.data={uid:item.strokeColor?crypto.randomUUID():item.data.uid,name:'Colour fill',role:item.data.role,regionFill:true,regionFillColor:item.fillColor!.toCSS(true)};
         item.layer.insertChild(item.index,remainder);
       }
@@ -442,8 +458,8 @@ export class CADEditor {
       counts.forEach((count,i)=>{
         const contours=paths.slice(offset,offset+count).map(documentPath);offset+=count;
         contours.forEach((contour,part)=>{
-          contour.style=item.style;contour.strokeColor=item.fillColor??item.strokeColor;contour.fillColor=null;
-          contour.data={uid:crypto.randomUUID(),role:item.data.role,name:`Letter ${text.glyphLabels?.[i]||i+1}${count>1?` · Contour ${part+1}`:''}`,rotationDegrees:item.data.rotationDegrees??0};
+          contour.style=item.style;contour.opacity=item.opacity;contour.strokeColor=item.fillColor??item.strokeColor;contour.fillColor=null;
+          contour.data={uid:crypto.randomUUID(),role:item.data.role,name:`Letter ${text.glyphLabels?.[i]||i+1}${count>1?` · Contour ${part+1}`:''}`,rotationDegrees:item.data.rotationDegrees??0,customColour:item.data.customColour};
           item.parent.insertChild(index++,contour);selection.push(contour);
         });
       });
@@ -493,8 +509,8 @@ export class CADEditor {
     if(!this.canJoinSelection)return;
     const before=this.snapshot(),sources=[...this.selection].sort((a,b)=>a.index-b.index),first=sources[0];
     const joined=new paper.CompoundPath({insert:false,children:sources.flatMap(pathsOf).map(documentPath)});
-    joined.style=first.style;joined.strokeColor=first.strokeColor??first.fillColor;joined.fillColor=null;
-    joined.data={uid:crypto.randomUUID(),role:first.data.role,name:'Joined shape',joined:true};
+    joined.style=first.style;joined.opacity=first.opacity;joined.strokeColor=first.strokeColor??first.fillColor;joined.fillColor=null;
+    joined.data={uid:crypto.randomUUID(),role:first.data.role,name:'Joined shape',joined:true,customColour:first.data.customColour};
     first.parent.insertChild(first.index,joined);sources.forEach(item=>item.remove());
     this.selected=joined;this.commit(before);
   }
@@ -509,8 +525,8 @@ export class CADEditor {
       if(!(source instanceof paper.CompoundPath)||source.data.text||source.data.dimension||!this.isEditable(source)){selection.push(source);continue;}
       let index=source.index;
       pathsOf(source).forEach((contour,i)=>{
-        const path=documentPath(contour);path.style=source.style;path.strokeColor=source.strokeColor??source.fillColor;path.fillColor=null;
-        path.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Shape'} · Path ${i+1}`,rotationDegrees:source.data.rotationDegrees??0};
+        const path=documentPath(contour);path.style=source.style;path.opacity=source.opacity;path.strokeColor=source.strokeColor??source.fillColor;path.fillColor=null;
+        path.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Shape'} · Path ${i+1}`,rotationDegrees:source.data.rotationDegrees??0,customColour:source.data.customColour};
         source.parent.insertChild(index++,path);selection.push(path);
       });
       source.remove();
@@ -532,7 +548,7 @@ export class CADEditor {
     const contours=sources.flatMap(pathsOf),open=contours.filter(path=>!path.closed&&path.segments.length>1);
     const closed=closeNearestPaths(open),retained=contours.filter(path=>!open.includes(path)).map(documentPath);
     const result:Shape=retained.length?new paper.CompoundPath({insert:false,children:[...retained,closed]}):closed;
-    result.style=first.style;result.strokeColor=first.strokeColor??first.fillColor;result.fillColor=null;
+    result.style=first.style;result.opacity=first.opacity;result.strokeColor=first.strokeColor??first.fillColor;result.fillColor=null;
     result.data={...structuredClone(first.data),name:'Closed path'};
     delete result.data.arc;delete result.data.sides;
     if(sources.length>1)delete result.data.rotationDegrees;
