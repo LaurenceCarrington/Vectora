@@ -1126,7 +1126,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 }
 
 /* Internal colour picker: shared dock, mouse/touch and keyboard controls. */
-.colour-panel { overflow:hidden; --panel-control-size:24px; }
+.colour-panel { overflow:hidden; --panel-control-size:24px; --colour-swatch-size:28px; }
 .colour-panel .layers-header { flex-basis:48px; padding-bottom:8px; margin-bottom:8px; }
 .colour-panel .panel-title { font-size:16px; line-height:22px; }
 .colour-panel .panel-icon svg { width:14px; height:14px; }
@@ -1141,20 +1141,23 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .colour-panel input.colour-alpha { background:linear-gradient(to right,transparent,var(--picker-colour)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/10px 10px; }
 .colour-panel input[type="range"]::-webkit-slider-thumb { appearance:none; width:14px; height:14px; border-radius:50%; border:2px solid #fff; background:var(--picker-colour); box-shadow:0 0 0 1px #0008; }
 .colour-panel input[type="range"]::-moz-range-thumb { width:10px; height:10px; border-radius:50%; border:2px solid #fff; background:var(--picker-colour); box-shadow:0 0 0 1px #0008; }
+.colour-panel input.colour-alpha::-webkit-slider-thumb { background:linear-gradient(var(--picker-paint),var(--picker-paint)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/6px 6px; }
+.colour-panel input.colour-alpha::-moz-range-thumb { background:linear-gradient(var(--picker-paint),var(--picker-paint)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/6px 6px; }
 .colour-percent { display:flex; align-items:center; gap:4px; color:var(--menu-muted); }
 .colour-percent input { width:52px; padding:2px; text-align:right; }
 .colour-hex-row { display:flex; align-items:center; gap:6px; padding-top:6px; border-top:1px solid var(--menu-border); }
 .colour-hex-row input { width:100%; height:30px; padding:6px; font:11px var(--font-mono,monospace); text-transform:uppercase; }
-.colour-preview { flex:0 0 28px; height:28px; border:1px solid var(--menu-border); background:repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/10px 10px; }
+.colour-preview { flex:0 0 var(--colour-swatch-size); height:var(--colour-swatch-size); border:1px solid var(--menu-border); background:repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/10px 10px; }
 .colour-preview span { display:block; height:100%; background:var(--picker-colour); opacity:var(--picker-opacity); }
 .colour-rgb { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
 .colour-rgb label { display:flex; flex-direction:column; gap:2px; color:var(--menu-muted); font-size:11px; }
 .colour-rgb input { width:100%; padding:5px; font-size:11px; }
-.colour-swatches { display:grid; grid-template-columns:repeat(6,14px); gap:8px; padding:6px; }
+.colour-swatches { display:grid; grid-template-columns:repeat(auto-fill,var(--colour-swatch-size)); gap:8px; padding:6px; }
 .colour-swatch { aspect-ratio:1; width:100%; min-width:0; padding:0; cursor:pointer; border:1px solid var(--menu-muted); background:var(--swatch); border-radius:0; }
 .colour-none { background:linear-gradient(135deg,transparent calc(50% - .5px),#ef6060 calc(50% - .5px) calc(50% + .5px),transparent calc(50% + .5px)),var(--menu-hover); }
 .colour-swatch:hover { outline:1px solid var(--menu-foreground); outline-offset:2px; }
 .colour-panel :is(input,button,.colour-plane):focus-visible { outline:2px solid var(--chrome-accent); outline-offset:3px; }
+.colour-panel .colour-rgb input:focus-visible { outline-offset:-2px; }
 .colour-panel .colour-error { margin:0; font-size:11px; color:var(--menu-foreground); }
 .colour-panel .colour-hint { font-size:11px; line-height:1.4; margin:0; }
 
@@ -2539,7 +2542,7 @@ import {ColourPanel} from '../src/colourPanel.ts';
 const colourDock=document.querySelector('#colour-panel'),colourTrigger=document.querySelector('[data-colour-trigger]');
 const hideColour=()=>{colourDock.hidden=true;colourTrigger.classList.remove('selected');colourTrigger.setAttribute('aria-expanded','false');colourTrigger.setAttribute('aria-pressed','false');};
 const picker=new ColourPanel(colourDock,()=>{},()=>{hideColour();colourTrigger.focus();},()=>{});
-picker.hint('Compact internal picker with controls and spacing reduced by 2–4px within the unchanged 300px dock, for selected Artwork and Colour fill. Hue, opacity, hex/RGB and up to 12 session swatches. Swatches are 14px squares with a 6px inset that keeps hover, focus and selection outlines inside the scrolling panel. Operation layer colours stay fixed.');
+picker.hint('Compact internal picker with controls and spacing reduced by 2–4px within the unchanged 300px dock, for selected Artwork and Colour fill. Hue, opacity, hex/RGB and up to 12 session swatches. Swatches match the 28px hex preview and wrap within a 6px inset. RGB focus outlines sit inside their fields to avoid clipping. The opacity handle shows the selected alpha over a checkerboard while retaining its visible border. Operation layer colours stay fixed.');
 picker.set({hex:'#8235DC',opacity:1});
 colourTrigger.onclick=()=>{const open=colourDock.hidden;document.querySelectorAll('.preview-inner > .layers-panel').forEach(panel=>panel.hidden=true);document.querySelectorAll('.right-toolbar .tool').forEach(button=>{button.classList.remove('selected');button.setAttribute('aria-pressed','false');});colourDock.hidden=!open;colourTrigger.classList.toggle('selected',open);colourTrigger.setAttribute('aria-expanded',String(open));colourTrigger.setAttribute('aria-pressed',String(open));};
 document.querySelectorAll('.right-toolbar .tool:not([data-colour-trigger])').forEach(button=>button.addEventListener('click',hideColour));
