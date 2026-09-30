@@ -17,6 +17,7 @@ agents.md
 /.agents/
 /.codex/
 /.worktrees/
+/docs/superpowers/
 
 # Local environment files; keep shareable examples
 .env
