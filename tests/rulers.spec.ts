@@ -32,7 +32,7 @@ test('millimetre rulers track document coordinates through pan, zoom and resize'
     await expect.poll(()=>page.locator('.ruler-bottom').evaluate(el=>el.querySelectorAll('line').length)).toBeGreaterThan(5);
     const bounds=await page.locator('.ruler-bottom').boundingBox();
     expect(bounds!.x).toBe(64);expect(bounds!.x+bounds!.width).toBe(width-44);expect(bounds!.height).toBe(20);expect(bounds!.y).toBe(702);
-    const left=await page.locator('.ruler-left').boundingBox();expect(left!.x).toBe(44);expect(left!.y).toBe(88);expect(left!.width).toBe(20);expect(left!.y+left!.height).toBe(bounds!.y);
+    const left=await page.locator('.ruler-left').boundingBox();expect(left!.x).toBe(44);expect(left!.y).toBe(120);expect(left!.width).toBe(20);expect(left!.y+left!.height).toBe(bounds!.y);
   }
   expect(errors).toEqual([]);
 });

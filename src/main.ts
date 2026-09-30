@@ -41,14 +41,14 @@ const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);laye
 const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor,()=>{closeMenus();selectionContextMenu.close();});
 const selectionContextMenu=new SelectionContextMenu(editor,()=>closeMenus());
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
-const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>inlineText.finish(false,false),notify);
+const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>{if(!inlineText.finish(false,false))return false;closeMenus();selectionContextMenu.close();selectionMenu.popouts.close();return true;},notify);
 const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElement>('#text-property-size');
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
   const selected=editor.selected;if(!selected?.data.text)return;
   const uid=selected.data.uid,fontId=textFontSelect.value,size=textSize.valueAsNumber,request=++textStyleRequest;
   textFontSelect.disabled=true;textSize.disabled=true;$<HTMLButtonElement>('#edit-text').disabled=true;
-  try{await loadTextFont(fontId);const current=editor.selected;if(request!==textStyleRequest||editor.textEditing||!current||current.data.uid!==uid)return;editor.saveText(current.data.text.content,size,null,uid,fontId);}
+  try{await loadTextFont(fontId);const current=editor.selected;if(request!==textStyleRequest||editor.textEditing||current!==selected)return;editor.saveText(current.data.text.content,size,null,uid,fontId);}
   catch(error){notify((error as Error).message,true);update();}
   finally{if(request===textStyleRequest){textFontSelect.disabled=false;textSize.disabled=false;$<HTMLButtonElement>('#edit-text').disabled=false;}}
 }

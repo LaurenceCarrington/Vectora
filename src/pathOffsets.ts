@@ -71,7 +71,7 @@ export class PathOffsets {
  private position():void {
   if(!this.dialog.open)return;
   const viewport=window.visualViewport,left=(viewport?.offsetLeft??0)+4,right=left+(viewport?.width??innerWidth)-8;
-  const top=Math.max((viewport?.offsetTop??0)+4,document.querySelector('.top-toolbar')?.getBoundingClientRect().bottom??0);
+  const top=Math.max((viewport?.offsetTop??0)+4,(document.querySelector('.document-tabs')??document.querySelector('.top-toolbar'))?.getBoundingClientRect().bottom??0);
   const bottom=Math.min((viewport?.offsetTop??0)+(viewport?.height??innerHeight)-4,document.querySelector('.ruler-bottom')?.getBoundingClientRect().top??innerHeight);
   this.dialog.style.maxHeight=`${Math.max(80,bottom-top)}px`;this.dialog.style.maxWidth=`${right-left}px`;
   const anchor=this.anchor?.getBoundingClientRect(),r=this.dialog.getBoundingClientRect();

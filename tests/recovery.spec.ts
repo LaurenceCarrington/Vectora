@@ -15,8 +15,8 @@ test('Native refresh confirmation can cancel; accepting restores the complete wo
  await reload(page);await expect(title).toHaveText('Recovered design.vectora');
  const actual=await page.evaluate(async()=>JSON.parse((await import('/src/documentFormat.ts' as string)).encodeDocument((window as any).__vectora)));expect(actual).toEqual(expected);
  await expect(page.locator('.toast-copy')).toContainText('Restored your last document');
- // Recovery must not claim the file was saved: New still protects the unsaved drawing.
- await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'New document',exact:true}).click();await expect(page.getByRole('dialog',{name:'New document?',exact:true})).toBeVisible();
+ // Recovery must not claim the file was saved: closing still protects the unsaved drawing.
+ await page.getByRole('button',{name:'Close Recovered design.vectora',exact:true}).click();await expect(page.getByRole('dialog',{name:'Close document?',exact:true})).toBeVisible();
 });
 
 test('Text drafts recover as editable text and a cancelled drawing gesture never replaces the last committed state',async({page})=>{
@@ -27,12 +27,12 @@ test('Text drafts recover as editable text and a cancelled drawing gesture never
  await page.evaluate(()=>{const e=(window as any).__vectora;e.select(null);e.setTool('rectangle');});await page.mouse.move(600,500);await page.mouse.down();await page.mouse.move(750,630,{steps:4});await reload(page);await page.mouse.up();expect(await count(page)).toBe(1);
 });
 
-test('New document and Open replace recovery; undo is cached and saved documents keep their clean state',async({page})=>{
+test('New document and Open retain other recovery tabs; undo is cached and saved documents stay clean',async({page})=>{
  await page.addInitScript(()=>{(window as any).showSaveFilePicker=async()=>({name:'Saved.vectora',createWritable:async()=>({write:async()=>{},close:async()=>{},abort:async()=>{}})});});
  await page.goto(DEV);await ready(page);await shape(page);await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+s');await expect(page.locator('[data-document-name]')).toHaveText('Saved.vectora');await expect(page).toHaveTitle('Vectora');await reload(page);expect(await count(page)).toBe(1);
  await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'New document',exact:true}).click();await expect(page.locator('#document-dialog')).toBeHidden();await expect.poll(()=>count(page)).toBe(0);await reload(page);expect(await count(page)).toBe(0);
  await shape(page);const contents=await page.evaluate(async()=>(await import('/src/documentFormat.ts' as string)).encodeDocument((window as any).__vectora));
- await page.locator('#open-document-file').setInputFiles({name:'Opened.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});await page.getByRole('dialog',{name:'Open document?',exact:true}).getByRole('button',{name:'Open document',exact:true}).click();await expect(page.locator('[data-document-name]')).toHaveText('Opened.vectora');await expect(page).toHaveTitle('Vectora');await shape(page);await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');await reload(page);expect(await count(page)).toBe(1);await expect(page.getByRole('textbox',{name:'Project name'})).toHaveText('Opened.vectora');
+ await page.locator('#open-document-file').setInputFiles({name:'Opened.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});await expect(page.locator('[data-document-name]')).toHaveText('Opened.vectora');await expect(page).toHaveTitle('Vectora');await shape(page);await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');await reload(page);expect(await count(page)).toBe(1);await expect(page.getByRole('textbox',{name:'Project name'})).toHaveText('Opened.vectora');
 });
 
 test('Recovery survives a new tab and clearing browser site storage removes it',async({page,context})=>{

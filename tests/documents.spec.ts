@@ -25,18 +25,17 @@ test('Vectora round trip retains curves, text editing, dimensions, fills, hidden
  await page.getByRole('button',{name:'Layers',exact:true}).click();await expect(page.locator('.layer-name').filter({hasText:'Engrave <safe> & "quoted"'})).toBeVisible();expect(await page.locator('.layer-name safe').count()).toBe(0);
 });
 
-test('Fallback Save, Save As, Open and invalid files preserve the drawing appropriately',async({page})=>{
+test('Fallback saves download the active document and Open adds a tab without replacing it',async({page})=>{
  await fallback(page);await page.goto(DEV);await shape(page);
  let pending=page.waitForEvent('download');await fileAction(page,'Save');let download=await pending;expect(download.suggestedFilename()).toBe('Untitled.vectora');await expect(page.locator('#document-dialog')).not.toBeVisible();const contents=await readFile((await download.path())!,'utf8');
  await shape(page);pending=page.waitForEvent('download');await fileAction(page,'Save');download=await pending;expect(download.suggestedFilename()).toBe('Untitled.vectora');
  pending=page.waitForEvent('download');await fileAction(page,'Save as…');expect((await pending).suggestedFilename()).toBe('Untitled.vectora');await expect(page.locator('#document-dialog')).not.toBeVisible();await expect(page.locator('.toast-success')).toHaveCount(0);
- await fileAction(page,'New document');await page.getByRole('dialog',{name:'New document?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();
- await shape(page);const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ await fileAction(page,'New document');await expect(page.locator('#document-dialog')).toBeHidden();await expect(page.locator('.document-tab')).toHaveCount(2);
+ await page.getByRole('tab',{name:'Untitled.vectora, unsaved changes',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
  await openFile(page,{name:'Design one.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});
- await page.getByRole('dialog',{name:'Open document?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
- await openFile(page,{name:'Design one.vectora',mimeType:'application/json',buffer:Buffer.from(contents)});
- await page.getByRole('dialog',{name:'Open document?',exact:true}).getByRole('button',{name:'Open document',exact:true}).click();await expect.poll(()=>page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);expect(await page.evaluate(()=>(window as any).__vectora.canUndo)).toBe(false);
- await openFile(page,{name:'broken.vectora',mimeType:'application/json',buffer:Buffer.from('{broken')});await expect(page.locator('.toast-error')).toContainText('valid .vectora');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);expect(await page.evaluate(()=>(window as any).__vectora.canUndo)).toBe(false);await expect(page.locator('.document-tab')).toHaveCount(3);
+ await openFile(page,{name:'broken.vectora',mimeType:'application/json',buffer:Buffer.from('{broken')});await expect(page.locator('.toast-error')).toContainText('valid .vectora');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);await expect(page.locator('.document-tab')).toHaveCount(3);
 });
 
 test('Native Save reuses the selected file, Save As changes target only on success and cancelled saves do nothing',async({page})=>{
@@ -59,27 +58,24 @@ test('Invalid document content is rejected before changing the current drawing',
  });expect(result).toEqual({rejected:5,unchanged:true});
 });
 
-test('New document confirms unsaved changes, resets the drawing and asks for a new save name',async({page})=>{
+test('New document starts a blank tab with default layers and view while retaining the original',async({page})=>{
  await fallback(page);await page.goto(DEV);await shape(page);
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addDocumentLayer('artwork');e.deleteDocumentLayer('construction');e.setLayerState('artwork','locked',true);e.setLayerState('engrave','visible',false);e.setTool('circle');e.snappingEnabled=false;p.view.zoom=8;p.view.center=new p.Point(-50,30);});
  const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
- await fileAction(page,'New document');const dialog=page.getByRole('dialog',{name:'New document?',exact:true});await expect(dialog).toBeVisible();await expect(dialog.getByRole('button',{name:'Cancel',exact:true})).toBeFocused();await expect(dialog.getByRole('textbox')).toHaveCount(0);
- await dialog.screenshot({path:'test-results/new-document-dialog.png'});await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
- await fileAction(page,'New document');await dialog.getByRole('button',{name:'New document',exact:true}).click();await expect(page.locator('[data-document-name]')).toHaveText('Untitled.vectora');await expect(page).toHaveTitle('Vectora');
- await expect.poll(()=>page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);
+ await fileAction(page,'New document');await expect(page.locator('#document-dialog')).toBeHidden();await expect(page.locator('[data-document-name]')).toHaveText('Untitled 2.vectora');await expect(page).toHaveTitle('Vectora');
  const state=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;return {count:e.objects.length,layers:e.documentLayers.map((l:any)=>({id:l.data.documentId,visible:l.visible,locked:l.locked})),undo:e.canUndo,redo:e.canRedo,selected:e.selectedItems.length,tool:e.tool,zoom:p.view.zoom,center:[p.view.center.x,p.view.center.y],snapping:e.snappingEnabled};});
  expect(state).toMatchObject({count:0,undo:false,redo:false,selected:0,tool:'select',snapping:false});expect(state.center[0]).toBeCloseTo(100);expect(state.center[1]).toBeCloseTo(70);expect(state.zoom).toBeCloseTo(96/25.4);expect(state.layers.map(l=>l.id).sort()).toEqual(['artwork','construction','cutline','engrave']);expect(state.layers.every(l=>l.visible&&!l.locked)).toBe(true);
- await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+n');await expect(dialog).not.toBeVisible();const pending=page.waitForEvent('download');await fileAction(page,'Save');expect((await pending).suggestedFilename()).toBe('Untitled.vectora');await expect(page.locator('#document-dialog')).not.toBeVisible();
+ await page.getByRole('tab',{name:'Untitled.vectora, unsaved changes',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+n');await expect(page.locator('[data-document-name]')).toHaveText('Untitled 3.vectora');const pending=page.waitForEvent('download');await fileAction(page,'Save');expect((await pending).suggestedFilename()).toBe('Untitled 3.vectora');
 });
 
-test('New document preserves the saved target on cancel and forgets it after confirmation',async({page})=>{
+test('Cancelling close preserves the saved target and a new tab gets its own destination',async({page})=>{
  await page.addInitScript(()=>{const w=window as any;w.picks=0;w.writes=[];w.showSaveFilePicker=async()=>{const name=`Design ${++w.picks}.vectora`;return {name,createWritable:async()=>({write:async(text:string)=>w.writes.push({name,text}),close:async()=>{},abort:async()=>{}})};};});
- await page.goto(DEV);await shape(page);await fileAction(page,'Save');await expect(page.locator('[data-document-name]')).toHaveText('Design 1.vectora');await expect(page).toHaveTitle('Vectora');await shape(page);
- await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+n');const dialog=page.getByRole('dialog',{name:'New document?',exact:true});await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).writes.length)).toBe(2);expect(await page.evaluate(()=>(window as any).picks)).toBe(1);
- await shape(page);await fileAction(page,'New document');await dialog.getByRole('button',{name:'New document',exact:true}).click();await expect(page.locator('[data-document-name]')).toHaveText('Untitled.vectora');await expect(page).toHaveTitle('Vectora');await shape(page);await fileAction(page,'Save');await expect(page.locator('[data-document-name]')).toHaveText('Design 2.vectora');await expect(page).toHaveTitle('Vectora');expect(await page.evaluate(()=>(window as any).picks)).toBe(2);
- await fileAction(page,'New document');await expect(page.locator('[data-document-name]')).toHaveText('Untitled.vectora');await expect(page).toHaveTitle('Vectora');await expect(dialog).not.toBeVisible();
+ await page.goto(DEV);await shape(page);await fileAction(page,'Save');await expect(page.locator('[data-document-name]')).toHaveText('Design 1.vectora');await shape(page);
+ await page.getByRole('button',{name:'Close Design 1.vectora',exact:true}).click();await page.getByRole('dialog',{name:'Close document?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();await fileAction(page,'Save');await expect.poll(()=>page.evaluate(()=>(window as any).writes.length)).toBe(2);expect(await page.evaluate(()=>(window as any).picks)).toBe(1);
+ await fileAction(page,'New document');await expect(page.locator('[data-document-name]')).toHaveText('Untitled.vectora');await shape(page);await fileAction(page,'Save');await expect(page.locator('[data-document-name]')).toHaveText('Design 2.vectora');expect(await page.evaluate(()=>(window as any).picks)).toBe(2);
+ await page.getByRole('tab',{name:'Design 1.vectora',exact:true}).click();await fileAction(page,'Save');expect(await page.evaluate(()=>(window as any).writes.at(-1).name)).toBe('Design 1.vectora');expect(await page.evaluate(()=>(window as any).picks)).toBe(2);
 });
-
 
 test('Save success waits for the native file write to finish',async({page})=>{
  await page.addInitScript(()=>{

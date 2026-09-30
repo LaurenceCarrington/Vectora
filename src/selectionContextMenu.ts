@@ -70,7 +70,7 @@ export class SelectionContextMenu {
     const r=this.editor.canvas.getBoundingClientRect();
     const left=document.querySelector('.ruler-left')?.getBoundingClientRect().right??r.left;
     const right=document.querySelector('.right-toolbar')?.getBoundingClientRect().left??r.right;
-    const top=document.querySelector('.top-toolbar')?.getBoundingClientRect().bottom??r.top;
+    const top=(document.querySelector('.document-tabs')??document.querySelector('.top-toolbar'))?.getBoundingClientRect().bottom??r.top;
     const bottom=document.querySelector('.ruler-bottom')?.getBoundingClientRect().top??r.bottom;
     this.menu.style.maxWidth=`${Math.max(0,right-left)}px`;this.menu.style.maxHeight=`${Math.max(0,bottom-top)}px`;
     const bounds=this.menu.getBoundingClientRect();

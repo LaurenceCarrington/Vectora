@@ -22,7 +22,7 @@ import { MillimetreGrid } from './grid';
 import { findObjectSnap, SNAP_LABELS, type ObjectSnap, type ObjectSnapMode, type SnapModes } from './objectSnapping';
 import { createStickerOutline } from './clipperService';
 import { BASE_ZOOM, MIN_ZOOM, MAX_ZOOM, MIN_DIMENSION_MM, validNumber, validDimension, snapMM } from './units';
-import type { DocumentSnapshot, Shape, ToolName, ObjectRole } from './types';
+import type { DocumentSnapshot, EditorSession, Shape, ToolName, ObjectRole } from './types';
 
 type Interaction = {
   id:number; kind:'pan'|'draw'|'move'|'resize'|'marquee'|'endpoint'|'arc-handle'|'rotate'; start:paper.Point; screen:paper.Point;
@@ -175,6 +175,14 @@ export class CADEditor {
   newDocument():void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
     this.loadDocument({activeLayerId:'artwork',artwork:'[]',cutlines:'[]',layers:JSON.stringify(layers),selected:null,selectedIds:[]},{zoom:BASE_ZOOM,center:[100,70]});
+  }
+  captureSession():EditorSession {
+    return {snapshot:this.snapshot(),view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]},undo:[...this.undoStack],redo:[...this.redoStack],tool:this.tool};
+  }
+  loadSession(session:EditorSession):void {
+    this.loadDocument(session.snapshot,session.view);
+    this.undoStack=[...session.undo];this.redoStack=[...session.redo];this.tool=session.tool;
+    this.updateCursor();this.changed();
   }
   loadDocument(snapshot:DocumentSnapshot,view:{zoom:number;center:[number,number]}):void {
     this.cancel();const before=this.snapshot(),oldZoom=paper.view.zoom,oldCenter=paper.view.center.clone();

@@ -58,7 +58,7 @@ export class FloatingSelectionMenu {
     });
     const observer = new ResizeObserver(() => this.place());
     observer.observe(this.stage);observer.observe(this.menu);
-    for(const element of this.stage.querySelectorAll<HTMLElement>('.top-toolbar,.left-toolbar,.right-toolbar,.ruler-left,.ruler-bottom,.workspace-footer,.layers-panel')) observer.observe(element);
+    for(const element of this.stage.querySelectorAll<HTMLElement>('.top-toolbar,.document-tabs,.left-toolbar,.right-toolbar,.ruler-left,.ruler-bottom,.workspace-footer,.layers-panel')) observer.observe(element);
     window.addEventListener('resize',()=>this.place());
     window.visualViewport?.addEventListener('resize',()=>this.place());
     window.visualViewport?.addEventListener('scroll',()=>this.place());
@@ -90,11 +90,11 @@ export class FloatingSelectionMenu {
     let right=Math.min(this.stage.clientWidth,(viewport?viewport.offsetLeft+viewport.width:window.innerWidth)-originX);
     let bottom=Math.min(this.stage.clientHeight,(viewport?viewport.offsetTop+viewport.height:window.innerHeight)-originY);
     // The Paper canvas extends behind the chrome; only the exposed drawing area is usable.
-    for(const element of this.stage.querySelectorAll<HTMLElement>('.top-toolbar,.left-toolbar,.right-toolbar,.ruler-left,.ruler-bottom,.workspace-footer')){
+    for(const element of this.stage.querySelectorAll<HTMLElement>('.top-toolbar,.document-tabs,.left-toolbar,.right-toolbar,.ruler-left,.ruler-bottom,.workspace-footer')){
       const rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
       if(element.matches('.left-toolbar,.ruler-left'))left=Math.max(left,rect.right-originX);
       if(element.matches('.right-toolbar'))right=Math.min(right,rect.left-originX);
-      if(element.matches('.top-toolbar'))top=Math.max(top,rect.bottom-originY);
+      if(element.matches('.top-toolbar,.document-tabs'))top=Math.max(top,rect.bottom-originY);
       if(element.matches('.workspace-footer,.ruler-bottom'))bottom=Math.min(bottom,rect.top-originY);
     }
     let overDock=false;

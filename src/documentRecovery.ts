@@ -1,6 +1,7 @@
-/** A single local working document. IndexedDB handles large drawings; the journal
+/** Local working documents. IndexedDB handles large drawings; the journal
  * covers an immediate refresh before an asynchronous database write completes. */
-export interface RecoveryData {contents:string;filename:string;dirty:boolean;draft?:{content:string;sourceId:string|null;point:[number,number]|null}}
+export interface RecoveryTab {id:string;contents:string;filename:string;dirty:boolean}
+export interface RecoveryData {contents:string;filename:string;dirty:boolean;draft?:{content:string;sourceId:string|null;point:[number,number]|null};tabs?:RecoveryTab[];activeTabId?:string}
 interface RecoveryRecord {version:1;time:number;id:string;data:RecoveryData}
 const JOURNAL='vectora.recovery.pending';
 function record(value:unknown):RecoveryRecord|null {

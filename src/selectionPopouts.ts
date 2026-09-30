@@ -61,7 +61,7 @@ export class SelectionPopouts {
   const bar=this.bar.getBoundingClientRect(),button=trigger.getBoundingClientRect();
   let minY=top+4,maxY=bottom-4;
   if(this.bar.classList.contains('editor-selection-menu')){
-   minY=Math.max(minY,document.querySelector('.top-toolbar')?.getBoundingClientRect().bottom??minY);
+   minY=Math.max(minY,(document.querySelector('.document-tabs')??document.querySelector('.top-toolbar'))?.getBoundingClientRect().bottom??minY);
    maxY=Math.min(maxY,document.querySelector('.ruler-bottom')?.getBoundingClientRect().top??maxY);
   }
   panel.style.maxWidth=`${Math.max(0,right-left-8)}px`;panel.style.maxHeight=`${Math.max(0,maxY-minY)}px`;
