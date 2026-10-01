@@ -1,4 +1,5 @@
 import {AppearancePanel} from './appearancePanel';
+import {lineDesign,lineWeightMM,type LineDesign} from './lineAppearance';
 import type {ArrangementAction} from './arrangement';
 import type {ShapeOperation} from './shapeOperationGeometry';
 import type { Family } from './generators/catalog';
@@ -210,6 +211,12 @@ for(const key of ['x','y','width','height'] as const){const input=$<HTMLInputEle
   catch(error){input.setAttribute('aria-invalid','true');input.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
 });}
 const rotationInput=$<HTMLInputElement>('#field-rotation');
+const lineStyleInput=$<HTMLSelectElement>('#field-line-style'),lineWeightInput=$<HTMLInputElement>('#field-line-weight');
+lineStyleInput.addEventListener('change',()=>attempt(()=>editor.setLineDesign(lineStyleInput.value as LineDesign)));
+lineWeightInput.addEventListener('change',()=>{
+  try{editor.setLineWeight(lineWeightInput.valueAsNumber);lineWeightInput.setAttribute('aria-invalid','false');lineWeightInput.closest('.number-shell')!.classList.remove('is-invalid');}
+  catch(error){lineWeightInput.setAttribute('aria-invalid','true');lineWeightInput.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
+});
 rotationInput.addEventListener('change',()=>{
   try{editor.setRotation(rotationInput.valueAsNumber);rotationInput.value=String(Number(editor.selectionRotation.toFixed(6)));rotationInput.setAttribute('aria-invalid','false');rotationInput.closest('.number-shell')!.classList.remove('is-invalid');}
   catch(error){rotationInput.setAttribute('aria-invalid','true');rotationInput.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
@@ -230,6 +237,14 @@ const exportDialog=new ExportDialog(editor,()=>{
 function update():void {
   rulers.update(paper.view.bounds,paper.view.zoom);
   updatePropertiesContent();
+  const strokeItems=editor.lineAppearanceItems,weights=strokeItems.map(lineWeightMM),designs=strokeItems.map(lineDesign);
+  $('#line-appearance').hidden=!strokeItems.length;
+  lineStyleInput.disabled=lineWeightInput.disabled=!editor.canEditLineAppearance;
+  lineStyleInput.value=designs.length&&designs.every(design=>design===designs[0])?designs[0]:'mixed';
+  if(document.activeElement!==lineWeightInput){
+    lineWeightInput.value=weights.length&&weights.every(weight=>Math.abs(weight-weights[0])<1e-9)?String(Number(weights[0].toFixed(6))):'';
+    lineWeightInput.placeholder=weights.length?'Mixed':'';lineWeightInput.setAttribute('aria-invalid','false');lineWeightInput.closest('.number-shell')!.classList.remove('is-invalid');
+  }
   convertTextButton.hidden=!editor.selectedItems.some(item=>item.data.text);
   convertTextButton.disabled=!editor.canConvertText;
   $('#text-properties').hidden=!editor.selected?.data.text;
@@ -355,7 +370,7 @@ for(const [id,label,selector,keywords,shortcut] of [
 ] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');
 searchTools.push({id:'colour',label:'Fill & appearance',group:'Panels',icon:'palette',keywords:'colour color picker hex rgb hue saturation brightness opacity fill gradient radial linear pattern stripes dots checkerboard crosshatch',run:()=>{setPanel(colour,true);colourButton.focus();}});
 searchTools.push({id:'layers',label:'Layers',group:'Panels',icon:'layers',keywords:'artwork cut engrave construction raster visibility lock move objects',run:()=>{setPanel(layers,true);layersButton.focus();}},
- {id:'properties',label:'Properties',group:'Panels',icon:'sliders',keywords:'position size width height rotation radius',run:()=>{setPanel(props,true);propertiesButton.focus();}});
+ {id:'properties',label:'Properties',group:'Panels',icon:'sliders',keywords:'position size width height rotation radius line style design weight stroke solid dashed dotted dash-dot',run:()=>{setPanel(props,true);propertiesButton.focus();}});
 for(const [id,label,selector,keywords,reason] of [
  ['close-path','Close path','#selection-menu [aria-label="Close path"]','close shape nearest endpoints','Select an open path that can be closed'],
  ['join','Join','#selection-menu [aria-label="Join"]','group combine shapes','Select two or more objects on the same layer'],

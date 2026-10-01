@@ -239,6 +239,11 @@ SOFTWARE.
  <p class="number-error" id="field-height-error" hidden><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg><span>Enter a value of 0 mm or more.</span></p>
 </div></div>
 <div class="rotation-field"><div class="number-shell"><label class="number-prefix" id="rotation-label" for="field-rotation">R</label><input id="field-rotation" class="number-input" type="number" step="any" aria-label="Rotation (degrees)" aria-describedby="rotation-help"><span class="number-unit">°</span></div><p class="subtext" id="rotation-help">Clockwise rotation about the centre. Shift-drag snaps to 15°.</p></div>
+<section class="line-appearance" id="line-appearance" aria-labelledby="line-appearance-title" hidden>
+<h3 id="line-appearance-title">Line</h3>
+<div class="number-shell"><label class="number-prefix" for="field-line-style">Style</label><select class="number-input" id="field-line-style" aria-label="Line style"><option value="mixed" disabled>Mixed</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="dash-dot">Dash-dot</option></select></div>
+<div class="number-shell"><label class="number-prefix" for="field-line-weight">Weight</label><input class="number-input" id="field-line-weight" type="number" min="0.001" max="1000" step="any" aria-label="Line weight (millimetres)" aria-invalid="false"><span class="number-unit">mm</span></div>
+</section>
 <div class="arc-controls" id="arc-controls" hidden>
 <h3>Circular arc</h3>
 <div class="number-shell"><label class="number-prefix" for="arc-radius">Radius</label><input class="number-input" id="arc-radius" type="number" step="any" min="0.001" aria-label="Arc radius (millimetres)"><span class="number-unit">mm</span></div>

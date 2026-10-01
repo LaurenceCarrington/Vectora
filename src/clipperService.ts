@@ -83,7 +83,7 @@ export function createPathOffset(source:Shape,settings:OffsetSettings):Shape {
     const result:Shape=paths.length===1?paths[0]:new paper.CompoundPath({insert:false,children:paths});
     result.style=source.style;result.opacity=source.opacity;result.fillColor=null;result.fillRule='evenodd';
     if(!result.strokeColor){result.strokeColor=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(layerRole(source.layer)).color).trim());result.strokeWidth=1.5;result.strokeScaling=false;}
-    result.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Path'} offset`,rotationDegrees:0};
+    result.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Path'} offset`,rotationDegrees:0,customStroke:source.data.customStroke};
     return result;
   }catch(error){paths.forEach(p=>p.remove());throw error;}
   finally{output?.delete();normalized?.delete();input.delete();}

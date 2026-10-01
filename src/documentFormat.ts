@@ -58,6 +58,7 @@ function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string
  if(data.regionFill!==undefined)out.regionFill=bool(data.regionFill);
  if(data.fillPaint!==undefined){try{out.fillPaint=validateFillPaint(data.fillPaint);}catch{fail();}}
  if(data.customColour!==undefined)out.customColour=colour(data.customColour);
+ if(data.customStroke!==undefined)out.customStroke=bool(data.customStroke);
  if(data.regionFillColor!==undefined)out.regionFillColor=colour(data.regionFillColor);
  if(data.rasterTrace!==undefined){
   const trace=record(data.rasterTrace);if(!['outline','centerline','fill'].includes(trace.mode))fail();out.rasterTrace={mode:trace.mode};

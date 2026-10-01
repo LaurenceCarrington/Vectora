@@ -1,4 +1,5 @@
 import {CanvasGuide} from './canvasGuide';
+import {LINE_DESIGNS,applyLineDesign,applyLineWeight,validLineWeight,type LineDesign} from './lineAppearance';
 import {validateCanvasSize,type CanvasSize} from './canvasSize';
 import {applyFillPaint,refreshFillPaint,validateFillPaint,paintColour,type FillPaint} from './fillPaint';
 import {validateGridSettings} from './gridSettings';
@@ -59,11 +60,13 @@ export class CADEditor {
   private styleForLayer(item:Shape,layer:paper.Layer):void {
     // Resolve Paper's lazy colour values before replacing or clearing them.
     void item.fillColor;void item.strokeColor;
+    const stroke=item.data.customStroke?{strokeWidth:item.strokeWidth,strokeScaling:item.strokeScaling,strokeCap:item.strokeCap,strokeJoin:item.strokeJoin,dashArray:[...item.dashArray],dashOffset:item.dashOffset}:null;
     const preservedPaint=layerRole(layer)==='artwork'&&item.data.fillPaint&&item.fillColor?.type==='gradient'?item.fillColor.clone():null;
     const role=layerRole(layer),color=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(role).color).trim());
     if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
     else if(item.data.text||((role==='engrave'||role==='raster')&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
     else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=item.data.dimension?1:1.5;item.strokeScaling=false;}
+    if(stroke){Object.assign(item,stroke);item.strokeColor=role==='artwork'&&item.data.customColour?new paper.Color(item.data.customColour):color;}
     if(role==='artwork'&&item.data.fillPaint){if(preservedPaint){item.fillColor=preservedPaint;refreshFillPaint(item);}else applyFillPaint(item,item.data.fillPaint);return;}
     if(role==='artwork'&&item.data.customColour){if(item.strokeColor)item.strokeColor=new paper.Color(item.data.customColour);if(item.fillColor)item.fillColor=new paper.Color(item.data.customColour);}
   }
@@ -551,7 +554,7 @@ export class CADEditor {
     const before=this.snapshot(),sources=[...this.selection].sort((a,b)=>a.index-b.index),first=sources[0];
     const joined=new paper.CompoundPath({insert:false,children:sources.flatMap(pathsOf).map(documentPath)});
     joined.style=first.style;joined.opacity=first.opacity;joined.strokeColor=first.strokeColor??(first.data.role==='artwork'&&first.data.fillPaint?new paper.Color(first.data.customColour):first.fillColor);joined.fillColor=null;
-    joined.data={uid:crypto.randomUUID(),role:first.data.role,name:'Joined shape',joined:true,customColour:first.data.customColour};
+    joined.data={uid:crypto.randomUUID(),role:first.data.role,name:'Joined shape',joined:true,customColour:first.data.customColour,customStroke:first.data.customStroke};
     first.parent.insertChild(first.index,joined);sources.forEach(item=>item.remove());
     this.selected=joined;this.commit(before);
   }
@@ -567,7 +570,7 @@ export class CADEditor {
       let index=source.index;
       pathsOf(source).forEach((contour,i)=>{
         const path=documentPath(contour);path.style=source.style;path.opacity=source.opacity;path.strokeColor=source.strokeColor??(source.data.role==='artwork'&&source.data.fillPaint?new paper.Color(source.data.customColour):source.fillColor);path.fillColor=null;
-        path.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Shape'} · Path ${i+1}`,rotationDegrees:source.data.rotationDegrees??0,customColour:source.data.customColour};
+        path.data={uid:crypto.randomUUID(),role:source.data.role,name:`${source.data.name??'Shape'} · Path ${i+1}`,rotationDegrees:source.data.rotationDegrees??0,customColour:source.data.customColour,customStroke:source.data.customStroke};
         source.parent.insertChild(index++,path);selection.push(path);
       });
       source.remove();
@@ -655,6 +658,25 @@ export class CADEditor {
     if(this.selectedArc&&(key==='width'||key==='height')){const scale=value/original[key];bounds.width=original.width*scale;bounds.height=original.height*scale;}
     if(![bounds.left,bounds.top,bounds.right,bounds.bottom].every(validNumber)) throw new Error('The resulting bounds exceed ±1,000,000 mm.');
     this.transformSelection(this.selection,original,bounds);this.commit(before);
+  }
+  get lineAppearanceItems():readonly Shape[] {return this.selection.filter(item=>!item.data.text&&!item.data.dimension&&this.isEditable(item));}
+  get canEditLineAppearance():boolean {return this.canFlipSelection&&this.lineAppearanceItems.length>0;}
+  private ensureLineColour(item:Shape):void {
+    if(!item.strokeColor)item.strokeColor=new paper.Color(layerRole(item.layer)==='artwork'&&item.data.customColour?item.data.customColour:getComputedStyle(document.documentElement).getPropertyValue(layerType(layerRole(item.layer)).color).trim());
+  }
+  setLineWeight(weight:number):void {
+    if(!validLineWeight(weight))throw new Error('Enter a line weight between 0.001 and 1000 mm.');
+    if(!this.canEditLineAppearance)return;
+    const before=this.snapshot();
+    for(const item of this.lineAppearanceItems){this.ensureLineColour(item);applyLineWeight(item,weight);}
+    this.commit(before);
+  }
+  setLineDesign(design:LineDesign):void {
+    if(!LINE_DESIGNS.includes(design))throw new Error('Choose Solid, Dashed, Dotted or Dash-dot.');
+    if(!this.canEditLineAppearance)return;
+    const before=this.snapshot();
+    for(const item of this.lineAppearanceItems){this.ensureLineColour(item);applyLineDesign(item,design);}
+    this.commit(before);
   }
   private normalizedRotation(angle:number):number {return ((angle%360)+360)%360;}
   get canFlipSelection():boolean {
