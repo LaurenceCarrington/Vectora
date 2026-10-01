@@ -52,7 +52,7 @@ export class ExportDialog {
  }
  private choose(format:ExportTab):void {
   if(this.busy)return;this.format=format;const settings=this.settings[format],dxf=format==='dxf';
-  const layers=this.editor.documentLayers.filter(layer=>layer.data.objectRole!=='construction');
+  const layers=this.editor.documentLayers.filter(layer=>layer.data.objectRole!=='construction'&&(!dxf||layer.data.objectRole!=='raster'));
   if(!settings.layers)settings.layers=new Set(layers.filter(layer=>dxf?layer.data.objectRole!=='artwork':layer.visible).map(layer=>layer.data.documentId));
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(button=>{const active=button.dataset.format===format;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;});
   this.get('form').setAttribute('aria-labelledby',`export-tab-${format}`);

@@ -354,7 +354,7 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['zoom','Reset zoom to 100%','[data-reset-zoom]','zoom reset view'],
 ] as const)searchButton(id,label,'Tools',selector,keywords,shortcut??'');
 searchTools.push({id:'colour',label:'Fill & appearance',group:'Panels',icon:'palette',keywords:'colour color picker hex rgb hue saturation brightness opacity fill gradient radial linear pattern stripes dots checkerboard crosshatch',run:()=>{setPanel(colour,true);colourButton.focus();}});
-searchTools.push({id:'layers',label:'Layers',group:'Panels',icon:'layers',keywords:'artwork cut engrave construction visibility lock move objects',run:()=>{setPanel(layers,true);layersButton.focus();}},
+searchTools.push({id:'layers',label:'Layers',group:'Panels',icon:'layers',keywords:'artwork cut engrave construction raster visibility lock move objects',run:()=>{setPanel(layers,true);layersButton.focus();}},
  {id:'properties',label:'Properties',group:'Panels',icon:'sliders',keywords:'position size width height rotation radius',run:()=>{setPanel(props,true);propertiesButton.focus();}});
 for(const [id,label,selector,keywords,reason] of [
  ['close-path','Close path','#selection-menu [aria-label="Close path"]','close shape nearest endpoints','Select an open path that can be closed'],

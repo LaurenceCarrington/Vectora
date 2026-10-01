@@ -9,10 +9,11 @@ import {pathsOf} from './geometry';
 import {loadTextFont,TEXT_FONTS} from './text';
 import {DIMENSION_TOOLS} from './dimensions';
 import {MAX_COORDINATE_MM,MIN_ZOOM,MAX_ZOOM} from './units';
+import {LAYER_TYPES} from './documentLayers';
 
 export const MAX_DOCUMENT_BYTES=50*1024*1024;
 type JsonObject=Record<string,any>;
-const roles=['artwork','cutline','engrave','construction'];
+const roles=LAYER_TYPES.map(layer=>layer.role);
 const fail=():never=>{throw new Error('This is not a valid Vectora document.');};
 const record=(value:unknown):JsonObject=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as JsonObject:fail();
 const number=(value:unknown,limit=MAX_COORDINATE_MM):number=>typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<=limit?value:fail();
@@ -45,7 +46,7 @@ export function encodeDocument(editor:CADEditor):string {
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
   }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:savedColour(item.fillColor),stroke:savedColour(item.strokeColor),width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
  })}));
- return JSON.stringify({format:'vectora',version:1,units:'mm',grid:editor.grid.config,canvasSize:editor.canvasSize,activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
+ return JSON.stringify({format:'vectora',version:1,units:'mm',rasterLayerInitialized:true,grid:editor.grid.config,canvasSize:editor.canvasSize,activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
 }
 
 function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string>):JsonObject {
@@ -87,6 +88,7 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  let file:JsonObject;try{file=record(JSON.parse(contents));}catch{throw new Error('Choose a valid .vectora document.');}
  if(file.format!=='vectora'||file.units!=='mm')fail();
  if(file.version!==1)throw new Error('This Vectora document version is not supported.');
+ const rasterLayerInitialized=file.rasterLayerInitialized===undefined?false:bool(file.rasterLayerInitialized);
  if(!Array.isArray(file.layers)||file.layers.length>1000)fail();
  const view=record(file.view),zoom=number(view.zoom,MAX_ZOOM);if(zoom<MIN_ZOOM)fail();const center=tuple(view.center,2) as [number,number];
  const canvasSize=validateCanvasSize(file.canvasSize),grid=validateGridSettings(file.grid);
@@ -125,6 +127,12 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
   }
   if(layerId==='artwork')artwork=JSON.stringify(objects);else if(layerId==='cutline')cutlines=JSON.stringify(objects);else state.objects=JSON.stringify(objects);
   states.push(state);
+ }
+ // Earlier documents gain the empty default without replacing existing IDs or
+ // geometry. The marker preserves deliberate layer removal in current files.
+ if(!rasterLayerInitialized&&!states.some(layer=>layer.role==='raster')){
+  let rasterId='raster',suffix=2;while(layerIds.has(rasterId))rasterId=`raster-${suffix++}`;
+  layerIds.add(rasterId);states.push({id:rasterId,name:'Raster Engrave',role:'raster',visible:true,locked:false,deleted:false,objects:'[]'});
  }
  for(const role of ['artwork','cutline'])if(!layerIds.has(role))states.push({id:role,name:role==='artwork'?'Artwork':'Cut Path',role,visible:false,locked:false,deleted:true});
  await Promise.all([...fonts].map(loadTextFont));

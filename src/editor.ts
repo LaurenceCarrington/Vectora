@@ -62,7 +62,7 @@ export class CADEditor {
     const preservedPaint=layerRole(layer)==='artwork'&&item.data.fillPaint&&item.fillColor?.type==='gradient'?item.fillColor.clone():null;
     const role=layerRole(layer),color=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(role).color).trim());
     if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
-    else if(item.data.text||(role==='engrave'&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
+    else if(item.data.text||((role==='engrave'||role==='raster')&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
     else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=item.data.dimension?1:1.5;item.strokeScaling=false;}
     if(role==='artwork'&&item.data.fillPaint){if(preservedPaint){item.fillColor=preservedPaint;refreshFillPaint(item);}else applyFillPaint(item,item.data.fillPaint);return;}
     if(role==='artwork'&&item.data.customColour){if(item.strokeColor)item.strokeColor=new paper.Color(item.data.customColour);if(item.fillColor)item.fillColor=new paper.Color(item.data.customColour);}
@@ -137,6 +137,7 @@ export class CADEditor {
     this.overlays=new paper.Layer({name:'Editor overlays',data:{role:'overlay'}});
     this.createDocumentLayer('engrave','Engrave Path','engrave');
     this.createDocumentLayer('construction','Construction Path','construction');
+    this.createDocumentLayer('raster','Raster Engrave','raster');
     this.artwork.activate();
     this.nodes=new NodeEditing(this,{changed:()=>this.changed(),commit:before=>this.commit(before),restore:before=>this.restore(before),snap:(point,spacing)=>this.snapPoint(point,spacing,undefined,false)});
     this.dimensions=new DimensionTools(this,{changed:()=>this.changed(),snap:point=>this.snapPoint(point,this.gridSnappingActive?this.grid.spacingMM:null)});

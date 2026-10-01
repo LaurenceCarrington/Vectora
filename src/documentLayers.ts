@@ -5,6 +5,7 @@ export const LAYER_TYPES=[
   {role:'cutline',name:'Cut Path',type:'cut',color:'--color-cutline'},
   {role:'engrave',name:'Engrave Path',type:'engrave',color:'--color-engrave'},
   {role:'construction',name:'Construction Path',type:'construction',color:'--color-construction'},
+  {role:'raster',name:'Raster Engrave',type:'raster',color:'--layer-raster'},
 ] as const;
 export const layerType=(role:ObjectRole)=>LAYER_TYPES.find(type=>type.role===role)!;
 export const layerId=(layer:paper.Layer):string=>layer.data.documentId;

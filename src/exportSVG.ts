@@ -17,7 +17,7 @@ export function exportSVG(objects:readonly Shape[],includeHidden=false):string {
   let paintIndex=0;
   const groups=new Map<paper.Layer,SVGGElement>();
   let bounds:paper.Rectangle|null=null;
-  const items=objects.filter(item=>['artwork','cutline','engrave'].includes(item.data.role)&&(includeHidden||(item.visible&&item.layer.visible))&&!item.layer.data.deleted&&item.opacity>0)
+  const items=objects.filter(item=>['artwork','cutline','engrave','raster'].includes(item.data.role)&&(includeHidden||(item.visible&&item.layer.visible))&&!item.layer.data.deleted&&item.opacity>0)
     .sort((a,b)=>a.layer.index-b.layer.index||a.index-b.index);
   for(const item of items){
     const contours=pathsOf(item).filter(path=>path.segments.length>1).map(documentPath);

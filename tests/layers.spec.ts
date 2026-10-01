@@ -5,7 +5,7 @@ async function seed(page:any){await page.evaluate(()=>{const e=(window as any)._
 async function open(page:any){await page.getByRole('button',{name:'Layers',exact:true}).click();}
 
 test('Layer types match the reference and selected geometry moves between engraving, construction and artwork',async({page})=>{
-  await page.goto(DEV);await seed(page);await open(page);const panel=page.locator('#primary-layers-panel');await expect(panel.locator('[data-layer-count]')).toHaveText('4');await expect(panel.getByText('Raster Engrave')).toHaveCount(0);await expect(panel.locator('.layer-name').filter({hasText:/^Construction Path$/})).toHaveCount(1);
+  await page.goto(DEV);await seed(page);await open(page);const panel=page.locator('#primary-layers-panel');await expect(panel.locator('[data-layer-count]')).toHaveText('5');await expect(panel.getByText('Raster Engrave')).toHaveCount(1);await expect(panel.locator('.layer-name').filter({hasText:/^Construction Path$/})).toHaveCount(1);
   const before=await page.evaluate(()=>(window as any).__vectora.selected.exportJSON());
   for(const [name,role,color] of [['Engrave Path','engrave','#0000ff'],['Construction Path','construction','#ff00ff'],['Artwork','artwork','#ffffff']]){
     // Keep empty expanded rows from pushing the target outside this fixed-height panel.
@@ -28,7 +28,7 @@ test('Removing default layers does not leave invisible objects; new layers, hist
 
 test('Production layers remain within a narrow viewport and custom layer names export separately',async({page})=>{
   await page.goto(DEV);const dxf=await page.evaluate(async()=>{const e=(window as any).__vectora,p=(window as any).__paper,{exportDXF}=await import('/src/exportDXF.ts');for(let i=0;i<2;i++){e.addShape(new p.Path.Line({insert:false,from:[30+i*10,30],to:[35+i*10,45],strokeColor:'#383838'}),'Line');const layer=e.addDocumentLayer('engrave');e.moveSelectionToLayer(layer.data.documentId);}return exportDXF(e.objects);});expect(dxf).toContain('ENGRAVE_PATH_2');expect(dxf).toContain('ENGRAVE_PATH_3');expect(dxf.match(/LWPOLYLINE/g)).toHaveLength(2);
-  await page.setViewportSize({width:420,height:700});await page.goto('http://127.0.0.1:4173');await open(page);const panel=page.locator('#primary-layers-panel');const box=(await panel.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(420);expect(box.y).toBeGreaterThanOrEqual(0);await expect(panel.locator('[data-layer-count]')).toHaveText('4');await expect(panel.locator('.layer-footer')).toHaveCount(0);await page.screenshot({path:'test-results/layers-mobile.png'});
+  await page.setViewportSize({width:420,height:700});await page.goto('http://127.0.0.1:4173');await open(page);const panel=page.locator('#primary-layers-panel');const box=(await panel.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(420);expect(box.y).toBeGreaterThanOrEqual(0);await expect(panel.locator('[data-layer-count]')).toHaveText('5');await expect(panel.locator('.layer-footer')).toHaveCount(0);await page.screenshot({path:'test-results/layers-mobile.png'});
 });
 
 async function dragSetup(page:any){
