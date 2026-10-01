@@ -704,7 +704,11 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .text-font-field .number-prefix { cursor:pointer; }
 .text-font-field select { appearance:none; -webkit-appearance:none; padding-right:calc(var(--input-padding) * 2 + var(--icon-sm)); cursor:pointer; }
 .text-font-field select:disabled { cursor:not-allowed; }
-.text-font-field optgroup, .text-font-field option { background:var(--color-surface); color:var(--color-text); }
+/* Native select popups need opaque option colours: Windows may otherwise
+   pair the app's white text with its light system list background. */
+select, select.number-input { color-scheme:var(--theme-color-scheme); }
+select option, select optgroup { background-color:var(--menu-background); color:var(--menu-foreground); }
+select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .text-font-field > svg { position:absolute; right:var(--input-padding); width:var(--icon-sm); height:var(--icon-sm); color:var(--input-icon-color); pointer-events:none; }
 .node-context-menu { position:absolute; z-index:6; width:200px; padding:var(--space-8); border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); }
 
