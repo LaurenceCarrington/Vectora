@@ -1,19 +1,93 @@
 # Vectora
 
-Vectora is a browser-based 2D CAD and vector drawing app for creating precise artwork, sticker outlines, cut paths and engraving designs. Work in millimetres on a zoomable grid, with snapping and exact size and position controls.
+Vectora is a browser-based 2D CAD and vector drawing app for creating precise artwork, laser-cut outlines, engraving designs, sticker artwork and editable mechanical profiles. Work in millimetres on an infinite or measured canvas, then save your projects or export them for other applications.
 
-Draw rectangles, circles, ellipses, polygons, stars, hearts, lines, polylines, arcs and freehand curves. Move, resize, rotate, flip and duplicate objects, or edit individual nodes and curve handles to refine their shape. Round selected corners with an exact fillet radius or bevel them with a chamfer distance, with a live preview before applying. Join objects, close open paths, separate combined outlines and remove individual path sections. Repeat selected objects in rectangular or circular patterns with exact spacing, centre and angle controls, a live preview and individually editable copies.
+**[Open Vectora on GitHub Pages](https://laurencecarrington.github.io/Vectora/)** — no installation required.
 
-Type directly on the canvas, choose from a range of fonts, and convert text into editable paths with separate letter contours. Turn images into vectors using outline, centre-line or filled tracing, with a live preview and adjustable controls.
+## What you can do
 
-Generate editable 2D mechanical profiles with live previews: involute gears and racks, custom sprockets and timing pulleys, threads and fasteners, and cam profiles. Create finger-jointed box panels, interlocking joints, living-hinge patterns, packaging nets with separate fold lines, and truss or lattice frameworks. Create decorative Voronoi panels, spirographs and cycloids, mazes and labyrinths, image-based halftone or stipple holes, and sine or Perlin wave patterns. Adjust dimensions, inspect the live result, and insert editable paths into the active layer.
+- **Draw precisely:** rectangles, circles, ellipses, polygons, stars, hearts, lines, polylines, freehand curves and three arc workflows. Use rulers, grid and object snapping, and exact dimensions.
+- **Edit geometry:** move, resize, rotate, flip, duplicate, align and distribute objects. Edit curve nodes, join or explode contours, close paths, trim sections, create offsets, and apply fillets or chamfers to straight-edge corners.
+- **Combine and repeat:** Weld, Subtract and Intersect closed shapes, or create rectangular and circular patterns with editable copies.
+- **Create text and artwork:** type directly on the canvas, choose bundled fonts, convert lettering to paths, and trace images into outlines, centre lines or filled vectors.
+- **Apply fills:** colour individual enclosed regions, including intersections between overlapping outlines. Choose solid colours, linear or radial gradients, and stripes, crosshatch, dots or checkerboard patterns.
+- **Generate designs:** gears, racks, sprockets, pulleys, fasteners, cams, finger-jointed boxes, living hinges, packaging nets, trusses, Voronoi panels, spirographs, mazes, halftone holes and wave patterns. Generators produce editable 2D paths and views.
+- **Manage documents:** open multiple tabbed projects, use Undo/Redo, and save editable `.vectora` files with their layers, text, canvas, grid and view settings.
 
-Apply colour to enclosed areas, including regions formed by overlapping shapes, or use No fill to remove colour without changing the surrounding outlines. Organise objects into Artwork, Cut Path, Engrave Path and Construction Path layers, with visibility, locking and drag-and-drop controls.
+## Getting started
 
-Add dimensions and callouts, generate offset sticker outlines, and export cut and engraving paths as DXF files, with optional artwork included. Export visible artwork as SVG with vector curves, colours, fills and millimetre dimensions. Export a vector PDF at actual size or a transparent PNG at 300 DPI. Undo and redo let you revise your work as you draw.
+1. [Open the app](https://laurencecarrington.github.io/Vectora/). Choose **Infinite**, a **Machine beds** or **Sticker sheets** preset, or enter a custom canvas size. Choose the grid pattern and spacing, then create your document.
+2. Open **Layers** on the right toolbar and click the layer you want to draw in. New shapes go into the active layer, which must be visible and unlocked.
+3. Choose a drawing tool on the left toolbar. For example, press **R** and drag to draw a rectangle, then press **V** to return to Select.
+4. Select your object and open **Properties** on the right for exact position, dimensions, rotation, line style and line weight in millimetres.
+5. Use **File → Save** to keep an editable `.vectora` project, or **File → Export…** to prepare an SVG, PDF, PNG or DXF.
 
-Save editable projects as `.vectora` files and reopen them with their layers, text and geometry intact. Save As creates a separate file so you can keep different versions of a design.
+A fixed canvas is a visual size guide: you can draw outside it, and it does not crop exports or automatically set their size. Change it later through **File → Canvas size**. Grid settings remain editable in **Preferences → Grid** and are saved separately for each document.
 
-Combine closed shapes with Weld, Subtract and Intersect from the selection menu’s Shape operations group. Preserve curved outlines and holes, and undo each operation in one step.
+## Moving around and editing
 
-Align objects to the last selected reference or distribute their centres evenly, using the selection menu’s Align and distribute group with exact positioning and Undo.
+Scroll over the canvas to zoom around the pointer. Hold **Space** and drag to pan. Click the zoom percentage in the bottom bar to return to **100%**. The magnet at the bottom of the left toolbar, or **S**, pauses and resumes snapping; configure individual modes in **Preferences → Snapping**.
+
+Click an object to select it, or drag from empty canvas to select fully enclosed objects. **Shift-click** toggles an object in the selection; **Shift-drag** adds objects. Drag selected objects to move them, square handles to resize, and the round handle above the selection to rotate. The floating selection menu contains alignment, shape operations and other editing tools. Right-click with Select for copy, paste and layer changes.
+
+Use **Node editing (N)** to reshape paths. Drag nodes and curve handles, double-click a path to add a node, or right-click a node for corner and path operations. In **Properties → Line**, choose Solid, Dashed, Dotted or Dash-dot and enter a physical line weight.
+
+The top toolbar’s **Search** finds available tools. The **Help** icon opens a guide with controls, keyboard commands and worked examples. Notifications are stored behind the bell icon at the bottom of the right toolbar.
+
+## Layers and fills
+
+| Layer | Purpose |
+| --- | --- |
+| Cut Path — red | Cutting outlines, exported separately in DXF. |
+| Engrave Path — blue | Engraving paths and score/fold geometry. |
+| Construction Path — magenta | Editing guides, excluded from exports. |
+| Raster Engrave — black | Black outlines and filled engraving artwork; included in SVG, PDF and PNG, excluded from DXF. |
+| Artwork | General drawing, text, colour fills and annotations. Default strokes follow the editor theme and export as black. |
+
+Expand layers to inspect their objects. Use the eye and lock controls to hide or protect content. Move objects by dragging their rows onto another visible, unlocked layer, or use **right-click → Layer** on the canvas.
+
+For fills, open **Fill & appearance** using the palette icon on the right. Choose **Colour**, **Gradient** or **Pattern**, then activate **Fill (B)** and click inside an enclosed area. All fill types create or recolour objects in Artwork, regardless of the active drawing layer. Artwork must be visible and unlocked. **No fill** is selected initially; use it to remove a region’s colour while keeping the surrounding outlines.
+
+## Saving and exporting
+
+Click the project name at the top to rename it. **File → New document**, or the **+** on the document bar, creates a new tab; **Open** adds a saved `.vectora` file in another tab. Each tab keeps its own drawing, history, selection, grid, view and save target. **Save As** creates a separate project file.
+
+Vectora keeps local recovery copies of open documents in your browser. Clearing site data removes them, and undo history does not survive a reload. Save `.vectora` files for portable copies. Browsers with file-picker support can save directly to a chosen file; other browsers download it using their download settings.
+
+**File → Export…** opens a preview and format-specific settings. Choose the whole drawing or the current selection, name your file, and use **Advanced → Layers** to control which layers are included.
+
+| Format | Options and use |
+| --- | --- |
+| SVG | Vector curves, colours, fills and outlined lettering. Set physical width, margin and layer grouping. |
+| PDF | Printable artwork with fitted, A4, A3 or Letter pages, orientation, margin and scale. Use 100% scale for actual-size output. |
+| PNG | Raster artwork with adjustable DPI and pixel width, plus transparent or coloured backgrounds. Default resolution is 300 DPI. |
+| DXF | Cutting and engraving geometry. Choose Standard DXF (2000) or Laser-compatible DXF (R12), curve tolerance, and optional Move to origin. Include Artwork when needed. |
+
+Laser-compatible DXF uses basic line segments for more restrictive importers. Select **millimetres** when importing it and check dimensions and contours in the receiving software before cutting. DXF exports geometry: fills become boundaries, and dashed styles export as continuous paths. SVG, PDF and PNG retain the visual line styles and fills; transparent PDF gradients are rasterised while other artwork remains vector.
+
+Exporting leaves the editable document unchanged. Keep a `.vectora` copy when you want to retain editable text and the complete project structure.
+
+## Handy shortcuts
+
+Use **Ctrl** on Windows/Linux and **Cmd (⌘)** on macOS. Click the canvas before using drawing shortcuts.
+
+| Shortcut | Action |
+| --- | --- |
+| V / N | Select / Node editing |
+| R / C / E | Rectangle / Circle / Ellipse |
+| L / P / F | Line / Polyline / Freehand |
+| T / B / S | Text / Fill / Toggle snapping |
+| Space + drag | Pan |
+| Escape | Cancel an unfinished action or clear selection |
+| Delete / Backspace | Delete selection or active node |
+| Ctrl/Cmd + Z | Undo |
+| Ctrl/Cmd + Shift + Z | Redo |
+| Ctrl/Cmd + C / V | Copy / Paste |
+| Ctrl/Cmd + N / O | New document / Open |
+| Ctrl/Cmd + S | Save |
+| Ctrl/Cmd + Shift + S | Save As |
+| Ctrl/Cmd + E | Open export settings on SVG |
+| Ctrl/Cmd + Shift + E | Open export settings on DXF |
+| F1 | Help |
+
+Browser-reserved shortcuts may behave differently across browsers and operating systems. The in-app Help menu includes the full shortcut list and drawing instructions.
