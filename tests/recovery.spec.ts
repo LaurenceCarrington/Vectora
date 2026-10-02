@@ -54,7 +54,8 @@ test('Recovery retries an unchanged document after both storage writes fail',asy
   Storage.prototype.setItem=function(key,value){if(key==='vectora.recovery.pending')throw new DOMException('Quota exceeded','QuotaExceededError');return setItem.call(this,key,value);};
   (window as any).recoveryAttempts=0;
   IDBObjectStore.prototype.put=function(value,key){
-   if(this.name==='documents'&&key==='current'&&JSON.parse(value.data.contents).layers.some((layer:any)=>layer.objects.length)&&++(window as any).recoveryAttempts===1)throw new DOMException('Temporary failure','UnknownError');
+   const contents=value.data.contents||value.data.tabs?.find((tab:any)=>tab.id===value.data.activeTabId)?.contents;
+   if(this.name==='documents'&&key==='current'&&JSON.parse(contents).layers.some((layer:any)=>layer.objects.length)&&++(window as any).recoveryAttempts===1)throw new DOMException('Temporary failure','UnknownError');
    return put.call(this,value,key!);
   };
  });

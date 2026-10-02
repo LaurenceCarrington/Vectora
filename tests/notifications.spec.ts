@@ -22,8 +22,10 @@ test('Notification pop-out is flush with the right rail, bounded, scrollable and
  await page.goto(DEV);await page.evaluate(()=>{for(let i=0;i<18;i++)(window as any).__vectora.onMessage('<img src=x onerror=alert(1)> '+ 'Long message '.repeat(20),'error');});
  const bell=page.getByRole('button',{name:'Notifications',exact:true}),panel=page.locator('#notifications-panel');await bell.click();
  for(const viewport of [{width:1280,height:900},{width:420,height:600}]){
-  await page.setViewportSize(viewport);const rail=(await page.locator('.right-toolbar').boundingBox())!,b=(await bell.boundingBox())!,p=(await panel.boundingBox())!;
-  expect(b.y+b.height).toBeGreaterThan(rail.y+rail.height-10);expect(p.x+p.width).toBeCloseTo(rail.x,0);expect(p.x).toBeGreaterThanOrEqual(0);expect(p.y).toBeGreaterThanOrEqual(rail.y);expect(p.y+p.height).toBeLessThanOrEqual(rail.y+rail.height+1);
+  await page.setViewportSize(viewport);
+  await expect(async()=>{const rail=(await page.locator('.right-toolbar').boundingBox())!,b=(await bell.boundingBox())!,p=(await panel.boundingBox())!;
+   expect(b.y+b.height).toBeGreaterThan(rail.y+rail.height-10);expect(p.x+p.width).toBeCloseTo(rail.x,0);expect(p.x).toBeGreaterThanOrEqual(0);expect(p.y).toBeGreaterThanOrEqual(rail.y);expect(p.y+p.height).toBeLessThanOrEqual(rail.y+rail.height+1);
+  }).toPass({timeout:5000});
   await expect(panel.locator('img')).toHaveCount(0);expect(await page.locator('#toast-stack').evaluate(e=>e.scrollHeight>e.clientHeight)).toBe(true);
  }
  await page.screenshot({path:'test-results/notifications-narrow.png'});
@@ -32,7 +34,7 @@ test('Production and reference expose the same notification menu',async({page})=
  for(const url of ['http://127.0.0.1:4173','http://127.0.0.1:5174/reference/design-system.html']){
   await page.goto(url);
   if(url.includes('reference'))await page.locator('[data-toast-show="error"]').click();
-  else {await page.getByRole('button',{name:'File',exact:true}).click();await page.getByRole('menuitem',{name:'Export SVG',exact:true}).click();}
+  else {await page.locator('#open-document-file').setInputFiles({name:'invalid.vectora',mimeType:'application/json',buffer:Buffer.from('invalid document')});}
   const bell=page.getByRole('button',{name:'Notifications',exact:true});await expect(bell.locator('.notification-badge')).toHaveText('1');await expect(page.locator('#notifications-panel')).toBeHidden();await bell.click();await expect(page.locator('#notifications-panel .toast-error')).toBeVisible();
   if(!url.includes('reference'))await page.screenshot({path:'test-results/notifications-desktop.png',scale:'css'});
   await page.getByRole('button',{name:'Close notifications',exact:true}).click();await expect(bell).toBeFocused();

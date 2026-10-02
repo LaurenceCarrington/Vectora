@@ -31,7 +31,7 @@ import type { DocumentSnapshot, EditorSession, Shape, ToolName, ObjectRole } fro
 
 type Interaction = {
   id:number; kind:'pan'|'draw'|'move'|'resize'|'marquee'|'endpoint'|'arc-handle'|'rotate'; start:paper.Point; screen:paper.Point;
-  center:paper.Point; before:DocumentSnapshot; item?:Shape; bounds?:paper.Rectangle;
+  center:paper.Point; before:DocumentSnapshot|null; cancelSelection:Shape[]; cancelLayer:string; item?:Shape; bounds?:paper.Rectangle;
   rotationPivot?:paper.Point; rotationDelta?:number; arcGeometry?:ArcGeometry; handle?:number; items?:Shape[]; positions?:paper.Point[]; originals?:Shape[]; initialSelection?:Shape[]; snapSpacing:number|null; hasDragged?:boolean; drawPoint?:paper.Point; shift?:boolean;
 };
 export class CADEditor {
@@ -56,6 +56,11 @@ export class CADEditor {
   get drawingColor():string {return getComputedStyle(document.documentElement).getPropertyValue(layerType(this.activeLayer?layerRole(this.activeLayer):'artwork').color).trim();}
   setActiveLayer(id:string):void {if(!this.documentLayer(id))return;this.cancel();this.drawingLayerId=id;this.layerSelectionSignature=this.selectionSignature();this.changed();this.onDocumentChange();}
   private selectionSignature():string {return this.selection.map(item=>`${layerId(item.layer)}:${item.data.uid}`).join('|');}
+  private syncDrawingLayer():void {
+    const signature=this.selectionSignature(),layer=this.selection[0]?.layer;
+    if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);
+    this.layerSelectionSignature=signature;
+  }
   private drawingLayer():paper.Layer {const layer=this.activeLayer;if(!layer)throw new Error('Add a layer before drawing.');if(!layer.visible||layer.locked)throw new Error(`Show and unlock ${layer.name} before drawing.`);return layer;}
   private styleForLayer(item:Shape,layer:paper.Layer):void {
     // Resolve Paper's lazy colour values before replacing or clearing them.
@@ -90,7 +95,7 @@ export class CADEditor {
   polygonSides=6;
   starPoints=5;
   onChange:()=>void=()=>{};
-  onDocumentChange:()=>void=()=>{};
+  onDocumentChange:(snapshot?:DocumentSnapshot)=>void=()=>{};
   get hasPendingGesture():boolean {return !!this.offsets?.active||!!this.patterns?.active||!!this.interaction||!!this.polyline||!!this.threePointArc||this.nodes.dragging||this.dimensions.active;}
   onTextRequest:(point:paper.Point|null,target:Shape|null)=>void=()=>{};
   textEditing=false;
@@ -240,14 +245,16 @@ export class CADEditor {
     const byId=new Map(this.objects.map(item=>[item.data.uid,item]));
     this.selection=[...new Set<string>(ids)].flatMap(id=>{const item=byId.get(id);return item&&this.isEditable(item)?[item]:[];});
     this.drawingLayerId=snapshot.activeLayerId??'artwork';this.layerSelectionSignature=this.selectionSignature();
-    this.artwork.activate();this.changed();this.onDocumentChange();
+    this.artwork.activate();this.changed();this.onDocumentChange(snapshot);
   }
   private commit(before:DocumentSnapshot):void {
+    // History must include the same drawing destination that the UI displays.
+    this.syncDrawingLayer();
     const after=this.snapshot();
     if(before.artwork!==after.artwork || before.cutlines!==after.cutlines || before.layers!==after.layers || JSON.stringify(before.canvasSize)!==JSON.stringify(after.canvasSize) || JSON.stringify(before.grid)!==JSON.stringify(after.grid)) {
       this.undoStack.push({before,after}); if(this.undoStack.length>100)this.undoStack.shift();this.redoStack=[];
     }
-    this.changed();this.onDocumentChange();
+    this.changed();this.onDocumentChange(after);
   }
   undo():void {this.cancel();const entry=this.undoStack.pop();if(entry){this.redoStack.push(entry);this.restore(entry.before);}}
   redo():void {this.cancel();const entry=this.redoStack.pop();if(entry){this.undoStack.push(entry);this.restore(entry.after);}}
@@ -293,7 +300,18 @@ export class CADEditor {
     this.selection=items;this.commit(before);return items.length;
   }
   hitObject(point:paper.Point):Shape|null {
-    const candidates=[...this.objects].reverse().filter(object=>this.isEditable(object));
+    const tolerance=6/paper.view.zoom;
+    // Paper caches these bounds and invalidates them on geometry/style changes.
+    // Keep the broad phase conservative: thick strokes and annotation labels count.
+    const candidates=[...this.objects].reverse().filter(object=>{
+      if(!this.isEditable(object))return false;
+      const bounds=object.data.dimension?object.strokeBounds.unite(this.objectBounds(object)):object.strokeBounds;
+      // Segment targets include a stroke-radius envelope even past flat caps.
+      // Account for transformed scaling strokes as well as screen-sized strokes.
+      const [a,b,c,d]=object.globalMatrix.values;
+      const strokeScale=object.strokeScaling?Math.max(Math.hypot(a,c),Math.hypot(b,d)):1/paper.view.zoom;
+      return bounds.expand(tolerance*2+object.strokeWidth*strokeScale).contains(point);
+    });
     // A precise outline hit wins over the generous interior/tolerance target of enclosing paths.
     let hit:Shape|null=candidates.find(object=>!object.fillColor&&object.hitTest(point,{stroke:true,tolerance:1/paper.view.zoom}))??null;
     if(!hit)for(const object of candidates) if(object.hitTest(point,{fill:true,stroke:true,segments:true,tolerance:6/paper.view.zoom}) || ((object.data.text||object.data.dimension)&&this.objectBounds(object).contains(point)) || (object.data.role!=='cutline' && (object.data.joined?pathsOf(object).some(path=>path.closed&&path.contains(point)):this.isClosedShape(object)&&object.contains(point)))){hit=object;break;}
@@ -774,9 +792,7 @@ export class CADEditor {
     if(!this.interaction||!['move','pan','marquee'].includes(this.interaction.kind)){
       const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>{applyArtworkTheme(item,themeColour);refreshFillPaint(item);});
     }
-    const signature=this.selectionSignature(),layer=this.selection[0]?.layer;
-    if(signature!==this.layerSelectionSignature&&layer&&this.documentLayers.includes(layer)&&this.selection.every(item=>item.layer===layer))this.drawingLayerId=layerId(layer);
-    this.layerSelectionSignature=signature;
+    this.syncDrawingLayer();
     // Overlay and panel controls read the same combined bounds many times per frame.
     // Cache only inside this refresh so edits outside it always see fresh geometry.
     const previous=this.selectionBoundsCache;this.selectionBoundsCache=undefined;this.selectionBoundsCache=this.selectionBounds;
@@ -848,7 +864,7 @@ export class CADEditor {
     event.preventDefault();this.canvas.focus({preventScroll:true});
     if(event.button===0&&!this.space&&this.tool!=='select'&&this.tool!=='nodes'&&this.tool!=='fill'&&!this.isDeleteTool){try{this.drawingLayer();}catch(error){this.onMessage((error as Error).message,'warning');return;}}
     const screen=this.screen(event),point=paper.view.viewToProject(screen);
-    const base={id:event.pointerId,start:point,screen,center:paper.view.center.clone(),before:this.snapshot(),snapSpacing:this.gridSnappingActive?this.grid.spacingMM:null};
+    const base={id:event.pointerId,start:point,screen,center:paper.view.center.clone(),before:null as DocumentSnapshot|null,cancelSelection:[...this.selection],cancelLayer:this.drawingLayerId,snapSpacing:this.gridSnappingActive?this.grid.spacingMM:null};
     if(event.button===1 || this.space){this.activeObjectSnap=null;this.clearDeletePreview();this.interaction={...base,kind:'pan'};}
     else if(isDimensionTool(this.tool)){this.dimensions.down(point);return;}
     else if(this.tool==='nodes'){this.nodes.down(event,point);return;}
@@ -858,20 +874,20 @@ export class CADEditor {
     else if(this.tool==='arc-three-point'||this.tool==='arc-endpoints'){this.addThreePointArcPoint(point,event.shiftKey);return;}
     else if(this.tool==='polyline'){this.addPolylinePoint(point,event.shiftKey);return;}
     else if(this.tool!=='select') {
-      this.selected=null;this.interaction={...base,start:this.tool==='freehand'?point:this.snapPoint(point,base.snapSpacing),kind:'draw'};
+      const before=this.snapshot();this.selected=null;this.interaction={...base,before,start:this.tool==='freehand'?point:this.snapPoint(point,base.snapSpacing),kind:'draw'};
     } else {
       const rotationHandle=this.rotationHandlePoint();
       const handle=this.handlePoints().findIndex(p=>p.getDistance(point)<=9/paper.view.zoom);
       if(rotationHandle&&rotationHandle.getDistance(point)<=9/paper.view.zoom){
-        this.interaction={...base,kind:'rotate',rotationPivot:this.selectionBounds!.center,rotationDelta:0,items:[...this.selection],bounds:this.selectionBounds!,originals:this.selection.map(item=>item.clone({insert:false}) as Shape)};
+        this.interaction={...base,before:this.snapshot(),kind:'rotate',rotationPivot:this.selectionBounds!.center,rotationDelta:0,items:[...this.selection],bounds:this.selectionBounds!,originals:this.selection.map(item=>item.clone({insert:false}) as Shape)};
       }else if(handle>=0 && this.selection.length) {
-        this.interaction={...base,kind:this.selectedArc?'arc-handle':this.hasEndpointHandles?'endpoint':'resize',arcGeometry:this.selectedArc?{...this.selectedArc}:undefined,items:[...this.selection],bounds:this.selectionBounds!,handle,originals:this.selection.map(item=>item.clone({insert:false}) as Shape)};
+        this.interaction={...base,before:this.snapshot(),kind:this.selectedArc?'arc-handle':this.hasEndpointHandles?'endpoint':'resize',arcGeometry:this.selectedArc?{...this.selectedArc}:undefined,items:[...this.selection],bounds:this.selectionBounds!,handle,originals:this.selection.map(item=>item.clone({insert:false}) as Shape)};
       } else {
         const hit=this.hitObject(point);
         if(hit){
           if(event.shiftKey){this.select(hit,true);return;}
           if(!this.selection.includes(hit))this.selected=hit;
-          this.interaction={...base,before:{...base.before,selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid)},kind:'move',items:[...this.selection],positions:this.selection.map(item=>item.position.clone()),bounds:this.selectionBounds!};
+          this.interaction={...base,cancelSelection:[...this.selection],kind:'move',items:[...this.selection],positions:this.selection.map(item=>item.position.clone()),bounds:this.selectionBounds!};
         }else{
           const initialSelection=event.shiftKey?[...this.selection]:[];
           this.selection=initialSelection;
@@ -903,6 +919,8 @@ export class CADEditor {
       state.hasDragged ||= screen.getDistance(state.screen)>=2;
       if(!state.hasDragged)return;
     }
+    // A click, pan or marquee changes no document geometry and needs no full history.
+    if(state.kind==='move'&&!state.before)state.before={...this.snapshot(),activeLayerId:state.cancelLayer};
     if(state.kind==='pan')paper.view.center=state.center.subtract(screen.subtract(state.screen).divide(paper.view.zoom));
     if(state.kind==='draw'){
       if(this.tool==='freehand'){
@@ -1127,9 +1145,10 @@ export class CADEditor {
       if(this.tool==='line'||this.tool==='freehand'?(state.item as paper.Path).length<MIN_DIMENSION_MM:state.item.bounds.width<MIN_DIMENSION_MM||state.item.bounds.height<MIN_DIMENSION_MM)state.item.remove();
       else {state.item.data={...state.item.data,role:'artwork',uid:crypto.randomUUID(),name:this.tool[0].toUpperCase()+this.tool.slice(1),...(this.tool==='polygon'?{sides:this.polygonSides}:{})};this.insertDrawing(state.item);this.selected=state.item;if(this.tool==='arc')this.tool='select';}
     }
-    if(state.kind!=='pan'&&state.kind!=='marquee'&&state.hasDragged)this.commit(state.before);
+    const committed=state.kind!=='pan'&&state.kind!=='marquee'&&state.hasDragged&&state.before;
+    if(committed)this.commit(state.before!);
     if(this.canvas.hasPointerCapture(event.pointerId))this.canvas.releasePointerCapture(event.pointerId);
-    this.updateCursor();this.changed();
+    this.updateCursor();if(!committed)this.changed();
   };
   cancel():void {
     this.offsets?.cancel();this.patterns?.cancel();this.dimensions.cancel();this.nodes.cancel();
@@ -1139,7 +1158,7 @@ export class CADEditor {
     const polyline=this.polyline;this.polyline=null;
     if(polyline){polyline.item.remove();this.restore(polyline.before);}
     const state=this.interaction;this.interaction=null;
-    if(state){state.originals?.forEach(item=>item.remove());if(state.kind==='draw')state.item?.remove();if(state.kind==='pan')paper.view.center=state.center;else this.restore(state.before);if(this.canvas.hasPointerCapture(state.id))this.canvas.releasePointerCapture(state.id);}
+    if(state){state.originals?.forEach(item=>item.remove());if(state.kind==='draw')state.item?.remove();if(state.kind==='pan')paper.view.center=state.center;else if(state.before)this.restore(state.before);else{this.selection=state.cancelSelection;this.drawingLayerId=state.cancelLayer;this.layerSelectionSignature=this.selectionSignature();}if(this.canvas.hasPointerCapture(state.id))this.canvas.releasePointerCapture(state.id);}
     this.updateCursor();this.changed();
   }
   private wheel=(event:WheelEvent):void=>{

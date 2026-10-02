@@ -37,17 +37,17 @@ function restoredColour(value:unknown):paper.Color|null {
  return new paper.Color({gradient:{stops,radial:bool(v.radial)},origin:new paper.Point(origin[0],origin[1]),destination:new paper.Point(destination[0],destination[1]),...(highlight?{highlight:new paper.Point(highlight[0],highlight[1])}:{})});
 }
 
-export function documentKey(editor:CADEditor):string {
- const {artwork,cutlines,layers,canvasSize,grid}=editor.snapshot();return JSON.stringify({artwork,cutlines,layers,canvasSize,grid});
+export function documentKey(editor:CADEditor,snapshot=editor.snapshot()):string {
+ const {artwork,cutlines,layers,canvasSize,grid}=snapshot;return JSON.stringify({artwork,cutlines,layers,canvasSize,grid});
 }
-export function encodeDocument(editor:CADEditor):string {
+export function encodeDocument(editor:CADEditor,pretty=true):string {
  const layers=editor.documentLayers.map(layer=>({id:layer.data.documentId,name:layer.name,role:layer.data.objectRole,visible:layer.visible,locked:layer.locked,objects:layer.children.map(child=>{
   const item=child as Shape;
   return {kind:item instanceof paper.Path?'path':'compound',contours:pathsOf(item).map(path=>{
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
   }),data:structuredClone(item.data),visible:item.visible,locked:item.locked,style:{fill:savedColour(item.fillColor),stroke:savedColour(item.strokeColor),width:item.strokeWidth,scaling:item.strokeScaling,fillRule:item.fillRule,cap:item.strokeCap,join:item.strokeJoin,miter:item.miterLimit,dash:item.dashArray,offset:item.dashOffset,opacity:item.opacity}};
  })}));
- return JSON.stringify({format:'vectora',version:1,units:'mm',rasterLayerInitialized:true,grid:editor.grid.config,canvasSize:editor.canvasSize,activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,2);
+ return JSON.stringify({format:'vectora',version:1,units:'mm',rasterLayerInitialized:true,grid:editor.grid.config,canvasSize:editor.canvasSize,activeLayerId:editor.activeLayerId,layers,view:{zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]}},null,pretty?2:undefined);
 }
 
 function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string>):JsonObject {

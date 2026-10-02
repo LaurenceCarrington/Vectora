@@ -4,13 +4,22 @@ export interface RecoveryTab {id:string;contents:string;filename:string;dirty:bo
 export interface RecoveryData {contents:string;filename:string;dirty:boolean;draft?:{content:string;sourceId:string|null;point:[number,number]|null};tabs?:RecoveryTab[];activeTabId?:string}
 interface RecoveryRecord {version:1;time:number;id:string;data:RecoveryData}
 const JOURNAL='vectora.recovery.pending';
+function storageData(data:RecoveryData):RecoveryData {
+ return Array.isArray(data.tabs)&&data.tabs.some(tab=>tab?.id===data.activeTabId&&tab?.contents===data.contents)?{...data,contents:''}:data;
+}
 function record(value:unknown):RecoveryRecord|null {
  if(!value||typeof value!=='object')return null;
  const r=value as RecoveryRecord,d=r.data;
+ // Current tab contents already live in the tab list. Reconstitute the legacy
+ // top-level alias when reading compact records, including older single-tab data.
+ if(d?.contents===''&&Array.isArray(d.tabs)&&typeof d.activeTabId==='string'){
+  const active=d.tabs.find(tab=>tab?.id===d.activeTabId);if(typeof active?.contents==='string')d.contents=active.contents;
+ }
  return r.version===1&&Number.isFinite(r.time)&&typeof r.id==='string'&&d&&typeof d.contents==='string'&&typeof d.filename==='string'&&d.filename.length<=1000&&typeof d.dirty==='boolean'?r:null;
 }
 export class DocumentRecovery {
  private database:Promise<IDBDatabase>;
+ private connection:IDBDatabase|null=null;
  private last='';
  private time=0;
  private warned=false;
@@ -19,7 +28,7 @@ export class DocumentRecovery {
   this.database=new Promise((resolve,reject)=>{
    const request=indexedDB.open('vectora-recovery',1),timer=setTimeout(()=>reject(new Error('Browser storage did not respond.')),4000);
    request.onupgradeneeded=()=>request.result.createObjectStore('documents');
-   request.onsuccess=()=>{clearTimeout(timer);request.result.onversionchange=()=>request.result.close();resolve(request.result);};
+   request.onsuccess=()=>{clearTimeout(timer);this.connection=request.result;request.result.onversionchange=()=>{request.result.close();this.connection=null;};resolve(request.result);};
    request.onerror=request.onblocked=()=>{clearTimeout(timer);reject(request.error??new Error('Browser storage is unavailable.'));};
   });
   // Storage may be disabled; the synchronous journal can still work.
@@ -31,17 +40,22 @@ export class DocumentRecovery {
   try{const db=await this.database;stored=record(await new Promise((resolve,reject)=>{const request=db.transaction('documents').objectStore('documents').get('current');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);}));}catch{/* A journal survives failed database writes. */}
   const latest=journal&&(!stored||journal.time>=stored.time)?journal:stored;
   this.time=latest?.time??0;
-  if(latest){this.last=JSON.stringify(latest.data);return latest.data;}return null;
+  if(latest){this.last=JSON.stringify(storageData(latest.data));return latest.data;}return null;
  }
  write(data:RecoveryData):void {
-  const content=JSON.stringify(data);if(content===this.last)return;
+  const compact=storageData(data);
+  const content=JSON.stringify(compact);if(content===this.last)return;
   this.last=content;this.time=Math.max(Date.now(),this.time+1);
-  const current:RecoveryRecord={version:1,time:this.time,id:crypto.randomUUID(),data};let journal=false;
+  const current:RecoveryRecord={version:1,time:this.time,id:crypto.randomUUID(),data:compact};let journal=false;
   try{localStorage.setItem(JOURNAL,JSON.stringify(current));journal=true;}catch{/* Large drawings use IndexedDB. */}
-  void this.database.then(db=>new Promise<void>((resolve,reject)=>{
+  const store=(db:IDBDatabase)=>new Promise<void>((resolve,reject)=>{
    const transaction=db.transaction('documents','readwrite');transaction.objectStore('documents').put(current,'current');
    transaction.oncomplete=()=>resolve();transaction.onerror=transaction.onabort=()=>reject(transaction.error);
-  })).then(()=>{
+  });
+  // Start a ready database transaction now, including during beforeunload.
+  // A deferred Promise callback may never run once navigation starts, and large
+  // drawings can exceed the synchronous journal's localStorage quota.
+  void (this.connection?store(this.connection):this.database.then(store)).then(()=>{
    try{if(record(JSON.parse(localStorage.getItem(JOURNAL)??'null'))?.id===current.id)localStorage.removeItem(JOURNAL);}catch{/* Keep the journal if cleanup is unavailable. */}
   }).catch(()=>{
    if(!journal){this.last='';if(!this.warned){this.warned=true;this.warn('Browser recovery could not be saved. Use Save to keep a copy of your drawing.');}}

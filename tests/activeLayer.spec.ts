@@ -1,3 +1,4 @@
+import {dragSelectionToLayer} from './layerHelpers';
 import {test,expect} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 const state=(page:any)=>page.evaluate(()=>{const e=(window as any).__vectora,s=e.selected;return {active:e.activeLayerId,layer:s?.layer.data.documentId,role:s?.data.role,stroke:s?.strokeColor?.toCSS(true),fill:s?.fillColor?.toCSS(true),count:e.objects.length};});
@@ -42,4 +43,19 @@ test('Active locked or hidden layers block creation, and deleting an active laye
  await page.mouse.move(300,300);await page.mouse.down();await page.mouse.move(450,400);await page.mouse.up();expect((await state(page)).count).toBe(0);await expect(page.locator('#toast-stack')).toContainText('Show and unlock Engrave Path');
  const result=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.setLayerState('engrave','locked',false);e.setLayerState('engrave','visible',false);let message='';try{e.addShape(new p.Path.Circle({insert:false,center:[20,20],radius:5}),'Circle');}catch(error){message=(error as Error).message;}e.deleteDocumentLayer('engrave');const fallback=e.activeLayerId;e.addShape(new p.Path.Circle({insert:false,center:[20,20],radius:5}),'Circle');return {message,fallback,layer:e.selected.layer.data.documentId,count:e.objects.length};});
  expect(result).toMatchObject({message:'Show and unlock Engrave Path before drawing.',fallback:'artwork',layer:'artwork',count:1});
+});
+
+test('Layer transfer redo restores the drawing destination before the next object is created',async({page})=>{
+ await page.goto(DEV);
+ const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,10,20,20]}),'Rectangle');return e.snapshot();});
+ await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);
+ const after=await page.evaluate(()=>(window as any).__vectora.snapshot());expect(after.activeLayerId).toBe('cutline');
+ await page.getByRole('button',{name:'Undo',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ await page.getByRole('button',{name:'Redo',exact:true}).click();
+ await expect(page.locator('[data-layer-id="cutline"] .layer-select')).toHaveAttribute('aria-pressed','true');
+ expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after);
+ await page.locator('#cad-canvas').focus();await page.keyboard.press('r');await page.mouse.move(220,560);await page.mouse.down();await page.mouse.move(380,660);await page.mouse.up();
+ expect(await page.evaluate(()=>(window as any).__vectora.objects.map((s:any)=>s.layer.data.documentId))).toEqual(['cutline','cutline']);
+ await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after);
+ await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
 });

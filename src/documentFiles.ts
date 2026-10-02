@@ -6,7 +6,7 @@ import {loadTextFont} from './text';
 import {DocumentRecovery,type RecoveryData} from './documentRecovery';
 import {DocumentName} from './documentName';
 import {DocumentTabs} from './documentTabs';
-import type {EditorSession} from './types';
+import type {DocumentSnapshot,EditorSession} from './types';
 import type {CADEditor} from './editor';
 import {encodeDocument,decodeDocument,documentKey,MAX_DOCUMENT_BYTES} from './documentFormat';
 import type {AlertKind} from './alerts';
@@ -30,6 +30,7 @@ export class DocumentFiles {
  private changedDuringStartup=false;
  private timer:number|undefined;
  private cachePending=true;
+ private unloadFlushed=false;
  private cachedViewKey='';
  private cachedSavedKey='';
  private draft:()=>RecoveryData['draft']=()=>undefined;
@@ -50,14 +51,18 @@ export class DocumentFiles {
   dialog.addEventListener('keydown',event=>event.stopPropagation());
   input.addEventListener('change',()=>{const file=input.files?.[0];input.value='';if(file)void this.run(()=>this.load(file,null));});
   window.addEventListener('beforeunload',event=>{
-   this.nameControl.commit();this.cache();
+   this.unloadFlushed=false;this.nameControl.commit();this.cache();this.unloadFlushed=true;
    // Browsers require a prior user interaction and supply their own confirmation wording.
    event.preventDefault();event.returnValue='';
   });
   window.addEventListener('pagehide',()=>this.cache());
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')this.cache();});
+  // A navigation-aborted font request can clear inline text during teardown.
+  // Keep the already captured draft until real input resumes after cancellation.
+  const resume=()=>{this.unloadFlushed=false;};
+  document.addEventListener('pointerdown',resume,{capture:true});document.addEventListener('keydown',resume,{capture:true});editor.canvas.addEventListener('wheel',resume,{passive:true});
   const schedule=()=>{if(this.timer===undefined)this.timer=window.setTimeout(()=>{this.timer=undefined;this.cache();},250);};
-  editor.onDocumentChange=()=>{this.cachePending=true;this.cache();};
+  editor.onDocumentChange=snapshot=>{resume();this.cachePending=true;this.cache(snapshot);};
   editor.canvas.addEventListener('pointerup',schedule);editor.canvas.addEventListener('wheel',schedule,{passive:true});
   document.querySelector('#inline-text')!.addEventListener('input',schedule);
   document.addEventListener('click',schedule);document.addEventListener('keyup',schedule);
@@ -145,16 +150,17 @@ export class DocumentFiles {
    this.recoveryReady=true;workspace.inert=false;if(this.changedDuringStartup||!restored||this.cachePending)this.cache();if(!restored)this.editor.canvas.focus({preventScroll:true});
   }
  }
- private cache():void {
-  if(this.restoring)return;
+ private cache(snapshot?:DocumentSnapshot):void {
+  if(this.restoring||this.unloadFlushed)return;
   if(!this.recoveryReady){this.changedDuringStartup=true;return;}
   if(this.editor.hasPendingGesture)return;
   const draft=this.draft(),viewKey=JSON.stringify([this.activeId,this.filename,this.renamed,this.editor.activeLayerId,paper.view.zoom,paper.view.center.x,paper.view.center.y,draft,this.tabs.map(tab=>tab.id)]);
   if(!this.cachePending&&!this.recovery.needsRetry&&viewKey===this.cachedViewKey&&this.savedKey===this.cachedSavedKey)return;
-  let contents=encodeDocument(this.editor);
+  // Recovery does not need file-export indentation or another history snapshot.
+  let contents=encodeDocument(this.editor,false);
   // Inline editing temporarily hides the original glyphs behind its textarea.
   if(draft?.sourceId){const data=JSON.parse(contents);for(const layer of data.layers)for(const object of layer.objects)if(object.data.uid===draft.sourceId)object.visible=true;contents=JSON.stringify(data);}
-  const dirty=this.dirty||!!draft;
+  const dirty=this.renamed||documentKey(this.editor,snapshot)!==this.savedKey||!!draft;
   this.activeTab.contents=contents;this.activeTab.filename=this.filename;this.activeTab.dirty=dirty;
   this.renderTabs(dirty);
   this.cachePending=false;this.cachedViewKey=viewKey;this.cachedSavedKey=this.savedKey;

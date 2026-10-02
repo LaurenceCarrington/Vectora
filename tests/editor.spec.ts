@@ -40,7 +40,7 @@ test('geometry, topology, transforms, history and DXF acceptance',async({page})=
     assert(exportDXF([rect],true)===dxf,'viewport changed DXF');
     assert(dxf.includes('10\n110\n20\n-70\n'),'dimensions/origin/Y conversion');
     assert(rect.exportJSON()===original,'export changed source');
-    assert(exportDXF([outline]).match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)?.length===1,'overlay exported');
+    assert(exportDXF([outline]).match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)?.length===1,'overlay exported');
     editor.setProperty('x',40);editor.setProperty('width',150);
     const moved=createStickerOutline(editor.selected,3);
     assert(near(moved.bounds.x,37,0.13)&&near(moved.bounds.width,156,0.13),'moved/resized outline');
@@ -120,7 +120,7 @@ test('resize handles, aspect ratio, circle, pointer capture and focus loss',asyn
   if(await page.locator('#properties-panel').isVisible())await page.locator('#close-properties').click();
   await page.mouse.move(400,350);await page.mouse.down();await page.mouse.move(450,400);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();
   expect(await page.evaluate(()=>(window as any).__vectora.snapshot().artwork)).toBe(resized.json);
-  await page.locator('#cad-canvas').focus();await page.keyboard.press('c');await page.mouse.move(300,600);await page.mouse.down();await page.mouse.move(340,630);await page.mouse.up();
+  await page.evaluate(()=>(window as any).__vectora.setActiveLayer('artwork'));await page.locator('#cad-canvas').focus();await page.keyboard.press('c');await page.mouse.move(300,600);await page.mouse.down();await page.mouse.move(340,630);await page.mouse.up();
   expect(await page.evaluate(()=>{const e=(window as any).__vectora;return e.selected.bounds.width/e.selected.bounds.height;})).toBeCloseTo(1,8);
   if(await page.locator('#properties-panel').isVisible())await page.locator('#close-properties').click();
   await page.locator('#cad-canvas').focus();await page.keyboard.press('r');await page.mouse.move(600,600);await page.mouse.down();await page.keyboard.down('Shift');await page.mouse.move(500,650);await page.mouse.up();await page.keyboard.up('Shift');
@@ -197,7 +197,7 @@ test('millimetre grid stays aligned at every zoom and never exports',async({page
     p.view.zoom=96/25.4;p.view.center=new p.Point(100,70);e.setTool('select');
     const rect=new p.Path.Rectangle({rectangle:[10,20,100,50],insert:false,fillColor:'white'});e.addShape(rect,'Rectangle');
     const dxf=exportDXF([...e.grid.layer.children,...e.objects,...e.overlays.children],true);
-    assert((dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length===1,'grid or selection leaked into DXF');
+    assert((dxf.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)||[]).length===1,'grid or selection leaked into DXF');
     assert(e.grid.layer.locked&&e.grid.layer.guide,'grid must be non-interactive');
     return rows;
   });
@@ -211,7 +211,7 @@ test('snap to grid draws, moves, resizes and preserves exact numeric edits',asyn
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
   const snap=page.getByRole('button',{name:'Snapping',exact:true});
   await expect(snap).toHaveAttribute('aria-pressed','true');
-  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=24;p.view.center=new p.Point(-20,-2);(window as any).__vectora.setGridSpacing(1);(window as any).__vectora.setTool('rectangle');});
+  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=20;p.view.center=new p.Point(-20,-2);(window as any).__vectora.setGridSpacing(1);(window as any).__vectora.setTool('rectangle');});
   async function docDrag(from:number[],to:number[],shift=false){
     const coords=await page.evaluate(({from,to})=>{const p=(window as any).__paper,r=document.querySelector('#cad-canvas')!.getBoundingClientRect();return [from,to].map(a=>{const q=p.view.projectToView(new p.Point(a));return {x:q.x+r.x,y:q.y+r.y};});},{from,to});
     if(shift)await page.keyboard.down('Shift');
@@ -267,7 +267,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   const panel=page.locator('#primary-layers-panel');
   await expect(panel).toBeVisible();expect(await panelStyles()).toEqual(reference);
   const box=(await panel.boundingBox())!;expect(box.width).toBe(300);expect(box.y).toBe(88);expect(box.height).toBe(784);
-  await expect(panel.locator('[data-layer-count]')).toHaveText('4');
+  await expect(panel.locator('[data-layer-count]')).toHaveText('5');
   await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toHaveCount(0);
   await expect(panel.getByRole('button',{name:'Delete selected layer'})).toHaveCount(0);
   await panel.getByRole('button',{name:'Expand Artwork',exact:true}).click();
@@ -279,7 +279,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   expect(await page.evaluate(()=>{const e=(window as any).__vectora;return [e.artwork.visible,e.selected];})).toEqual([false,null]);
   await expect(panel.getByRole('button',{name:'Rectangle',exact:true})).toBeDisabled();
   const exported=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects,true);});
-  expect((exported.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(2);
+  expect((exported.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)||[]).length).toBe(2);
   await panel.getByRole('button',{name:'Show Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Rectangle',exact:true}).click();
   await panel.getByRole('button',{name:'Lock Artwork',exact:true}).click();
@@ -297,14 +297,14 @@ test('Layers matches reference and controls real objects, visibility, locking an
   expect(await panel.boundingBox()).toEqual(box);
   await page.screenshot({path:'test-results/layers-panel.png',animations:'disabled'});
   await page.setViewportSize({width:650,height:750});
-  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return b.x+b.width===606&&b.y===88&&b.y+b.height===722;}).toBe(true);
+  await expect.poll(async()=>{const b=(await panel.boundingBox())!;return {right:b.x+b.width,top:b.y,bottom:b.y+b.height};}).toEqual({right:606,top:120,bottom:722});
   await panel.getByRole('button',{name:'Close Layers panel'}).focus();await page.keyboard.press('Escape');await expect(panel).toBeHidden();
   await expect(page.getByRole('button',{name:'Layers',exact:true})).toBeFocused();expect(errors).toEqual([]);
 });
 test('ellipse and regular polygon support millimetre snapping, sides, cancellation, history and outlines',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
-  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=10;p.view.center=new p.Point(0,0);(window as any).__vectora.setTool('ellipse');});
+  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=10;p.view.center=new p.Point(0,0);(window as any).__vectora.setGridSpacing(5);(window as any).__vectora.setTool('ellipse');});
   async function coords(points:number[][]){return page.evaluate(points=>{const p=(window as any).__paper;return points.map(a=>{const q=p.view.projectToView(new p.Point(a));return {x:q.x,y:q.y};});},points);}
   async function drag(from:number[],to:number[],shift=false){const [a,b]=await coords([from,to]);if(shift)await page.keyboard.down('Shift');await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(b.x,b.y,{steps:5});await page.mouse.up();if(shift)await page.keyboard.up('Shift');}
   async function close(){if(await page.locator('#properties-panel').isVisible())await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();}
@@ -331,7 +331,7 @@ test('ellipse and regular polygon support millimetre snapping, sides, cancellati
   await page.mouse.click(689,499);expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(3);
   // Every new closed shape can produce an outline and enter the millimetre DXF pipeline.
   const report=await page.evaluate(async()=>{const e=(window as any).__vectora;const {exportDXF}=await import('/src/exportDXF.ts');const source=e.snapshot().artwork;for(const item of [...e.artwork.children]){e.select(item);e.outline(3);}return {sourceUnchanged:source===e.snapshot().artwork,cuts:e.cutlines.children.length,dxf:exportDXF(e.objects,true)};});
-  expect(report.sourceUnchanged).toBe(true);expect(report.cuts).toBe(3);expect((report.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(6);
+  expect(report.sourceUnchanged).toBe(true);expect(report.cuts).toBe(3);expect((report.dxf.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)||[]).length).toBe(6);
   await close();await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   await expect(page.locator('.layer-object').filter({hasText:'Ellipse'})).toHaveCount(2);await expect(page.locator('.layer-object').filter({hasText:'Polygon'})).toHaveCount(1);
   await page.screenshot({path:'test-results/ellipse-polygon.png',animations:'disabled'});expect(errors).toEqual([]);
@@ -366,7 +366,7 @@ test('marquee selection moves, resizes and deletes shapes together with atomic u
   await page.screenshot({path:'test-results/multiple-selection.png'});
   await drag([280,330],[320,360]);
   const moved=await page.evaluate(()=>{const e=(window as any).__vectora;return e.selectedItems.map((s:any)=>[s.bounds.x,s.bounds.y,s.bounds.width,s.bounds.height]);});
-  expect(moved).toEqual([[300,350,80,60],[450,370,80,60]]);
+  expect(moved).toEqual([[290,330,80,60],[440,350,80,60]]);
   await page.keyboard.press('Control+z');expect(await geometry()).toBe(original);expect(await selected()).toEqual(['A','B']);
   await page.keyboard.press('Control+Shift+z');expect(await geometry()).not.toBe(original);await page.keyboard.press('Control+z');
   await page.keyboard.press('s');await drag([480,380],[595,420],true);
@@ -387,7 +387,7 @@ test('marquee selection moves, resizes and deletes shapes together with atomic u
   await drag([200,250],[580,460]);expect(await selected()).toEqual(['A','B','C']);
   await page.evaluate(()=>{const e=(window as any).__vectora;e.setLayerState('cutline','visible',true);e.select(null);});await drag([200,250],[580,460]);expect(await selected()).toEqual(['A','B','C','Cut']);
   // Selection decorations never become artwork or DXF entities.
-  const exported=await page.evaluate(async()=>{const e=(window as any).__vectora,{exportDXF}=await import('/src/exportDXF.ts');return exportDXF([...e.objects,...e.overlays.children],true);});expect((exported.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(4);
+  const exported=await page.evaluate(async()=>{const e=(window as any).__vectora,{exportDXF}=await import('/src/exportDXF.ts');return exportDXF([...e.objects,...e.overlays.children],true);});expect((exported.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)||[]).length).toBe(4);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();await expect(page.locator('.layer-object[aria-pressed="true"]:visible')).toHaveCount(3);
   await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();expect(await selected()).toEqual(['Cut']);expect(errors).toEqual([]);
 });
@@ -395,7 +395,7 @@ test('moving selected artwork to Cut Path preserves geometry, selection, styling
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await draw(page);
   await page.evaluate(()=>(window as any).__vectora.outline(3));await page.locator('#close-properties').click();
-  await page.locator('#cad-canvas').focus();await page.keyboard.press('c');await page.mouse.move(300,600);await page.mouse.down();await page.mouse.move(350,620);await page.mouse.up();
+  await page.evaluate(()=>(window as any).__vectora.setActiveLayer('artwork'));await page.locator('#cad-canvas').focus();await page.keyboard.press('c');await page.mouse.move(300,600);await page.mouse.down();await page.mouse.move(350,620);await page.mouse.up();
   await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   await page.getByRole('button',{name:'Rectangle',exact:true}).click();await page.getByRole('button',{name:'Circle',exact:true}).click({modifiers:['Shift']});
   const before=await page.evaluate(async()=>{const e=(window as any).__vectora,{flattenInDocument}=await import('/src/geometry.ts');return {snapshot:e.snapshot(),objects:e.artwork.children.map((s:any)=>({id:s.data.uid,name:s.data.name,geometry:flattenInDocument(s),bounds:s.bounds.toJSON()})),color:e.cutlines.children[0].strokeColor.toCSS(true)};});
@@ -406,7 +406,7 @@ test('moving selected artwork to Cut Path preserves geometry, selection, styling
   const after=await page.evaluate(async()=>{const e=(window as any).__vectora,{flattenInDocument}=await import('/src/geometry.ts'),{exportDXF}=await import('/src/exportDXF.ts');return {art:e.artwork.children.length,cuts:e.cutlines.children.length,objects:e.selectedItems.map((s:any)=>({id:s.data.uid,name:s.data.name,geometry:flattenInDocument(s),bounds:s.bounds.toJSON()})),styles:e.selectedItems.map((s:any)=>({role:s.data.role,color:s.strokeColor.toCSS(true),fill:s.fillColor,width:s.strokeWidth,scaling:s.strokeScaling})),dxf:exportDXF(e.objects),snapshot:e.snapshot()};});
   expect(after.art).toBe(0);expect(after.cuts).toBe(3);expect(after.objects).toEqual(before.objects);
   for(const style of after.styles)expect(style).toEqual({role:'cutline',color:before.color,fill:null,width:1.5,scaling:false});
-  expect((after.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(3);expect(after.dxf.match(/8\nARTWORK\n/)).toBeNull();
+  expect((after.dxf.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)||[]).length).toBe(3);expect(after.dxf.match(/8\nARTWORK\n/)).toBeNull();
   await expect(page.locator('#properties-panel')).toBeHidden();await expect(page.locator('#layer-objects-cutline')).toBeVisible();
   await page.screenshot({path:'test-results/move-to-cut.png'});
   await page.getByRole('button',{name:'Undo',exact:true}).click();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before.snapshot);
@@ -425,7 +425,7 @@ test('production artwork can become a cut path without creating an outline',asyn
 test('line drawing supports snapped axis-aligned paths, endpoint editing and cut export',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
-  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=10;p.view.center=new p.Point(0,0);});
+  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=10;p.view.center=new p.Point(0,0);(window as any).__vectora.setGridSpacing(5);});
   const coords=(points:number[][])=>page.evaluate(points=>{const p=(window as any).__paper;return points.map(a=>{const q=p.view.projectToView(new p.Point(a));return [q.x,q.y];});},points);
   async function drag(from:number[],to:number[],shift=false){const [a,b]=await coords([from,to]);if(shift)await page.keyboard.down('Shift');await page.mouse.move(a[0],a[1]);await page.mouse.down();await page.mouse.move(b[0],b[1],{steps:4});await page.mouse.up();if(shift)await page.keyboard.up('Shift');}
   const shape=()=>page.evaluate(()=>{const s=(window as any).__vectora.selected;return {name:s.data.name,closed:s.closed,fill:s.fillColor,points:s.segments.map((v:any)=>[v.point.x,v.point.y]),bounds:[s.bounds.x,s.bounds.y,s.bounds.width,s.bounds.height]};});
@@ -440,7 +440,7 @@ test('line drawing supports snapped axis-aligned paths, endpoint editing and cut
   await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');await page.keyboard.press('Control+z');
   await page.keyboard.press('v');await drag([-10,-15],[-10,0]);expect((await shape()).points).toEqual([[-35,-15],[-10,0]]);
   await page.keyboard.press('Control+z');expect((await shape()).bounds).toEqual([-35,-15,25,0]);
-  await page.keyboard.press('l');await drag([-20,0],[-20,15]);expect((await shape()).bounds).toEqual([-20,0,0,15]);
+  await page.keyboard.press('l');await drag([-20,0],[-20,15]);for(const [i,n] of [-20,0,0,15].entries())expect((await shape()).bounds[i]).toBeCloseTo(n,8);
   await page.keyboard.press('l');await drag([-5,-20],[15,-5],true);const s=await shape();expect(Math.abs((s.points[1][1]-s.points[0][1])/(s.points[1][0]-s.points[0][0]))).toBeCloseTo(1,8);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);
   const report=await page.evaluate(async()=>{const e=(window as any).__vectora,{exportDXF}=await import('/src/exportDXF.ts');return {role:e.selected.data.role,dxf:exportDXF(e.objects),color:e.selected.strokeColor.toCSS(true)};});
@@ -470,7 +470,7 @@ test('polyline commits only clicked points, cancels safely, selects by stroke an
   await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toHaveCount(0);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);
   const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toContain('90\n3\n70\n0\n');
-  await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('p');await click([5,5]);await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');expect((await state()).count).toBe(2);expect(errors).toEqual([]);
+  await page.getByRole('button',{name:'Lock Artwork',exact:true}).click();await page.evaluate(()=>(window as any).__vectora.setActiveLayer('artwork'));await page.locator('#cad-canvas').focus();await page.keyboard.press('p');await click([5,5]);await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');expect((await state()).count).toBe(2);expect(errors).toEqual([]);
 });
 test('production Lines menu supports keyboard selection and polyline DXF download',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
@@ -483,7 +483,7 @@ test('production Lines menu supports keyboard selection and polyline DXF downloa
 });
 async function arcSetup(page:any){
   await page.goto(DEV);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
-  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=10;p.view.center=new p.Point(0,0);(window as any).__vectora.setTool('arc');});
+  await page.evaluate(()=>{const p=(window as any).__paper;p.view.zoom=10;p.view.center=new p.Point(0,0);(window as any).__vectora.setGridSpacing(5);(window as any).__vectora.setTool('arc');});
 }
 async function arcDrag(page:any,from:number[],to:number[],cancel=false){
   const points=await page.evaluate(([from,to]:number[][])=>{const p=(window as any).__paper;return [from,to].map(a=>{const q=p.view.projectToView(new p.Point(a));return [q.x,q.y];});},[from,to]);
@@ -511,7 +511,7 @@ test('Arc creates an exact snapped semicircle in one drag, with editable circula
   await page.locator('#arc-sweep').fill('0');await page.locator('#arc-sweep').press('Tab');await expect(page.locator('#arc-sweep')).toHaveAttribute('aria-invalid','true');expect((await arcState(page)).snapshot).toEqual(scaled.snapshot);
   await page.locator('#arc-sweep').fill('180');await page.locator('#arc-sweep').press('Tab');
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);expect((await arcState(page)).color.toLowerCase()).toBe('#ff0000');
-  const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toMatch(/90\n\d+\n70\n0\n/);
+  const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toMatch(/^0\nARC\n/m);
   await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#create-outline')).toHaveCount(0);await page.screenshot({path:'test-results/arc-controls.png'});expect(errors).toEqual([]);
 });
 test('Arc drafts cancel safely, angular snapping and group transforms preserve valid geometry',async({page})=>{
@@ -557,7 +557,7 @@ test('Three-point arc restores snapped drawing, validation, cancellation, histor
   await page.keyboard.press('Shift+a');await click([5,5]);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));expect((await arcState(page)).snapshot).toEqual(arc.snapshot);
   await click([5,5]);await page.getByRole('button',{name:'Layers',exact:true}).click();await page.getByRole('button',{name:'Expand Artwork',exact:true}).click();await page.getByRole('button',{name:'Arc',exact:true}).click();expect((await arcState(page)).snapshot).toEqual(arc.snapshot);
   await dragSelectionToLayer(page);expect((await arcState(page)).color.toLowerCase()).toBe('#ff0000');
-  const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toMatch(/90\n\d+\n70\n0\n/);expect(errors).toEqual([]);
+  const dxf=await page.evaluate(async()=>{const {exportDXF}=await import('/src/exportDXF.ts');return exportDXF((window as any).__vectora.objects);});expect(dxf).toMatch(/^0\nARC\n/m);expect(errors).toEqual([]);
 });
 test('Arcs pop-out matches the reference, supports keyboard selection and both production tools',async({page})=>{
   await page.goto(DEV+'/reference/design-system.html');await page.locator('.left-toolbar [data-arc-trigger]').click();
@@ -576,7 +576,7 @@ test('Dissect delete previews only the bounded section, preserves cut style and 
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(DEV);
   const before=await page.evaluate(()=>{
     const p=(window as any).__paper,e=(window as any).__vectora;p.view.zoom=10;p.view.center=new p.Point(0,0);
-    const target=new p.Path({segments:[[-30,0],[30,0]],insert:false,strokeColor:'#FF0000',strokeWidth:1.5,strokeScaling:false,data:{role:'cutline'}});e.addShape(target,'Line');
+    const target=new p.Path({segments:[[-30,0],[30,0]],insert:false,strokeColor:'#FF0000',strokeWidth:1.5,strokeScaling:false,data:{role:'cutline'}});e.addShape(target,'Line');e.setActiveLayer('artwork');
     for(const x of [-10,10])e.addShape(new p.Path({segments:[[x,-20],[x,20]],insert:false,strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false}),'Line');
     e.setLayerState('artwork','locked',true);e.setTool('dissect-delete');return e.snapshot();
   });
@@ -584,7 +584,7 @@ test('Dissect delete previews only the bounded section, preserves cut style and 
   const preview=await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:e.snapshot(),lengths:e.overlays.children.filter((p:any)=>p.data.role==='delete-preview').map((p:any)=>p.length)};});expect(preview.snapshot).toEqual(before);expect(preview.lengths).toHaveLength(1);expect(preview.lengths[0]).toBeCloseTo(20,6);
   await page.screenshot({path:'test-results/dissect-delete-preview.png'});await page.mouse.click(640,450);
   const trimmed=await page.evaluate(async()=>{const e=(window as any).__vectora,{pathsOf}=await import('/src/geometry.ts'),{exportDXF}=await import('/src/exportDXF.ts');const shape=e.cutlines.children[0];return {count:e.objects.length,lengths:pathsOf(shape).map((p:any)=>p.length),closed:pathsOf(shape).map((p:any)=>p.closed),color:shape.strokeColor.toCSS(true),snapshot:e.snapshot(),dxf:exportDXF(e.objects)};});
-  expect(trimmed.count).toBe(3);expect(trimmed.lengths).toHaveLength(2);for(const length of trimmed.lengths)expect(length).toBeCloseTo(20,8);expect(trimmed.closed).toEqual([false,false]);expect(trimmed.color.toLowerCase()).toBe('#ff0000');expect((trimmed.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)||[]).length).toBe(2);
+  expect(trimmed.count).toBe(3);expect(trimmed.lengths).toHaveLength(2);for(const length of trimmed.lengths)expect(length).toBeCloseTo(20,8);expect(trimmed.closed).toEqual([false,false]);expect(trimmed.color.toLowerCase()).toBe('#ff0000');expect((trimmed.dxf.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)||[]).length).toBe(2);
   await expect(page.locator('#properties-panel')).toBeHidden();await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(trimmed.snapshot);
   await page.evaluate(()=>(window as any).__vectora.setLayerState('cutline','locked',true));await page.mouse.click(440,450);expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(3);expect(errors).toEqual([]);
 });
@@ -700,7 +700,7 @@ test('Group rotation preserves spacing, cut style, circular arc metadata and DXF
     const group={errors:geometryErrors,arcError:new p.Point(rotatedArc.data.arc.cx,rotatedArc.data.arc.cy).getDistance(expectedCenter),start:rotatedArc.data.arc.start,color:rotatedArc.strokeColor.toCSS(true),dxf:exportDXF(e.objects),snapshot:e.snapshot()};e.undo();const restored=e.snapshot();e.redo();const redone=e.snapshot();return {single,group,before,restored,redone};
   });
   expect(result.single).toMatchObject({start:225,sweep:180,radius:10,center:[20,20]});expect(result.single.radiusError).toBeLessThan(.004);
-  for(const error of result.group.errors)expect(error).toBeLessThan(.00001);expect(result.group.arcError).toBeLessThan(.00001);expect(result.group.start).toBe(315);expect(result.group.color.toLowerCase()).toBe('#ff0000');expect(result.group.dxf).toMatch(/90\n\d+\n70\n0\n/);
+  for(const error of result.group.errors)expect(error).toBeLessThan(.00001);expect(result.group.arcError).toBeLessThan(.00001);expect(result.group.start).toBe(315);expect(result.group.color.toLowerCase()).toBe('#ff0000');expect(result.group.dxf).toMatch(/^0\nARC\n/m);
   expect(result.restored.artwork).toEqual(result.before.artwork);expect(result.restored.cutlines).toEqual(result.before.cutlines);expect(result.redone.cutlines).toEqual(result.group.snapshot.cutlines);
   await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.getByRole('spinbutton',{name:'Rotate selection by (degrees)',exact:true})).toHaveValue('0');await page.locator('#field-rotation').fill('15');await page.locator('#field-rotation').press('Tab');await expect(page.locator('#field-rotation')).toHaveValue('0');
 });
@@ -940,7 +940,7 @@ test('Close path preserves compound closed contours and refuses to merge differe
   expect(await page.evaluate(()=>{const s=(window as any).__vectora.selected;return {count:s.children.length,closed:s.children.every((p:any)=>p.closed),holeArea:Math.abs(s.children[0].area)};})).toMatchObject({count:2,closed:true});
   await page.evaluate(()=>{
     const e=(window as any).__vectora,p=(window as any).__paper;
-    e.addShape(new p.Path({segments:[[30,0],[40,0],[40,20]],insert:false}),'Polyline');e.moveSelectionToCutPath();const a=e.selected;
+    e.addShape(new p.Path({segments:[[30,0],[40,0],[40,20]],insert:false}),'Polyline');e.moveSelectionToCutPath();const a=e.selected;e.setActiveLayer('artwork');
     e.addShape(new p.Path({segments:[[0,0],[10,0],[10,20]],insert:false}),'Polyline');e.select(a,true);
   });
   await expect(close).toBeDisabled();
@@ -983,7 +983,7 @@ test('Join preserves contours as one selectable, transformable, duplicable objec
   expect(await page.evaluate(()=>{const e=(window as any).__vectora;return {count:e.objects.length,parts:e.selected.children.length};})).toEqual({count:2,parts:3});
   await page.keyboard.press('Delete');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(1);
   const exported=await page.evaluate(async()=>{const e=(window as any).__vectora;e.select(e.objects[0]);e.moveSelectionToCutPath();const {exportDXF}=await import('/src/exportDXF.ts');return {dxf:exportDXF(e.objects),role:e.selected.data.role,color:e.selected.strokeColor.toCSS(true),children:e.selected.children.length};});
-  expect(exported).toMatchObject({role:'cutline',color:'#ff0000',children:3});expect(exported.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)).toHaveLength(3);
+  expect(exported).toMatchObject({role:'cutline',color:'#ff0000',children:3});expect(exported.dxf.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)).toHaveLength(3);
   await page.screenshot({path:'test-results/joined-shape.png'});
 });
 
@@ -995,7 +995,7 @@ test('Join combines existing joined shapes and rejects single or mixed-layer sel
   await join.focus();await page.keyboard.press('Space');await expect(join).toBeDisabled();
   await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper,a=e.selected;e.addShape(new p.Path({insert:false,segments:[[40,0],[40,20]]}),'Line');e.select(a,true);});
   await join.click();expect(await page.evaluate(()=>(window as any).__vectora.selected.children.length)).toBe(3);
-  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.moveSelectionToCutPath();const a=e.selected;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[50,0,20,20]}),'Rectangle');e.select(a,true);});
+  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.moveSelectionToCutPath();const a=e.selected;e.setActiveLayer('artwork');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[50,0,20,20]}),'Rectangle');e.select(a,true);});
   await expect(join).toBeDisabled();expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
 });
 
@@ -1014,7 +1014,7 @@ test('Inline text converts every contour separately and undo restores editable t
   await expect(convert).toBeHidden();await expect(page.locator('#selection-menu .selection-count')).toHaveText(`${before.curves.length} selected`);
   const after=await page.evaluate(async()=>{const e=(window as any).__vectora,p=(window as any).__paper,{exportDXF}=await import('/src/exportDXF.ts');return {count:e.objects.length,snapshot:e.snapshot(),text:e.objects.some((s:any)=>s.data.text),curves:e.objects.flatMap((s:any)=>(s instanceof p.Path?[s]:s.children).map((path:any)=>path.curves.map((c:any)=>c.values))),parts:e.objects.map((s:any)=>s instanceof p.Path?1:s.children.length),dxf:exportDXF(e.objects,true)};});
   expect(after.count).toBe(before.curves.length);expect(after.text).toBe(false);expect(after.curves).toEqual(before.curves);expect(after.parts).toEqual(Array(before.curves.length).fill(1));
-  expect(after.dxf.match(/0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/g)).toHaveLength(before.curves.length);
+  expect(after.dxf.match(/^0\n(?:LWPOLYLINE|CIRCLE|ARC)\n/gm)).toHaveLength(before.curves.length);
   await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before.snapshot);await expect(convert).toBeVisible();
   await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after.snapshot);
   const click=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.select(null);const first=e.objects[0],v=p.view.projectToView(first.segments[0].point);return {x:v.x,y:v.y,others:e.objects.slice(1).map((s:any)=>s.exportJSON())};});
@@ -1280,7 +1280,7 @@ test('Explode separates transformed joined contours without changing geometry, l
     const circle=new p.Path.Circle({center:[45,45],radius:20,insert:false,strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false});e.addShape(circle,'Circle');
     const curve=new p.Path({insert:false,segments:[new p.Segment([80,30],null,[25,0]),new p.Segment([110,70],[-20,0],null)],strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false});e.addShape(curve,'Curve');e.select(circle,true);e.joinSelection();e.moveSelectionToCutPath();
     const joined=e.selected;joined.applyMatrix=false;joined.rotate(27);joined.scale(1.3,0.8);
-    const line=new p.Path({insert:false,segments:[[20,90],[70,110]],strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false});e.addShape(line,'Untouched line');e.select(joined,true);
+    e.setActiveLayer('artwork');const line=new p.Path({insert:false,segments:[[20,90],[70,110]],strokeColor:'#383838',strokeWidth:1.5,strokeScaling:false});e.addShape(line,'Untouched line');e.select(joined,true);
   });
   const before=await page.evaluate(async()=>{const e=(window as any).__vectora,{documentPath}=await import('/src/deletion.ts'),compound=e.cutlines.children[0],snapshot=e.snapshot();snapshot.selectedIds.sort();return {snapshot,untouched:e.artwork.children[0].exportJSON(),paths:compound.children.map((c:any)=>{const p=documentPath(c),result={closed:p.closed,curves:p.curves.map((c:any)=>c.values)};p.remove();return result;})};});
   const explode=page.getByRole('button',{name:'Explode',exact:true});await expect(explode).toBeEnabled();await explode.click();

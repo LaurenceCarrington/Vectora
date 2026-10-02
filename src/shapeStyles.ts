@@ -41,9 +41,8 @@ export function applyArtworkTheme(item: paper.Item, colour = artworkColor()): vo
 
 /** Theme-only neutral colour changes must not dirty documents or enter undo history. */
 export function artworkSnapshot(item: paper.Item): string {
-  const serialized=item.exportJSON({precision:12}) as string;
-  if(item.data.customColour&&!serialized.startsWith('[["dictionary",'))return serialized;
-  const json=JSON.parse(serialized);
+  // Work on Paper's exported value directly rather than stringify/parse every path.
+  const json:any=item.exportJSON({precision:12,asString:false});
   // Paper assigns new global gradient IDs when restoring history. Canonical local
   // references keep an unchanged drawing equal to its saved/undo snapshot.
   if(json[0]?.[0]==='dictionary'){
