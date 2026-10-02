@@ -10,8 +10,8 @@ import type {Shape} from './types';
 const NS='http://www.w3.org/2000/svg';
 const format=(value:number)=>String(Number(value.toFixed(8)));
 
-/** Visible document geometry only. SVG coordinates and physical size are in mm. */
-export function exportSVG(objects:readonly Shape[],includeHidden=false):string {
+/** Visible geometry in mm. Export ink defaults to black; Preview can retain the current theme ink. */
+export function exportSVG(objects:readonly Shape[],includeHidden=false,artworkInk='#000000'):string {
   const svg=document.createElementNS(NS,'svg');
   svg.setAttribute('version','1.1');
   let paintIndex=0;
@@ -34,8 +34,8 @@ export function exportSVG(objects:readonly Shape[],includeHidden=false):string {
         // Keep explicit filled regions, including white fills, unchanged.
         copy.data.regionFill=item.data.regionFill;copy.data.customColour=item.data.customColour;
         if(label){label.data.customColour=item.data.customColour;label.opacity=item.opacity;}
-        applyArtworkTheme(copy,'#000000');
-        if(label)applyArtworkTheme(label,'#000000');
+        applyArtworkTheme(copy,artworkInk);
+        if(label)applyArtworkTheme(label,artworkInk);
       }
       // Freeze screen-sized editor strokes at their 100% physical width.
       copy.strokeScaling=true;copy.strokeWidth=item.strokeScaling?item.strokeWidth:item.strokeWidth/BASE_ZOOM;

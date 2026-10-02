@@ -12,6 +12,7 @@ Vectora is a browser-based 2D CAD and vector drawing app for creating precise ar
 - **Create text and artwork:** type directly on the canvas, choose bundled fonts, convert lettering to paths, and trace images into outlines, centre lines or filled vectors.
 - **Apply fills:** colour individual enclosed regions, including intersections between overlapping outlines. Choose solid colours, linear or radial gradients, and stripes, crosshatch, dots or checkerboard patterns.
 - **Generate designs:** gears, racks, sprockets, pulleys, fasteners, cams, finger-jointed boxes, living hinges, packaging nets, trusses, Voronoi panels, spirographs, mazes, halftone holes and wave patterns. Generators produce editable 2D paths and views.
+- **Preview finished pieces:** inspect a 360° material preview with through-cut outlines and holes, recessed vector/raster engraving, six materials, sheet thickness and optional Artwork colours.
 - **Manage documents:** open multiple tabbed projects, use Undo/Redo, and save editable `.vectora` files with their layers, text, canvas, grid and view settings.
 
 ## Getting started
@@ -47,6 +48,12 @@ The top toolbar’s **Search** finds available tools. The **Help** icon opens a 
 Expand layers to inspect their objects. Use the eye and lock controls to hide or protect content. Move objects by dragging their rows onto another visible, unlocked layer, or use **right-click → Layer** on the canvas.
 
 For fills, open **Fill & appearance** using the palette icon on the right. Choose **Colour**, **Gradient** or **Pattern**, then activate **Fill (B)** and click inside an enclosed area. All fill types create or recolour objects in Artwork, regardless of the active drawing layer. Artwork must be visible and unlocked. **No fill** is selected initially; use it to remove a region’s colour while keeping the surrounding outlines.
+
+## Material & process preview
+
+Click **Preview** (the cube in the top toolbar) to inspect finished pieces. Closed Cut Path outlines define the parts; nested outlines form holes. Engrave Path and Raster Engrave recess filled regions or line strokes, with separate depths. Open cuts form narrow grooves. Overlapping operations use the deepest depth, and engraving without a cut outline gets a fitted rectangular blank.
+
+Choose a material and thickness, then adjust the process depths. **Artwork colours** overlays your original artwork. Drag to rotate, middle/right-drag or Shift-drag to pan, and scroll or Ctrl/Cmd-drag to zoom. On touchscreens, use one finger to rotate and two fingers to pan and pinch. **Fit** (or **F**) recentres the model without changing the viewing angle; **Reset** (or **Home**) returns to the fitted top view. View buttons provide Top, Back, Front, Left, Right and Isometric views with smooth transitions. The preview starts in Top view and leaves your drawing and exports unchanged. Material finishes are visual approximations; Raster Engrave previews existing vector regions at a uniform depth.
 
 ## Saving and exporting
 

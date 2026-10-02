@@ -230,6 +230,19 @@ for(const key of ['radius','start','sweep'] as const){
 }
 $('#arc-semicircle').onclick=()=>attempt(()=>editor.setArcProperty('sweep',Math.sign(editor.selectedArc?.sweep??1)*180));
 $('#arc-flip').onclick=()=>attempt(()=>editor.setArcProperty('sweep',-(editor.selectedArc?.sweep??180)));
+const previewButton=$<HTMLButtonElement>('[data-material-preview]');
+let materialPreview:import('./materialPreview').MaterialPreview|undefined;
+previewButton.addEventListener('click',async()=>{
+ if(!inlineText.finish(false,false))return;
+ editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();selectionMenu.popouts.close();
+ previewButton.disabled=true;
+ try{
+  const [{MaterialPreview},{materialPreviewInput}]=await Promise.all([import('./materialPreview'),import('./materialPreviewInput')]);
+  materialPreview??=new MaterialPreview(previewButton,()=>materialPreviewInput([...editor.objects]));
+  await materialPreview.open();
+ }catch(error){notify(error instanceof Error?error.message:'Could not open Preview.',true);}
+ finally{previewButton.disabled=false;if(!materialPreview?.dialog.open)previewButton.focus();}
+});
 const exportDialog=new ExportDialog(editor,()=>{
  if(!inlineText.finish(false,false))return false;
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
@@ -363,6 +376,7 @@ for(const [id,label,selector,keywords,shortcut] of [
   ['raster','Raster to vector','[data-raster-open]','image trace outline center centre line bitmap fill png jpg'],
   ['snap','Snapping','[data-snap-grid]','magnet snap on off','S'],
   ['generators','Generators','[data-generator-trigger]','generator menu'],
+  ['preview','Preview','[data-material-preview]','3d material process finished pieces thickness engraving cut rotate'],
   ['settings','Settings','[data-open-preferences]','preferences'],
   ['help','Help','[data-help-open]','guide keyboard shortcuts controls tutorials examples instructions','F1'],
   ['undo','Undo','[aria-label="Undo"]','history'],['redo','Redo','[aria-label="Redo"]','history'],
