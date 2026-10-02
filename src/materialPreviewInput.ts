@@ -1,4 +1,5 @@
-import { flattenInDocument, pathsOf } from './geometry';
+import { flattenInDocument, pathsOf, validateGeometryInput } from './geometry';
+import {MAX_FLATTEN_POINTS} from './processingLimits';
 import { documentPath } from './deletion';
 import { hasFilledArea, artworkColor } from './shapeStyles';
 import { lineWeightMM } from './lineAppearance';
@@ -8,20 +9,18 @@ import type { MaterialPreviewInput } from './materialPreviewTypes';
 /** Read-only snapshot in millimetres. Yield between batches so the modal can paint. */
 export async function materialPreviewInput(objects: readonly Shape[]): Promise<MaterialPreviewInput> {
     const input: MaterialPreviewInput = { cuts: [], marks: [], artworkSVG: null };
-    let vertices = 0, segments = 0, index = 0;
+    let vertices = 0, index = 0;
     const visible = objects.filter(s => s.visible && s.layer.visible && !s.layer.data.deleted && s.opacity > 0 && !s.data.dimension && s.data.role !== 'construction');
     if (visible.length > 10000)
         throw new Error('This drawing is too complex to preview. Hide some layers first.');
+    validateGeometryInput(visible);
+    const segments=visible.reduce((sum,item)=>sum+pathsOf(item).reduce((n,p)=>n+p.segments.length,0),0);
+    if(segments>120000)throw new Error('This drawing has too many curve points to preview.');
     for (const item of visible) {
-        segments += pathsOf(item).reduce((sum, p) => sum + p.segments.length, 0);
-        if (segments > 120000)
-            throw new Error('This drawing has too many curve points to preview.');
         if (item.data.role === 'artwork')
             continue;
-        const contours = flattenInDocument(item, .03);
+        const contours = flattenInDocument(item, .03,MAX_FLATTEN_POINTS-vertices);
         vertices += contours.reduce((sum, c) => sum + c.points.length, 0);
-        if (vertices > 200000)
-            throw new Error('This drawing is too complex to preview. Hide some layers first.');
         const copies = pathsOf(item).map(documentPath);
         let path: string;
         try {

@@ -1,4 +1,5 @@
 import type {PatternImage} from './patterns';
+import {validateRasterImage,MAX_RASTER_PIXELS} from '../rasterImage';
 import {CATALOG,defaults,type Family,type Values,type Profile} from './catalog';
 import {generate,contourSVG,type Generated} from './geometry';
 export interface GeneratorHost {destination:(result?:Generated)=>{name:string;error?:string};insert:(result:Generated)=>void;returnFocus:()=>void}
@@ -57,9 +58,10 @@ export class GeneratorWorkbench {
   try {
    if(file.size>20*1024*1024)throw new Error('Choose an image smaller than 20 MB.');
    if(!/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name))throw new Error('Choose a PNG, JPG, WebP, GIF or BMP image.');
+   await validateRasterImage(file);if(revision!==this.imageRevision||!this.dialog.open)return;
    bitmap=await createImageBitmap(file);
    if(revision!==this.imageRevision||!this.dialog.open)return;
-   if(bitmap.width*bitmap.height>40000000)throw new Error('Choose an image below 40 megapixels.');
+   if(bitmap.width*bitmap.height>MAX_RASTER_PIXELS)throw new Error('Choose an image with at most 40 million pixels.');
    const scale=Math.min(1,512/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
    const ctx=canvas.getContext('2d',{willReadFrequently:true})!;ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);this.image=ctx.getImageData(0,0,canvas.width,canvas.height);
    const thumb=this.query<HTMLCanvasElement>('canvas'),tc=thumb.getContext('2d')!,fit=Math.min(thumb.width/bitmap.width,thumb.height/bitmap.height);tc.clearRect(0,0,thumb.width,thumb.height);tc.drawImage(bitmap,(thumb.width-bitmap.width*fit)/2,(thumb.height-bitmap.height*fit)/2,bitmap.width*fit,bitmap.height*fit);thumb.hidden=false;

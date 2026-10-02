@@ -2,9 +2,13 @@ import type {Shape,Vertex} from './types';
 import {dimensionLabel,dimensionTextLayout} from './dimensions';
 import {NUMERIC_EPSILON_MM,validNumber} from './units';
 import {exportContours} from './dxfGeometry';
+import {validateGeometryInput} from './geometry';
+import {MAX_DXF_POINTS} from './processingLimits';
 
 /** Legacy ASCII R12: independent 2D LINEs and optional annotation TEXT. One drawing unit is 1 mm. */
 export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean,tolerance?:number):string {
+ const exportable=objects.filter(object=>object.data.role==='cutline'||object.data.role==='engrave'||includeArtwork&&object.data.role==='artwork');
+ validateGeometryInput(exportable);let vertices=0;
  const pair=(code:number,value:string|number)=>`${code}\r\n${value}\r\n`;
  const number=(n:number)=>{if(!validNumber(n))throw new Error('DXF geometry exceeds the supported coordinate range.');return String(Number(n.toFixed(8)));};
  const entities:string[]=[],layers=new Map<string,number>([['0',7]]),names=new Map<string,string>();
@@ -17,7 +21,7 @@ export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean,t
   let name=base,suffix=2;while(layers.has(name)||name==='ANNOTATIONS'){const tail=`_${suffix++}`;name=base.slice(0,31-tail.length)+tail;}
   names.set(id,name);layers.set(name,object.data.role==='cutline'?1:object.data.role==='engrave'?5:7);return name;
  };
- for(const object of objects){
+ for(const object of exportable){
   const role=object.data.role;if(role!=='cutline'&&role!=='engrave'&&!(includeArtwork&&role==='artwork'))continue;
   const layer=layerName(object),style=pair(8,layer)+pair(6,'CONTINUOUS')+pair(62,layers.get(layer)!);
   const line=(a:Vertex,b:Vertex)=>{
@@ -25,7 +29,8 @@ export function exportLaserDXF(objects:readonly Shape[],includeArtwork:boolean,t
    include(a.x,-a.y);include(b.x,-b.y);
    entities.push(pair(0,'LINE')+style+pair(10,number(a.x))+pair(20,number(-a.y))+pair(30,0)+pair(11,number(b.x))+pair(21,number(-b.y))+pair(31,0));
   };
-  for(const contour of exportContours(object,tolerance)){
+  for(const contour of exportContours(object,tolerance,MAX_DXF_POINTS-vertices)){
+   vertices+=contour.points.length;
    const points=contour.points;if(points.length<(contour.closed?3:2))continue;
    for(let i=1;i<points.length;i++)line(points[i-1],points[i]);
    if(contour.closed)line(points[points.length-1],points[0]);

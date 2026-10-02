@@ -10,6 +10,7 @@ import {loadTextFont,TEXT_FONTS} from './text';
 import {DIMENSION_TOOLS} from './dimensions';
 import {MAX_COORDINATE_MM,MIN_ZOOM,MAX_ZOOM} from './units';
 import {LAYER_TYPES} from './documentLayers';
+import {MAX_SOURCE_CONTOURS,MAX_SOURCE_SEGMENTS} from './processingLimits';
 
 export const MAX_DOCUMENT_BYTES=50*1024*1024;
 type JsonObject=Record<string,any>;
@@ -91,9 +92,24 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  if(file.version!==1)throw new Error('This Vectora document version is not supported.');
  const rasterLayerInitialized=file.rasterLayerInitialized===undefined?false:bool(file.rasterLayerInitialized);
  if(!Array.isArray(file.layers)||file.layers.length>1000)fail();
+ // Count the entire document before constructing any Paper paths. Empty
+ // contours still allocate objects and must consume a contour budget.
+ let objectCount=0,contourCount=0,segmentCount=0;
+ for(const rawLayer of file.layers){
+  const l=record(rawLayer);if(!Array.isArray(l.objects))fail();
+  for(const rawObject of l.objects){
+   if(++objectCount>20000)throw new Error('This document contains too many objects.');
+   const o=record(rawObject);if(!Array.isArray(o.contours))fail();
+   if((contourCount+=o.contours.length)>MAX_SOURCE_CONTOURS)throw new Error('This document contains too many contours.');
+   for(const rawContour of o.contours){
+    const c=record(rawContour);if(!Array.isArray(c.segments))fail();
+    if((segmentCount+=c.segments.length)>MAX_SOURCE_SEGMENTS)throw new Error('This document contains too many curve points.');
+   }
+  }
+ }
  const view=record(file.view),zoom=number(view.zoom,MAX_ZOOM);if(zoom<MIN_ZOOM)fail();const center=tuple(view.center,2) as [number,number];
  const canvasSize=validateCanvasSize(file.canvasSize),grid=validateGridSettings(file.grid);
- const layerIds=new Set<string>(),objectIds=new Set<string>(),fonts=new Set<string>();let objectCount=0,segmentCount=0;
+ const layerIds=new Set<string>(),objectIds=new Set<string>(),fonts=new Set<string>();
  const states:any[]=[];let artwork='[]',cutlines='[]';
  for(const rawLayer of file.layers){
   const l=record(rawLayer),layerId=id(l.id),name=string(l.name,200),role=l.role as ObjectRole;
@@ -102,12 +118,11 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
   const state={id:layerId,name,role,visible:bool(l.visible),locked:bool(l.locked),deleted:false,objects:'[]'};
   const objects:string[]=[];
   for(const rawObject of l.objects){
-   if(++objectCount>20000)throw new Error('This document contains too many objects.');
    const o=record(rawObject),style=record(o.style);if(!['path','compound'].includes(o.kind)||!Array.isArray(o.contours)||!o.contours.length||(o.kind==='path'&&o.contours.length!==1))fail();
    const data=metadata(o.data,role,objectIds,fonts),contours:paper.Path[]=[];let shape:Shape|undefined;
    try{
     for(const rawContour of o.contours){
-     const c=record(rawContour);if(!Array.isArray(c.segments)||(segmentCount+=c.segments.length)>500000)fail();
+     const c=record(rawContour);if(!Array.isArray(c.segments))fail();
      const segments=c.segments.map((values:unknown)=>{const [x,y,ix,iy,ox,oy]=tuple(values,6);return new paper.Segment(new paper.Point(x,y),new paper.Point(ix,iy),new paper.Point(ox,oy));});
      contours.push(new paper.Path({insert:false,segments,closed:bool(c.closed)}));
     }

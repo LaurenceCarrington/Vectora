@@ -2,6 +2,7 @@ import paper from 'paper';
 import type {CADEditor} from './editor';
 import type {Shape} from './types';
 import {DEFAULT_TRACE_SETTINGS,traceSVGPath,type RasterTraceSettings,type TraceMode,type TraceResult} from './rasterTrace';
+import {validateRasterImage,MAX_RASTER_PIXELS} from './rasterImage';
 
 export class RasterToVector {
   private source:ImageData|null=null;
@@ -64,8 +65,9 @@ export class RasterToVector {
     try{
       if(file.size>20*1024*1024)throw new Error('Choose an image smaller than 20 MB.');
       if(!(/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)||/^image\/(png|jpeg|webp|gif|bmp|x-ms-bmp)$/.test(file.type))||file.type==='image/svg+xml')throw new Error('Choose a PNG, JPG, WebP, GIF or BMP image.');
+      await validateRasterImage(file);if(revision!==this.revision||!this.dialog.open)return;
       bitmap=await createImageBitmap(file);if(revision!==this.revision||!this.dialog.open)return;
-      if(bitmap.width*bitmap.height>40_000_000)throw new Error('Choose an image with fewer than 40 million pixels.');
+      if(bitmap.width*bitmap.height>MAX_RASTER_PIXELS)throw new Error('Choose an image with at most 40 million pixels.');
       const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height)),canvas=this.sourceCanvas;
       canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
       const context=canvas.getContext('2d',{willReadFrequently:true})!;context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);this.source=context.getImageData(0,0,canvas.width,canvas.height);this.filename=file.name;

@@ -1,16 +1,17 @@
 import type paper from 'paper';
 import {createTextShape,isStrokeFont} from './text';
-import {flattenInDocument,pathsOf} from './geometry';
+import {flattenInDocument,pathsOf,validateGeometryInput} from './geometry';
+import {MAX_DXF_POINTS} from './processingLimits';
 import {documentPath} from './deletion';
 import {validNumber} from './units';
 import type {Shape,Contour} from './types';
 
 /** Both DXF formats share the same document-space curve tolerance and font geometry. */
-export function exportContours(object:Shape,tolerance?:number){
+export function exportContours(object:Shape,tolerance?:number,maxPoints=MAX_DXF_POINTS){
  validateDXFTolerance(tolerance);
- if(!object.data.text||!isStrokeFont(object.data.text.fontId))return flattenInDocument(object,tolerance);
+ if(!object.data.text||!isStrokeFont(object.data.text.fontId))return flattenInDocument(object,tolerance,maxPoints);
  const strokes=createTextShape(object.data.text,true);
- try{return flattenInDocument(strokes,tolerance);}finally{strokes.remove();}
+ try{return flattenInDocument(strokes,tolerance,maxPoints);}finally{strokes.remove();}
 }
 
 export interface CircularContour {kind:'CIRCLE'|'ARC';cx:number;cy:number;radius:number;start:number;end:number}
@@ -43,11 +44,18 @@ function circularContour(path:paper.Path):CircularContour|null {
  // DXF arcs run counterclockwise in Y-up coordinates; reversing endpoints retains the locus.
  return {kind:path.closed?'CIRCLE':'ARC',cx,cy:-cy,radius,start:degrees(-(total>0?start+total:start)),end:degrees(-(total>0?start:start+total))};
 }
-export function standardContours(object:Shape,tolerance?:number):StandardContour[]{
- if(object.data.text||object.data.dimension)return exportContours(object,tolerance).map(contour=>({kind:'LWPOLYLINE',contour}));
+export function standardContours(object:Shape,tolerance?:number,maxPoints=MAX_DXF_POINTS):StandardContour[]{
+ validateGeometryInput([object]);
+ if(object.data.text||object.data.dimension)return exportContours(object,tolerance,maxPoints).map(contour=>({kind:'LWPOLYLINE',contour}));
+ let remaining=maxPoints;
  return pathsOf(object).flatMap<StandardContour>(source=>{
   const path=documentPath(source);
-  try{const circular=circularContour(path);return circular?[circular]:flattenInDocument(path,tolerance).map(contour=>({kind:'LWPOLYLINE' as const,contour}));}finally{path.remove();}
+  try{
+   const circular=circularContour(path);
+   if(circular){if(remaining<1)throw new Error('This drawing has too many curve points to export. Process fewer objects.');remaining--;return [circular];}
+   const contours=flattenInDocument(path,tolerance,remaining);remaining-=contours.reduce((n,c)=>n+c.points.length,0);
+   return contours.map(contour=>({kind:'LWPOLYLINE' as const,contour}));
+  }finally{path.remove();}
  });
 }
 /** Extrema in DXF coordinates, including cardinal points on the counterclockwise arc. */

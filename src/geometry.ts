@@ -1,6 +1,7 @@
 import paper from 'paper';
 import type { Contour, Shape, Vertex } from './types';
 import { geometrySettings, NUMERIC_EPSILON_MM as EPS, validNumber } from './units';
+import {MAX_SOURCE_SEGMENTS,MAX_SOURCE_CONTOURS,MAX_FLATTEN_POINTS,MAX_DXF_POINTS} from './processingLimits';
 export function pathsOf(source: Shape): paper.Path[] {
   return source instanceof paper.Path ? [source] : source.children as paper.Path[];
 }
@@ -14,21 +15,51 @@ export function cleanVertices(points: Vertex[], closed: boolean): Vertex[] {
   if (closed && result.length > 1 && distance(result[0],result[result.length-1]) <= EPS) result.pop();
   return result;
 }
-export function flattenInDocument(source: Shape, toleranceMM=geometrySettings.flattenToleranceMM): Contour[] {
-  return pathsOf(source).map(path => {
-    // Transform points AND Bézier handles before flattening: tolerance is in document mm,
-    // including non-uniform ancestor transforms, never the Paper view matrix.
-    const copy = new paper.Path({insert:false, closed:path.closed});
-    try {
-      for (const segment of path.segments) {
-        const point = path.localToGlobal(segment.point);
-        copy.add(new paper.Segment(point,
-          path.localToGlobal(segment.point.add(segment.handleIn)).subtract(point),
-          path.localToGlobal(segment.point.add(segment.handleOut)).subtract(point)));
+export function validateGeometryInput(objects:readonly Shape[]):void {
+  let segments=0,contours=0;
+  for(const object of objects)for(const path of pathsOf(object)){
+    if(++contours>MAX_SOURCE_CONTOURS||(segments+=path.segments.length)>MAX_SOURCE_SEGMENTS)
+      throw new Error('This geometry is too complex to process. Simplify the paths or process fewer objects.');
+  }
+}
+// Paper 0.12.18 exposes these scalar cubic operations at runtime but omits
+// their declarations. Use its own predicates to preserve Path.flatten semantics.
+const cubic=paper.Curve as unknown as {
+  isStraight(values:number[]):boolean;
+  isFlatEnough(values:number[],tolerance:number):boolean;
+  subdivide(values:number[],time:number):[number[],number[]];
+};
+export function flattenInDocument(source: Shape, toleranceMM=geometrySettings.flattenToleranceMM,maxPoints=MAX_FLATTEN_POINTS): Contour[] {
+  if(!Number.isFinite(toleranceMM)||toleranceMM<=0||!Number.isInteger(maxPoints)||maxPoints<0||maxPoints>MAX_DXF_POINTS)throw new Error('Invalid curve processing limits.');
+  validateGeometryInput([source]);
+  let count=0;
+  return pathsOf(source).map(path=>{
+    const points:Vertex[]=[];let end:Vertex|undefined;
+    const append=(x:number,y:number)=>{
+      if(!validNumber(x)||!validNumber(y))throw new Error('Geometry exceeds the supported coordinate range (±1,000,000 mm).');
+      const last=points.at(-1);if(last&&Math.hypot(x-last.x,y-last.y)<=EPS)return;
+      if(count>=maxPoints)throw new Error('This geometry has too many curve points. Simplify the paths, increase the curve tolerance or process fewer objects.');
+      count++;points.push({x,y});
+    };
+    const visit=(values:number[],depth:number):void=>{
+      // Match Paper's 1/256 minimum parameter span, without its unbounded
+      // parts/Segment/Path allocations. The budget is enforced on every point.
+      if(depth<8&&!cubic.isStraight(values)&&!cubic.isFlatEnough(values,toleranceMM)){
+        const halves=cubic.subdivide(values,.5);visit(halves[0],depth+1);visit(halves[1],depth+1);
+      }else if(Math.hypot(values[6]-values[0],values[7]-values[1])>0){
+        append(values[0],values[1]);end={x:values[6],y:values[7]};
       }
-      copy.flatten(toleranceMM);
-      return {closed:copy.closed, points:cleanVertices(copy.segments.map(s=>s.point),copy.closed)};
-    } finally { copy.remove(); }
+    };
+    const length=path.segments.length,curves=path.closed?length:Math.max(0,length-1);
+    for(let i=0;i<curves;i++){
+      const a=path.segments[i],b=path.segments[(i+1)%length];
+      // Tolerance is in document mm, including all ancestor transforms.
+      const p0=path.localToGlobal(a.point),p1=path.localToGlobal(a.point.add(a.handleOut)),p2=path.localToGlobal(b.point.add(b.handleIn)),p3=path.localToGlobal(b.point);
+      visit([p0.x,p0.y,p1.x,p1.y,p2.x,p2.y,p3.x,p3.y],0);
+    }
+    if(!path.closed&&end)append(end.x,end.y);
+    if(path.closed&&points.length>1&&distance(points[0],points[points.length-1])<=EPS){points.pop();count--;}
+    return {closed:path.closed,points};
   });
 }
 export function distance(a:Vertex,b:Vertex):number { return Math.hypot(a.x-b.x,a.y-b.y); }

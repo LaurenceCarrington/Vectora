@@ -4,11 +4,15 @@ import {standardDXF,type DXFEntity,type DXFTag} from './dxfDocument';
 import {dimensionLabel,dimensionTextLayout} from './dimensions';
 import {validNumber} from './units';
 import type {Shape} from './types';
+import {validateGeometryInput} from './geometry';
+import {MAX_DXF_POINTS} from './processingLimits';
 export type DXFFormat='standard'|'laser';
 /** ASCII R2000: native circular geometry, flattened freeform paths and annotation TEXT. */
 export function exportDXF(objects:readonly Shape[],includeArtwork=false,mode:DXFFormat='standard',tolerance?:number):string {
  validateDXFTolerance(tolerance);
  if(mode==='laser')return exportLaserDXF(objects,includeArtwork,tolerance);
+ const exportable=objects.filter(object=>object.data.role==='cutline'||object.data.role==='engrave'||includeArtwork&&object.data.role==='artwork');
+ validateGeometryInput(exportable);let vertices=0;
  const entities:DXFEntity[]=[],layers=new Map<string,number>([['0',7]]),names=new Map<string,string>();
  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
  const number=(n:number)=>{if(!validNumber(n))throw new Error('DXF geometry exceeds the supported coordinate range.');return n;};
@@ -20,10 +24,11 @@ export function exportDXF(objects:readonly Shape[],includeArtwork=false,mode:DXF
   let name=base,suffix=2;while(layers.has(name)||name==='ANNOTATIONS'){const tail=`_${suffix++}`;name=base.slice(0,31-tail.length)+tail;}
   names.set(id,name);layers.set(name,object.data.role==='cutline'?1:object.data.role==='engrave'?5:7);return name;
  };
- for(const object of objects){
+ for(const object of exportable){
   const role=object.data.role;if(role!=='cutline'&&role!=='engrave'&&!(includeArtwork&&role==='artwork'))continue;
   const layer=layerName(object);
-  for(const geometry of standardContours(object,tolerance)){
+  for(const geometry of standardContours(object,tolerance,MAX_DXF_POINTS-vertices)){
+   vertices+=geometry.kind==='LWPOLYLINE'?geometry.contour.points.length:1;
    if(geometry.kind==='LWPOLYLINE'){
     const {points,closed}=geometry.contour;if(points.length<(closed?3:2))continue;
     const tags:DXFTag[]=[[100,'AcDbPolyline'],[90,points.length],[70,closed?1:0]];
