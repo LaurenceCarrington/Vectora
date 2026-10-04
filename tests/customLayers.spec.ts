@@ -3,9 +3,19 @@ const DEV='http://127.0.0.1:5174';
 const panel=(page:Page)=>page.locator('#primary-layers-panel');
 async function ready(page:Page,url=DEV){await page.goto(url);await page.locator('[aria-label="Layers"][aria-controls="primary-layers-panel"]').click();}
 async function add(page:Page,type='Artwork'){await panel(page).getByRole('button',{name:'Add layer',exact:true}).click();await panel(page).getByRole('menuitem',{name:type,exact:true}).click();}
-async function rename(page:Page,name:string){await panel(page).getByRole('button',{name:'Rename layer',exact:true}).click();const input=panel(page).getByRole('textbox',{name:'Layer name',exact:true});await input.fill(name);await input.press('Enter');}
+async function rename(page:Page,name:string){await panel(page).locator('.layer-select[aria-pressed="true"] .layer-name').dblclick();const input=panel(page).getByRole('textbox',{name:'Layer name',exact:true});await input.fill(name);await input.press('Enter');}
 async function colour(page:Page,name:string,value:string){await panel(page).getByRole('button',{name:`Change ${name} colour`,exact:true}).click();const picker=page.getByRole('dialog',{name:'Layer colour',exact:true});const hex=picker.getByRole('textbox',{name:'Hex colour',exact:true});await hex.fill(value);await hex.press('Enter');await picker.getByRole('button',{name:'Close colour picker',exact:true}).click();}
 const snapshot=(page:Page)=>page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()));
+
+test('Double-clicking an inactive custom layer name edits it without a rename button',async({page})=>{
+ for(const url of [DEV,DEV+'/reference/design-system.html']){
+  await ready(page,url);await expect(panel(page).getByRole('button',{name:'Rename layer',exact:true})).toHaveCount(0);await add(page);await add(page,'Cut');
+  await panel(page).getByText('Artwork 2',{exact:true}).dblclick();const input=panel(page).getByRole('textbox',{name:'Layer name',exact:true});await expect(input).toBeFocused();await input.fill('Renamed artwork');await input.press('Enter');await expect(panel(page).getByText('Renamed artwork',{exact:true})).toBeVisible();
+  await panel(page).getByText('Cut Path 2',{exact:true}).dblclick();await expect(input).toBeFocused();await input.fill('Cancelled');await input.press('Escape');await expect(panel(page).getByText('Cut Path 2',{exact:true})).toBeVisible();
+  await panel(page).locator('.layer-list').getByText('Artwork',{exact:true}).dblclick();await expect(input).toHaveCount(0);
+  await panel(page).getByRole('button',{name:'Lock Renamed artwork',exact:true}).click();await panel(page).getByText('Renamed artwork',{exact:true}).dblclick();await expect(input).toHaveCount(0);
+ }
+});
 
 test('Custom layer rows align with defaults and remain below them after history and reopening',async({page})=>{
  for(const url of [DEV,DEV+'/reference/design-system.html']){
@@ -28,10 +38,10 @@ test('Custom layer rows align with defaults and remain below them after history 
 });
 
 test('Custom layer types, inline names and safe cancellation preserve built-in layers',async({page})=>{
- await ready(page);await expect(panel(page).getByRole('button',{name:'Rename layer',exact:true})).toBeDisabled();await expect(panel(page).getByRole('button',{name:'Delete layer',exact:true})).toBeDisabled();
+ await ready(page);await expect(panel(page).getByRole('button',{name:'Rename layer',exact:true})).toHaveCount(0);await expect(panel(page).getByRole('button',{name:'Delete layer',exact:true})).toBeDisabled();
  for(const [type,role] of [['Artwork','artwork'],['Cut','cutline'],['Engrave','engrave'],['Construction','construction']]){await add(page,type);expect(await page.evaluate(()=>{const e=(window as any).__vectora;return e.activeLayer.data.objectRole;})).toBe(role);}
  await rename(page,'Panel <one> & "two"');await expect(panel(page).getByText('Panel <one> & "two"',{exact:true})).toBeVisible();
- const before=await snapshot(page);await panel(page).getByRole('button',{name:'Rename layer',exact:true}).click();const input=panel(page).getByRole('textbox',{name:'Layer name',exact:true});await input.fill(' ');await input.press('Enter');await expect(input).toHaveAttribute('aria-invalid','true');await input.fill('Cancelled');await input.press('Escape');expect(await snapshot(page)).toBe(before);
+ const before=await snapshot(page);await panel(page).locator('.layer-select[aria-pressed="true"] .layer-name').dblclick();const input=panel(page).getByRole('textbox',{name:'Layer name',exact:true});await input.fill(' ');await input.press('Enter');await expect(input).toHaveAttribute('aria-invalid','true');await input.fill('Cancelled');await input.press('Escape');expect(await snapshot(page)).toBe(before);
  const selected=panel(page).locator('.layer-select[aria-pressed="true"]');await selected.focus();await selected.press('F2');await panel(page).getByRole('textbox',{name:'Layer name',exact:true}).fill('Frame');await panel(page).getByRole('textbox',{name:'Layer name',exact:true}).press('Enter');await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');expect(await snapshot(page)).toBe(before);await page.keyboard.press('Control+Shift+z');await expect(panel(page).getByText('Frame',{exact:true})).toBeVisible();
  await expect(panel(page).locator('[data-layer-count]')).toHaveText('9');
 });

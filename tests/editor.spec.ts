@@ -269,7 +269,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   const box=(await panel.boundingBox())!;expect(box.width).toBe(300);expect(box.y).toBe(88);expect(box.height).toBe(784);
   await expect(panel.locator('[data-layer-count]')).toHaveText('5');
   await expect(panel.getByRole('button',{name:'Add layer',exact:true})).toBeVisible();
-  await expect(panel.getByRole('button',{name:'Rename layer',exact:true})).toBeDisabled();
+  await expect(panel.getByRole('button',{name:'Rename layer',exact:true})).toHaveCount(0);
   await expect(panel.getByRole('button',{name:'Delete layer',exact:true})).toBeDisabled();
   await panel.getByRole('button',{name:'Expand Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Expand Cut Path',exact:true}).click();

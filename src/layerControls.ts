@@ -20,7 +20,6 @@ const icon=(name:string)=>`<svg aria-hidden="true" viewBox="0 0 24 24"><use href
 export class LayerControls {
  private footer=document.createElement('div');
  private addButton:HTMLButtonElement;
- private renameButton:HTMLButtonElement;
  private deleteButton:HTMLButtonElement;
  private addMenu:HTMLElement;
  private picker:ColourPopover;
@@ -29,9 +28,9 @@ export class LayerControls {
  constructor(private panel:HTMLElement,private model:LayerControlModel){
   const prefix=`${panel.id}-layer`;
   this.footer.className='layer-manager-footer';
-  this.footer.innerHTML=`<div class="layer-add-anchor"><button type="button" class="button layer-add-button" data-layer-add aria-haspopup="menu" aria-expanded="false" aria-controls="${prefix}-types">${icon('plus')}<span>Add layer</span></button><div class="layer-add-menu menu-surface" id="${prefix}-types" role="menu" aria-label="Layer type" hidden>${[['artwork','Artwork'],['cutline','Cut'],['engrave','Engrave'],['construction','Construction']].map(([role,label])=>`<button type="button" class="node-action" role="menuitem" data-add-layer-role="${role}">${icon('layers')}<span>${label}</span></button>`).join('')}</div></div><button type="button" class="panel-icon" data-layer-rename aria-label="Rename layer" title="Rename custom layer (F2)">${icon('pen')}</button><button type="button" class="panel-icon" data-layer-delete aria-label="Delete layer" title="Delete custom layer">${icon('delete')}</button>`;
+  this.footer.innerHTML=`<div class="layer-add-anchor"><button type="button" class="button layer-add-button" data-layer-add aria-haspopup="menu" aria-expanded="false" aria-controls="${prefix}-types">${icon('plus')}<span>Add layer</span></button><div class="layer-add-menu menu-surface" id="${prefix}-types" role="menu" aria-label="Layer type" hidden>${[['artwork','Artwork'],['cutline','Cut'],['engrave','Engrave'],['construction','Construction']].map(([role,label])=>`<button type="button" class="node-action" role="menuitem" data-add-layer-role="${role}">${icon('layers')}<span>${label}</span></button>`).join('')}</div></div><button type="button" class="panel-icon" data-layer-delete aria-label="Delete layer" title="Delete custom layer">${icon('delete')}</button>`;
   panel.insertBefore(this.footer,panel.querySelector('[role="status"]'));
-  this.addButton=this.footer.querySelector('[data-layer-add]')!;this.renameButton=this.footer.querySelector('[data-layer-rename]')!;this.deleteButton=this.footer.querySelector('[data-layer-delete]')!;this.addMenu=this.footer.querySelector('.layer-add-menu')!;
+  this.addButton=this.footer.querySelector('[data-layer-add]')!;this.deleteButton=this.footer.querySelector('[data-layer-delete]')!;this.addMenu=this.footer.querySelector('.layer-add-menu')!;
   this.picker=new ColourPopover(panel,prefix,()=>model.finishColour());
   this.addButton.onclick=()=>this.toggleAdd(this.addMenu.hidden);
   this.addButton.onkeydown=event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();event.stopPropagation();this.toggleAdd(true,event.key==='ArrowUp');}};
@@ -42,7 +41,6 @@ export class LayerControls {
    if(event.key==='Escape'){event.preventDefault();this.toggleAdd(false);this.addButton.focus();}
    if(event.key==='Tab')this.toggleAdd(false);
   };
-  this.renameButton.onclick=()=>{const layer=model.active();if(layer)this.startRename(layer.id);};
   this.deleteButton.onclick=()=>this.confirmDelete();
   panel.addEventListener('dblclick',event=>{const select=(event.target as Element).closest<HTMLElement>('.layer-select');const id=select?.closest<HTMLElement>('[data-layer-id]')?.dataset.layerId;if(id)this.startRename(id);});
   panel.addEventListener('keydown',event=>{if(event.key==='F2'&&(event.target as Element).closest('.layer-select')){event.preventDefault();event.stopPropagation();const id=(event.target as Element).closest<HTMLElement>('[data-layer-id]')?.dataset.layerId;if(id)this.startRename(id);}},true);
@@ -91,7 +89,7 @@ export class LayerControls {
   },{once:true});this.dialog.showModal();
  }
  refresh():void {
-  const active=this.model.active(),editable=!!active?.custom&&!active.locked;this.renameButton.disabled=this.deleteButton.disabled=!editable;
+  const active=this.model.active(),editable=!!active?.custom&&!active.locked;this.deleteButton.disabled=!editable;
   for(const entry of this.panel.querySelectorAll<HTMLElement>('[data-layer-id]')){
    const layer=this.model.layer(entry.dataset.layerId!);if(!layer)continue;entry.style.setProperty('--layer-color',layer.colour);
    if(!layer.custom)continue;
