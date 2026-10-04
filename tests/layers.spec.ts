@@ -71,9 +71,9 @@ test('Layer drag highlights valid targets and cancelled or blocked drops leave o
 });
 
 test('Holding a layer object at list edges scrolls both directions, stops away from edges and drops onto revealed layers',async({page})=>{
-  await page.goto(DEV);await seed(page);await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<14;i++)e.addDocumentLayer('engrave');});await open(page);
-  const panel=page.locator('#primary-layers-panel'),list=panel.locator('.layer-list');await panel.getByRole('button',{name:'Expand Artwork',exact:true}).click();
-  const source=panel.locator('[data-layer-id="artwork"] .layer-object');await source.scrollIntoViewIfNeeded();const bounds=(await list.boundingBox())!,from=(await source.boundingBox())!,x=bounds.x+bounds.width/2;
+  await page.goto(DEV);await seed(page);const bottomId=await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<14;i++)e.addDocumentLayer('engrave');const layer=e.addDocumentLayer('artwork',true);e.moveObjectsToLayer(layer.data.documentId,e.objects);return layer.data.documentId;});await open(page);
+  const panel=page.locator('#primary-layers-panel'),list=panel.locator('.layer-list');await panel.getByRole('button',{name:'Expand Artwork 2',exact:true}).click();
+  const source=panel.locator(`[data-layer-id="${bottomId}"] .layer-object`);await source.scrollIntoViewIfNeeded();const bounds=(await list.boundingBox())!,from=(await source.boundingBox())!,x=bounds.x+bounds.width/2;
   const initial=await list.evaluate(el=>el.scrollTop);expect(initial).toBeGreaterThan(200);const header=await panel.locator('.layers-header').boundingBox();
   await page.mouse.move(from.x+30,from.y+from.height/2);await page.mouse.down();await page.mouse.move(from.x+42,from.y+from.height/2,{steps:5});await page.mouse.move(x,bounds.y+10,{steps:8});
   await expect.poll(()=>list.evaluate(el=>el.scrollTop)).toBeLessThan(initial-100);
@@ -85,13 +85,13 @@ test('Holding a layer object at list edges scrolls both directions, stops away f
   const moved=panel.locator('[data-layer-id="cutline"] .layer-object'),start=(await moved.boundingBox())!;await page.mouse.move(start.x+30,start.y+start.height/2);await page.mouse.down();await page.mouse.move(start.x+42,start.y+start.height/2,{steps:5});await page.mouse.move(x,bounds.y+bounds.height-5,{steps:8});
   await expect.poll(()=>list.evaluate(el=>el.scrollTop)).toBeGreaterThan(100);
   await expect.poll(()=>list.evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop),{timeout:7000}).toBeLessThanOrEqual(1);
-  const artwork=(await panel.locator('[data-layer-id="artwork"] .layer-select').boundingBox())!;await page.mouse.move(artwork.x+30,artwork.y+artwork.height/2);await page.mouse.up();
+  const artwork=(await panel.locator(`[data-layer-id="${bottomId}"] .layer-select`).boundingBox())!;await page.mouse.move(artwork.x+30,artwork.y+artwork.height/2);await page.mouse.up();
   expect(await page.evaluate(()=>(window as any).__vectora.selected.data.role)).toBe('artwork');await expect(panel.locator('.is-drop-target,.is-object-dragging')).toHaveCount(0);
   const dropped=await list.evaluate(el=>el.scrollTop);await page.waitForTimeout(150);expect(await list.evaluate(el=>el.scrollTop)).toBe(dropped);
 });
 
 test('Cancelling an edge-scrolling layer drag stops scrolling without moving objects',async({page})=>{
-  await dragSetup(page);await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<14;i++)e.addDocumentLayer('engrave');});
+  await dragSetup(page);await page.evaluate(()=>{const e=(window as any).__vectora;for(let i=0;i<14;i++)e.addDocumentLayer('engrave');const layer=e.addDocumentLayer('artwork',true);e.moveObjectsToLayer(layer.data.documentId,e.objects);});await page.getByRole('button',{name:'Expand Artwork 2',exact:true}).click();
   const panel=page.locator('#primary-layers-panel'),list=panel.locator('.layer-list'),source=panel.getByRole('button',{name:'First',exact:true});await source.scrollIntoViewIfNeeded();const from=(await source.boundingBox())!,bounds=(await list.boundingBox())!,before=await page.evaluate(()=>(window as any).__vectora.snapshot()),initial=await list.evaluate(el=>el.scrollTop);
   await page.mouse.move(from.x+25,from.y+from.height/2);await page.mouse.down();await page.mouse.move(from.x+40,from.y+from.height/2,{steps:5});await page.mouse.move(bounds.x+100,bounds.y+5,{steps:8});await expect.poll(()=>list.evaluate(el=>el.scrollTop)).toBeLessThan(initial-60);
   await page.keyboard.press('Escape');await page.mouse.up();const stopped=await list.evaluate(el=>el.scrollTop);await page.waitForTimeout(200);expect(await list.evaluate(el=>el.scrollTop)).toBe(stopped);expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);

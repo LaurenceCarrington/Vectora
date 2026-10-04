@@ -1,7 +1,8 @@
+import {LayerControls} from './layerControls';
 import type paper from 'paper';
 import type { CADEditor } from './editor';
 import type { Shape } from './types';
-import {layerId,layerRole,layerType} from './documentLayers';
+import {layerId,layerRole,layerType,layerColour,isCustomLayer} from './documentLayers';
 
 const icon = (name: string) => `<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-${name}"/></svg>`;
 
@@ -10,6 +11,7 @@ export class LayersPanel {
   private get active():string {return this.editor.activeLayerId;}
   private set active(id:string){this.editor.setActiveLayer(id);}
   private expanded = new Set<string>();
+  private controls:LayerControls;
   private lastRender = '';
   private objectButtons=new Map<string,HTMLButtonElement>();
   private selectedIds=new Set<string>();
@@ -31,7 +33,7 @@ export class LayersPanel {
     this.list.addEventListener('click', event => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button');
       const entry = button?.closest<HTMLElement>('[data-layer-id]');
-      if (!button || !entry || button.disabled) return;
+      if (!button || !entry || button.disabled || button.hasAttribute('data-layer-colour')) return;
       const role = entry.dataset.layerId!;
       const layer = this.editor.documentLayer(role);if(!layer)return;
       const action = button.dataset.layerAction;
@@ -48,6 +50,15 @@ export class LayersPanel {
       const selector = button.dataset.objectId ? `[data-object-id="${button.dataset.objectId}"]` : `[data-layer-id="${role}"] [data-layer-action="${action}"]`;
       this.list.querySelector<HTMLButtonElement>(selector)?.focus({ preventScroll: true });
       this.status.textContent = `${layer.name} ${action === 'visibility' ? (layer.visible ? 'visible.' : 'hidden on canvas.') : action === 'lock' ? (layer.locked ? 'locked.' : 'unlocked.') : action === 'expand' ? (this.expanded.has(role) ? 'expanded.' : 'collapsed.') : 'active for new objects.'}`;
+    });
+    const managed=(id:string)=>{const layer=editor.documentLayer(id);return layer?{id,name:layer.name,colour:layerColour(layer),custom:isCustomLayer(layer),locked:layer.locked}:undefined;};
+    this.controls=new LayerControls(panel,{
+      active:()=>managed(editor.activeLayerId),layer:managed,
+      add:role=>{editor.addDocumentLayer(role,true);this.render();},
+      rename:(id,name)=>editor.renameDocumentLayer(id,name),
+      colour:(id,colour,commit)=>editor.setDocumentLayerColour(id,colour,commit),
+      finishColour:()=>editor.finishLayerColourEdit(),prepareColour:()=>editor.cancel(),
+      remove:id=>{editor.deleteDocumentLayer(id);this.render();},message:message=>editor.onMessage(message,true)
     });
     this.list.addEventListener('dragstart', event => {
       const button=(event.target as Element).closest<HTMLButtonElement>('.layer-object');
@@ -120,7 +131,7 @@ export class LayersPanel {
       const layer = this.editor.documentLayer(role)!;
       return [role,layer.name,layerRole(layer),layer.visible, layer.locked, layer.children.length,this.expanded.has(role)?layer.children.map(item => [item.data.uid, item.data.name,!!item.data.regionFill,!!item.data.text,!!item.data.dimension]):null];
     })]);
-    if (key === this.lastRender){this.updateSelection();return;}
+    if (key === this.lastRender){this.updateSelection();this.controls.refresh();return;}
     this.lastRender = key;
     this.list.replaceChildren();this.objectButtons.clear();this.selectedIds.clear();
     this.panel.querySelector('[data-layer-count]')!.textContent = String(layers.length);
@@ -146,7 +157,7 @@ export class LayersPanel {
       }
       entry.append(objects);this.list.append(entry);
     }
-    this.updateSelection();
+    this.updateSelection();this.controls.refresh();
   }
 
   private updateSelection():void {

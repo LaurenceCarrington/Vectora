@@ -7,6 +7,16 @@ async function openShape(page:Page){
  return page.getByRole('menu',{name:'Selection actions',exact:true});
 }
 
+test('Context layer markers keep custom colours and follow appearance changes',async({page})=>{
+ await ready(page);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({rectangle:[40,30,30,25],insert:false}),'First');const first=e.selected,layer=e.addDocumentLayer('artwork',true);e.renameDocumentLayer(layer.data.documentId,'Custom ink');e.setDocumentLayerColour(layer.data.documentId,'#123456');e.select(first);});
+ const menu=await openShape(page);await menu.getByRole('menuitem',{name:'Layer',exact:true}).click();const layers=menu.getByRole('menu',{name:'Move to layer'});
+ for(const [theme,colour] of [['dark','rgb(255, 255, 255)'],['light','rgb(56, 56, 56)'],['high-contrast','rgb(56, 56, 56)']]){
+  await page.evaluate(t=>{document.documentElement.dataset.theme=t;(window as any).__vectora.refreshTheme();},theme);
+  await expect(layers.getByRole('menuitemradio',{name:'Artwork',exact:true}).locator('.layer-dot')).toHaveCSS('background-color',colour);
+  await expect(layers.getByRole('menuitemradio',{name:'Custom ink',exact:true}).locator('.layer-dot')).toHaveCSS('background-color','rgb(18, 52, 86)');
+ }
+});
+
 test('Context Layer lists document layers, protects blocked targets and moves the selection with undo',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({rectangle:[40,30,30,25],insert:false,strokeColor:'white'}),'First');const first=e.selected;e.addShape(new p.Path.Circle({center:[100,40],radius:10,insert:false,strokeColor:'white'}),'Second');e.select(first,true);e.setLayerState('engrave','locked',true);e.setLayerState('construction','visible',false);const custom=e.addDocumentLayer('artwork');custom.name='Custom <safe> layer';e.select(first);e.select(e.objects.find((s:any)=>s.data.name==='Second'),true);});

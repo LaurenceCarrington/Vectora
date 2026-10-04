@@ -331,6 +331,7 @@ function update():void {
   document.querySelectorAll<HTMLInputElement>('[data-object-snap]').forEach(input=>input.checked=editor.objectSnapModes[input.dataset.objectSnap as ObjectSnapMode]);
 }
 editor.onChange=update;editor.onMessage=notify;
+editor.onToolChange=tool=>{if(tool==='fill')setPanel(colour,true);};
 initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
 update();
 void documentFiles.restoreRecovery(()=>inlineText.recoveryDraft);
@@ -422,7 +423,7 @@ searchTools.push(
 for(const [tab,label,keywords] of [
  ['grid','Grid settings','square isometric polar radial hexagonal triangular dot step no grid spacing size mm angle'],
  ['snapping','Snapping settings','intersection nearest centre center tangent perpendicular object snap grid'],
- ['appearance','Appearance','theme dark light mode'],
+ ['appearance','Appearance','theme dark light high contrast accessibility mode'],
 ] as const)searchTools.push({id:`settings-${tab}`,label,group:'Preferences',icon:'gear',keywords,run:()=>{$<HTMLButtonElement>('[data-open-preferences]').click();$<HTMLButtonElement>(`[data-pref-tab="${tab}"]`).click();$(`[data-pref-tab="${tab}"]`).focus();}});
 for(const [format,label] of [['svg','Export SVG'],['pdf','Export PDF'],['png','Export PNG'],['dxf','Export DXF'],['laser','Laser-compatible DXF']] as const)searchTools.push({id:`export-${format}`,label,group:'File',icon:format==='laser'?'export-dxf':`export-${format}`,keywords:'export download format legacy r12 laser cutter',run:()=>exportDialog.open(format as ExportFormat)});
 searchTools.push({id:'font',label:'Font and text size',group:'Properties',icon:'text',keywords:'fonts lettering lato hershey relief freemono inter jetbrains oswald montserrat bebas allerta saira',unavailable:()=>editor.selected?.data.text?undefined:'Select a text object',run:()=>{setPanel(props,true);textFontSelect.focus();}});

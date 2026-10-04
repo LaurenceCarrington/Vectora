@@ -1,6 +1,54 @@
 import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function seed(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.setActiveLayer('cutline');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,100,60]}),'Panel');e.addShape(new p.Path.Circle({insert:false,center:[25,30],radius:10}),'Hole');e.setActiveLayer('engrave');const engraving=new p.Path.Rectangle({insert:false,rectangle:[45,15,30,25],fillColor:'blue'});engraving.data.regionFill=true;e.addShape(engraving,'Engraved area');e.setActiveLayer('artwork');e.addShape(new p.Path.Circle({insert:false,center:[60,30],radius:6}),'Ink');e.setPaint('#FF0000',1,true);});}
+for(const theme of [
+ {value:'light',name:'Light',background:'fafbfc',backgroundCSS:'rgb(250, 251, 252)',foregroundCSS:'rgb(40, 43, 49)',grid:['e6eaf0','c8d1dd']},
+ {value:'high-contrast',name:'High contrast',background:'ffffff',backgroundCSS:'rgb(255, 255, 255)',foregroundCSS:'rgb(0, 0, 0)',grid:['909090','555555']},
+]) test(`preview canvas, grid and camera controls follow ${theme.name} mode without rebuilding the model or moving the camera`,async({page})=>{
+ await seed(page);
+ await page.getByRole('button',{name:'Settings',exact:true}).click();
+ await page.getByRole('tab',{name:'Appearance',exact:true}).click();
+ await page.locator(`[name="appearance-theme"][value="${theme.value}"]`).check();
+ await page.keyboard.press('Escape');
+ await page.evaluate(async()=>{
+  const {MaterialPreview}=await import('/src/materialPreview.ts'),{materialPreviewInput}=await import('/src/materialPreviewInput.ts');
+  const preview:any=new MaterialPreview(document.querySelector('[data-material-preview]')!,()=>materialPreviewInput((window as any).__vectora.objects));
+  (window as any).__previewUnderTest=preview;await preview.open();
+ });
+ const dialog=page.getByRole('dialog',{name:'Material & process preview'});
+ await expect(dialog.locator('[data-preview-status]')).toContainText('1 piece');
+ await expect(dialog.locator('.material-preview-viewport')).toHaveCSS('background-color',theme.backgroundCSS);
+ await expect(dialog.getByRole('button',{name:'Top view',exact:true})).toHaveCSS('color',theme.foregroundCSS);
+ const colours=()=>page.evaluate(async()=>{
+  const {Color}=await import('/node_modules/three/build/three.module.js');const p=(window as any).__previewUnderTest,attribute=p.grid.geometry.getAttribute('color');
+  return {background:p.scene.background.getHexString(),grid:[new Color().fromBufferAttribute(attribute,0).getHexString(),new Color().fromBufferAttribute(attribute,80).getHexString()]};
+ });
+ expect(await colours()).toEqual({background:theme.background,grid:theme.grid});
+ await dialog.screenshot({path:`test-results/material-preview-theme-${theme.value}.png`});
+ const before=await page.evaluate(()=>{const p=(window as any).__previewUnderTest;return {root:p.root.uuid,grid:p.grid.uuid,camera:p.camera.position.toArray(),document:JSON.stringify((window as any).__vectora.snapshot())};});
+ await page.evaluate(()=>{document.documentElement.dataset.theme='dark';});
+ await expect.poll(colours).toEqual({background:'202226',grid:['30363f','434a54']});
+ await expect(dialog.getByRole('button',{name:'Top view',exact:true})).toHaveCSS('color','rgb(238, 241, 245)');
+ const after=await page.evaluate(()=>{const p=(window as any).__previewUnderTest;return {root:p.root.uuid,grid:p.grid.uuid,camera:p.camera.position.toArray(),document:JSON.stringify((window as any).__vectora.snapshot())};});
+ expect({root:after.root,grid:after.grid,document:after.document}).toEqual({root:before.root,grid:before.grid,document:before.document});
+ after.camera.forEach((value:number,i:number)=>expect(value).toBeCloseTo(before.camera[i],9));
+ await dialog.getByRole('button',{name:'Close preview',exact:true}).click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).__previewUnderTest.renderer)).toBeNull();
+ await page.evaluate(async value=>{document.documentElement.dataset.theme=value;await (window as any).__previewUnderTest.open();},theme.value);
+ await expect(dialog.locator('[data-preview-message]')).toBeHidden();
+ expect(await colours()).toEqual({background:theme.background,grid:theme.grid});
+ await dialog.getByRole('button',{name:'Close preview',exact:true}).click();
+});
+
+test('empty preview in Light mode uses a light placeholder with readable controls',async({page})=>{
+ await page.goto(DEV);await page.evaluate(()=>{document.documentElement.dataset.theme='light';});
+ await page.getByRole('button',{name:'Preview',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Material & process preview'});
+ await expect(dialog.locator('[data-preview-status]')).toHaveText('No material to preview');
+ await expect(dialog.locator('[data-preview-message]')).toHaveCSS('background-color','rgb(250, 251, 252)');
+ await expect(dialog.locator('[data-preview-message]')).toHaveCSS('color','rgb(40, 43, 49)');
+ await expect(dialog.locator('[data-preview-view]')).toHaveCSS('color','rgb(88, 95, 107)');
+});
 test('Preview opens finished pieces with material, thickness, engraving depth and Artwork overlay controls',async({page})=>{
  await seed(page);const button=page.getByRole('button',{name:'Preview',exact:true});await expect(button).toBeVisible();const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;return {document:e.snapshot(),zoom:p.view.zoom,center:p.view.center.toString(),undo:e.canUndo};});await button.click();
  const dialog=page.getByRole('dialog',{name:'Material & process preview'});await expect(dialog).toBeVisible();await expect(dialog.locator('canvas')).toBeVisible();await expect(dialog.locator('[data-preview-status]')).toContainText('1 piece');

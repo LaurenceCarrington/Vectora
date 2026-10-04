@@ -8,7 +8,7 @@ import { applyArtworkTheme, artworkSnapshot, artworkColor } from './shapeStyles'
 import paper from 'paper';
 import {hasFilledArea} from './shapeStyles';
 import {regionAt} from './regionFill';
-import {LAYER_TYPES,layerType,layerId,layerRole,type LayerSnapshot} from './documentLayers';
+import {LAYER_TYPES,layerType,layerId,layerRole,layerColour,isCustomLayer,validateLayerName,validateLayerColour,type LayerSnapshot} from './documentLayers';
 import { createHeart } from './heart';
 import { PathOffsets } from './pathOffsets';
 import { ObjectPatterns } from './objectPatterns';
@@ -47,13 +47,15 @@ export class CADEditor {
   private selection:Shape[]=[];
   private selectionBoundsCache:paper.Rectangle|null|undefined;
   private clipboard:Shape[]=[];
+  private clipboardLayerColours=new WeakSet<Shape>();
   private clipboardBounds:paper.Rectangle|null=null;
   private pasteCount=0;
   private drawingLayerId='artwork';
+  private layerColourEdit:{id:string;before:DocumentSnapshot;initial:string;stored?:string}|null=null;
   private layerSelectionSignature='';
   get activeLayerId():string {return layerId(this.activeLayer??this.artwork);}
   get activeLayer():paper.Layer|undefined {return this.documentLayer(this.drawingLayerId)??this.documentLayers.find(layer=>layerRole(layer)==='artwork'&&layer.visible&&!layer.locked)??this.documentLayers.find(layer=>layer.visible&&!layer.locked)??this.documentLayers[0];}
-  get drawingColor():string {return getComputedStyle(document.documentElement).getPropertyValue(layerType(this.activeLayer?layerRole(this.activeLayer):'artwork').color).trim();}
+  get drawingColor():string {return this.activeLayer?layerColour(this.activeLayer):artworkColor();}
   setActiveLayer(id:string):void {if(!this.documentLayer(id))return;this.cancel();this.drawingLayerId=id;this.layerSelectionSignature=this.selectionSignature();this.changed();this.onDocumentChange();}
   private selectionSignature():string {return this.selection.map(item=>`${layerId(item.layer)}:${item.data.uid}`).join('|');}
   private syncDrawingLayer():void {
@@ -67,7 +69,7 @@ export class CADEditor {
     void item.fillColor;void item.strokeColor;
     const stroke=item.data.customStroke?{strokeWidth:item.strokeWidth,strokeScaling:item.strokeScaling,strokeCap:item.strokeCap,strokeJoin:item.strokeJoin,dashArray:[...item.dashArray],dashOffset:item.dashOffset}:null;
     const preservedPaint=layerRole(layer)==='artwork'&&item.data.fillPaint&&item.fillColor?.type==='gradient'?item.fillColor.clone():null;
-    const role=layerRole(layer),color=new paper.Color(getComputedStyle(document.documentElement).getPropertyValue(layerType(role).color).trim());
+    const role=layerRole(layer),color=new paper.Color(layerColour(layer));
     if(role==='artwork'&&item.data.regionFill){item.fillColor=new paper.Color(item.data.regionFillColor??this.fillColor);item.strokeColor=null;}
     else if(item.data.text||((role==='engrave'||role==='raster')&&hasFilledArea(item))||(role==='artwork'&&item.data.rasterTrace?.mode==='fill')){item.fillColor=color;item.strokeColor=null;}
     else{item.fillColor=null;item.strokeColor=color;item.strokeWidth=item.data.dimension?1:1.5;item.strokeScaling=false;}
@@ -95,6 +97,7 @@ export class CADEditor {
   polygonSides=6;
   starPoints=5;
   onChange:()=>void=()=>{};
+  onToolChange:(tool:ToolName)=>void=()=>{};
   onDocumentChange:(snapshot?:DocumentSnapshot)=>void=()=>{};
   get hasPendingGesture():boolean {return !!this.offsets?.active||!!this.patterns?.active||!!this.interaction||!!this.polyline||!!this.threePointArc||this.nodes.dragging||this.dimensions.active;}
   onTextRequest:(point:paper.Point|null,target:Shape|null)=>void=()=>{};
@@ -176,7 +179,7 @@ export class CADEditor {
     window.addEventListener('blur',()=>{this.space=false;this.cancel();});
     this.resize();
   }
-  get documentLayers():paper.Layer[] {return [this.cutlines,...this.extraLayers,this.artwork].filter(layer=>!layer.data.deleted);}
+  get documentLayers():paper.Layer[] {return [this.cutlines,...this.extraLayers.filter(layer=>!isCustomLayer(layer)),this.artwork,...this.extraLayers.filter(isCustomLayer)].filter(layer=>!layer.data.deleted);}
   get objects():Shape[] {return [this.artwork,...this.extraLayers,this.cutlines].filter(layer=>!layer.data.deleted).flatMap(layer=>layer.children) as Shape[];}
   documentLayer(id:string):paper.Layer|undefined {return this.documentLayers.find(layer=>layerId(layer)===id);}
   private isClosedShape(item:Shape):boolean {return item instanceof paper.Path?item.closed:item.children.every(child=>(child as paper.Path).closed);}
@@ -191,7 +194,7 @@ export class CADEditor {
     paper.view.zoom=BASE_ZOOM;this.changed();
   }
   snapshot():DocumentSnapshot {
-    return {grid:this.grid.config,canvasSize:structuredClone(this.canvasSize),activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item):item.exportJSON({precision:12})))}:{})})))};
+    return {grid:this.grid.config,canvasSize:structuredClone(this.canvasSize),activeLayerId:this.activeLayerId,artwork:JSON.stringify(this.artwork.children.map(i=>artworkSnapshot(i))),cutlines:JSON.stringify(this.cutlines.children.map(i=>i.exportJSON({precision:12}))),selected:this.selected?.data.uid??null,selectedIds:this.selection.map(item=>item.data.uid),layers:JSON.stringify([this.artwork,this.cutlines,...this.extraLayers].map(layer=>({id:layerId(layer),name:layer.name,role:layerRole(layer),visible:layer.visible,locked:layer.locked,deleted:!!layer.data.deleted,...(layer.data.colour?{colour:layer.data.colour}:{}),...(this.extraLayers.includes(layer)?{objects:JSON.stringify(layer.children.map(item=>layerRole(layer)==='artwork'?artworkSnapshot(item,!!layer.data.colour):item.exportJSON({precision:12})))}:{})})))};
   }
   newDocument(canvasSize:CanvasSize={kind:'infinite'},grid:GridConfig=this.grid.config):void {
     const layers=LAYER_TYPES.map(({role,name})=>({id:role,name,role,visible:true,locked:false,deleted:false}));
@@ -234,7 +237,7 @@ export class CADEditor {
     this.extraLayers.forEach(layer=>layer.remove());this.extraLayers=[];
     for(const state of JSON.parse(snapshot.layers??'[]') as LayerSnapshot[]){
       const layer=state.id==='artwork'?this.artwork:state.id==='cutline'?this.cutlines:this.createDocumentLayer(state.role,state.name,state.id);
-      layer.name=state.name;layer.data.deleted=state.deleted;layer.visible=state.visible;layer.locked=state.locked;
+      layer.name=state.name;layer.data.colour=state.colour;layer.data.deleted=state.deleted;layer.visible=state.visible;layer.locked=state.locked;
       for(const json of JSON.parse(state.objects??'[]'))layer.addChild(paper.project.importJSON(json));
     }
     for(const [layer,json] of [[this.artwork,snapshot.artwork],[this.cutlines,snapshot.cutlines]] as const) {
@@ -263,10 +266,10 @@ export class CADEditor {
     const layer=new paper.Layer({name,data:{documentId:id,objectRole:role,role:`${role}-layer`}});
     layer.insertBelow(this.overlays);this.extraLayers.push(layer);this.artwork.activate();return layer;
   }
-  addDocumentLayer(role:ObjectRole='artwork'):paper.Layer {
+  addDocumentLayer(role:ObjectRole='artwork',custom=false):paper.Layer {
     this.cancel();const before=this.snapshot(),base=role==='artwork'?this.artwork:role==='cutline'?this.cutlines:undefined;
     let layer:paper.Layer;
-    if(base?.data.deleted){layer=base;layer.data.deleted=false;layer.visible=true;layer.locked=false;}
+    if(!custom&&base?.data.deleted){layer=base;layer.data.deleted=false;layer.visible=true;layer.locked=false;}
     else{
       const original=layerType(role).name;let name:string=original,index=2;
       while(this.documentLayers.some(layer=>layer.name===name))name=`${original} ${index++}`;
@@ -280,6 +283,32 @@ export class CADEditor {
     if(layer===this.artwork||layer===this.cutlines){layer.data.deleted=true;layer.visible=false;}
     else{this.extraLayers=this.extraLayers.filter(item=>item!==layer);layer.remove();}
     this.artwork.activate();this.commit(before);return true;
+  }
+  renameDocumentLayer(id:string,value:string):void {
+    const name=validateLayerName(value);this.cancel();const layer=this.documentLayer(id);
+    if(!layer||!isCustomLayer(layer)||layer.locked)return;
+    const before=this.snapshot();layer.name=name;this.commit(before);
+  }
+  setDocumentLayerColour(id:string,value:string,commit=true):void {
+    const colour=validateLayerColour(value);let layer=this.documentLayer(id);
+    if(!layer||!isCustomLayer(layer)||layer.locked)return;
+    if(!this.layerColourEdit||this.layerColourEdit.id!==id){
+      this.cancel();layer=this.documentLayer(id);if(!layer||!isCustomLayer(layer)||layer.locked)return;
+      this.layerColourEdit={id,before:this.snapshot(),initial:layerColour(layer).toUpperCase(),stored:layer.data.colour};
+    }
+    const edit=this.layerColourEdit;
+    layer.data.colour=!commit&&colour===edit.initial?edit.stored:colour;
+    const ink=new paper.Color(layerColour(layer));
+    for(const item of layer.children)this.recolourForLayer(item,layer,ink);
+    if(commit)this.finishLayerColourEdit();else this.changed();
+  }
+  private recolourForLayer(item:paper.Item,layer:paper.Layer,ink:paper.Color):void {
+    if(layerRole(layer)==='artwork'&&item.data.customColour)return;
+    if(item.strokeColor)item.strokeColor=ink.clone();
+    if(item.fillColor&&!(layerRole(layer)==='artwork'&&(item.data.regionFill||item.data.fillPaint)))item.fillColor=ink.clone();
+  }
+  finishLayerColourEdit():void {
+    const edit=this.layerColourEdit;if(!edit)return;this.layerColourEdit=null;this.commit(edit.before);
   }
   setLayerState(id:string,key:'visible'|'locked',value:boolean):void {
     this.cancel();const layer=this.documentLayer(id);if(!layer)return;const before=this.snapshot();layer[key]=value;
@@ -327,7 +356,7 @@ export class CADEditor {
     if(!this.canCopySelection)return;
     const copies=this.selection.map(source=>{
       const copy=source.clone({insert:false}) as Shape;
-      copy.data=structuredClone(source.data);return copy;
+      copy.data=structuredClone(source.data);if(source.layer.data.colour)this.clipboardLayerColours.add(copy);return copy;
     });
     this.clipboard.forEach(item=>item.remove());this.clipboard=copies;
     this.clipboardBounds=this.selectionBounds!.clone();this.pasteCount=0;
@@ -347,6 +376,7 @@ export class CADEditor {
         const bounds=this.objectBounds(copy);
         if(![bounds.left,bounds.top,bounds.right,bounds.bottom].every(validNumber))throw new Error('The pasted objects would exceed ±1,000,000 mm.');
         if(copy.data.role!==layerRole(layer))this.styleForLayer(copy,layer);
+        else if(layer.data.colour||this.clipboardLayerColours.has(source))this.recolourForLayer(copy,layer,new paper.Color(layerColour(layer)));
         copy.data.role=layerRole(layer);
       }
     }catch(error){copies.forEach(item=>item.remove());throw error;}
@@ -362,7 +392,7 @@ export class CADEditor {
     else this.selected=item;
     this.changed();
   }
-  setTool(tool:ToolName):void {this.cancel();this.nodes.clear();this.tool=tool;this.updateCursor();this.changed();}
+  setTool(tool:ToolName):void {this.cancel();this.nodes.clear();this.tool=tool;this.updateCursor();this.changed();this.onToolChange(tool);}
   setFillColor(color:string):void {
     if(color==='none'){this.noFill=true;this.changed();return;}
     if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Enter a six-digit hex colour, such as #2678A8.');
@@ -646,7 +676,7 @@ export class CADEditor {
     // Read first so Paper resolves any lazily stored color string before clearing it.
     if(item.fillColor&&!item.data.text&&item.data.rasterTrace?.mode!=='fill')item.fillColor=null;
     item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name};
-    if(layerRole(layer)!=='artwork')this.styleForLayer(item,layer);layer.addChild(item);this.selected=item;this.commit(before);
+    if(layerRole(layer)!=='artwork'||layer.data.colour)this.styleForLayer(item,layer);layer.addChild(item);this.selected=item;this.commit(before);
   }
   addGeneratedShapes(items:{shape:Shape;name:string;operation?:'engrave'}[]):void {
     if(!items.length)return;
@@ -680,7 +710,7 @@ export class CADEditor {
   get lineAppearanceItems():readonly Shape[] {return this.selection.filter(item=>!item.data.text&&!item.data.dimension&&this.isEditable(item));}
   get canEditLineAppearance():boolean {return this.canFlipSelection&&this.lineAppearanceItems.length>0;}
   private ensureLineColour(item:Shape):void {
-    if(!item.strokeColor)item.strokeColor=new paper.Color(layerRole(item.layer)==='artwork'&&item.data.customColour?item.data.customColour:getComputedStyle(document.documentElement).getPropertyValue(layerType(layerRole(item.layer)).color).trim());
+    if(!item.strokeColor)item.strokeColor=new paper.Color(layerRole(item.layer)==='artwork'&&item.data.customColour?item.data.customColour:layerColour(item.layer));
   }
   setLineWeight(weight:number):void {
     if(!validLineWeight(weight))throw new Error('Enter a line weight between 0.001 and 1000 mm.');
@@ -790,7 +820,7 @@ export class CADEditor {
   private changed():void {
     // Translation, panning and marquee updates cannot change document paint styles.
     if(!this.interaction||!['move','pan','marquee'].includes(this.interaction.kind)){
-      const themeColour=artworkColor();for(const layer of this.documentLayers)if(layerRole(layer)==='artwork')layer.children.forEach(item=>{applyArtworkTheme(item,themeColour);refreshFillPaint(item);});
+      for(const layer of this.documentLayers)if(layerRole(layer)==='artwork'){const ink=layerColour(layer);layer.children.forEach(item=>{applyArtworkTheme(item,ink);refreshFillPaint(item);});}
     }
     this.syncDrawingLayer();
     // Overlay and panel controls read the same combined bounds many times per frame.
@@ -1151,6 +1181,7 @@ export class CADEditor {
     this.updateCursor();if(!committed)this.changed();
   };
   cancel():void {
+    this.finishLayerColourEdit();
     this.offsets?.cancel();this.patterns?.cancel();this.dimensions.cancel();this.nodes.cancel();
     this.activeObjectSnap=null;this.clearDeletePreview();
     const arc=this.threePointArc;this.threePointArc=null;

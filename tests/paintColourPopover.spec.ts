@@ -30,7 +30,7 @@ test('Pattern foreground and background pickers respect transparency and stay on
   await page.setViewportSize({width,height:650});await background.click();const picker=page.getByRole('dialog',{name:'Background colour',exact:true});const rect=(await picker.boundingBox())!;expect(rect.x).toBeGreaterThanOrEqual(0);expect(rect.y).toBeGreaterThanOrEqual(0);expect(rect.x+rect.width).toBeLessThanOrEqual(width);expect(rect.y+rect.height).toBeLessThanOrEqual(650);
   await page.screenshot({path:`test-results/paint-picker-${width}.png`});await picker.press('Escape');
  }
- await background.click();await page.getByRole('button',{name:'Layers',exact:true}).click();await expect(page.locator('.colour-popover')).toBeHidden();
+ await background.click();await page.getByRole('button',{name:'Layers',exact:true}).click();await expect(page.getByRole('dialog',{name:'Background colour',exact:true})).toBeHidden();await expect(page.locator('.colour-popover:visible')).toHaveCount(0);
 });
 
 test('Picker drag commits once and both themes and the reference share the pop-out',async({page,context})=>{

@@ -3,6 +3,25 @@ const DEV='http://127.0.0.1:5174';
 async function ready(page:Page){await page.goto(DEV);await expect(page.locator('#workspace')).not.toHaveAttribute('inert','');}
 async function draw(page:Page){return page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[10,20,40,30],strokeColor:e.drawingColor}),'Box');e.select(null);});}
 async function fill(page:Page){await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.fillAt(new p.Point(25,35));});}
+for(const route of ['toolbar','shortcut','search'] as const)test(`Selecting Fill via ${route} opens appearance and can reopen it`,async({page})=>{
+ await ready(page);await draw(page);
+ const panel=page.getByRole('region',{name:'Fill & appearance',exact:true});
+ const before=await page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()));
+ const activate=async()=>{
+  if(route==='toolbar')await page.getByRole('button',{name:'Colour fill',exact:true}).click();
+  else if(route==='shortcut'){await page.locator('#cad-canvas').focus();await page.keyboard.press('b');}
+  else{await page.getByRole('button',{name:'Search tools',exact:true}).click();await page.getByRole('combobox',{name:'Search tools'}).fill('Colour fill');await page.keyboard.press('Enter');}
+ };
+ await page.getByRole('button',{name:'Layers',exact:true}).click();
+ await activate();await expect(panel).toBeVisible();await expect(page.locator('#primary-layers-panel')).toBeHidden();
+ await expect(page.getByRole('button',{name:'Colour fill',exact:true})).toHaveAttribute('aria-pressed','true');
+ expect(await page.evaluate(()=>JSON.stringify((window as any).__vectora.snapshot()))).toBe(before);
+ await panel.getByRole('tab',{name:'Pattern',exact:true}).click();
+ await page.getByRole('button',{name:'Fill & appearance',exact:true}).click();await expect(panel).toBeHidden();
+ await activate();await expect(panel).toBeVisible();await expect(panel.getByRole('tabpanel',{name:'Pattern',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Fill & appearance',exact:true}).click();await expect(panel).toBeHidden();
+ await page.evaluate(()=>(window as any).__vectora.resetZoom());await expect(panel).toBeHidden();
+});
 test('Appearance tabs choose solid, gradient and pattern paints for Fill without editing on tab change',async({page})=>{
  await ready(page);await draw(page);await page.getByRole('button',{name:'Fill & appearance',exact:true}).click();const panel=page.getByRole('region',{name:'Fill & appearance',exact:true});await expect(panel.getByRole('tab')).toHaveCount(3);
  await panel.getByRole('tab',{name:'Gradient',exact:true}).click();await expect(panel.getByRole('tabpanel',{name:'Gradient',exact:true})).toBeVisible();await fill(page);expect(await page.evaluate(()=>(window as any).__vectora.selected.fillColor.type)).toBe('gradient');

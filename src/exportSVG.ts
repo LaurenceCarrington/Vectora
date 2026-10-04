@@ -32,8 +32,8 @@ export function exportSVG(objects:readonly Shape[],includeHidden=false,artworkIn
       if(item.data.role==='artwork'){
         // Canvas white/charcoal is a theme affordance, not the exported ink colour.
         // Keep explicit filled regions, including white fills, unchanged.
-        copy.data.regionFill=item.data.regionFill;copy.data.customColour=item.data.customColour;
-        if(label){label.data.customColour=item.data.customColour;label.opacity=item.opacity;}
+        copy.data.regionFill=item.data.regionFill;copy.data.customColour=item.data.customColour??item.layer.data.colour;
+        if(label){label.data.customColour=item.data.customColour??item.layer.data.colour;label.opacity=item.opacity;}
         applyArtworkTheme(copy,artworkInk);
         if(label)applyArtworkTheme(label,artworkInk);
       }

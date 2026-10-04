@@ -18,7 +18,7 @@ test('Preferences matches the reference, navigates accessibly and keeps placehol
   await expect(dialog.getByRole('spinbutton',{name:'Grid size'})).toHaveValue('10');
   await expect(dialog.getByRole('status')).toHaveText('Changes apply immediately.');
   await dialog.getByRole('tab',{name:'Snapping',exact:true}).click();
-  await expect(dialog.locator('input')).toHaveCount(10);
+  await expect(dialog.getByRole('tabpanel',{name:'Snapping',exact:true}).getByRole('switch')).toHaveCount(7);
   expect(await dialog.locator('[role="tabpanel"]').evaluateAll(panels=>panels.length===5&&panels.filter(panel=>!['pref-page-snapping','pref-page-grid','pref-page-appearance'].includes(panel.id)).every(panel=>panel.childElementCount===0&&panel.textContent===''))).toBe(true);
   await expect(dialog.getByRole('button',{name:'Reset preferences',exact:true})).toHaveCount(0);
   await expect(dialog.getByRole('status')).toHaveText('Changes apply immediately.');

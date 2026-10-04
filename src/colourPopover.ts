@@ -6,13 +6,14 @@ export class ColourPopover {
  private picker:ColourPanel;
  private anchor:HTMLButtonElement|null=null;
  private change:((paint:Paint,commit:boolean)=>void)|null=null;
+ private openingAnchor:{left:number;top:number}|null=null;
  private placement:{left:number;top:number}|null=null;
  private drag:{id:number;x:number;y:number;left:number;top:number;placement:{left:number;top:number}|null}|null=null;
  private header:HTMLElement;
- constructor(owner:HTMLElement){
-  this.root.className='colour-panel colour-popover';this.root.id='paint-colour-popover';this.root.hidden=true;
+ constructor(owner:HTMLElement,idPrefix='paint',private onClose:()=>void=()=>{}){
+  this.root.className='colour-panel colour-popover';this.root.id=`${idPrefix}-colour-popover`;this.root.hidden=true;
   this.root.setAttribute('role','dialog');document.body.append(this.root);
-  this.picker=new ColourPanel(this.root,(paint,commit)=>this.change?.(paint,commit),()=>this.close(true),()=>{},false,'paint-picker');
+  this.picker=new ColourPanel(this.root,(paint,commit)=>this.change?.(paint,commit),()=>this.close(true),()=>{},false,`${idPrefix}-picker`);
   this.root.querySelector('.panel-eyebrow')!.remove();this.root.querySelector('[data-colour-none]')!.remove();this.root.querySelector('.colour-hint')!.remove();
   this.root.querySelector('[aria-label="Close Colour panel"]')!.setAttribute('aria-label','Close colour picker');
   this.header=this.root.querySelector<HTMLElement>('.layers-header')!;
@@ -41,7 +42,14 @@ export class ColourPopover {
   });
   document.addEventListener('pointerdown',event=>{if(!this.root.hidden&&!this.root.contains(event.target as Node)&&!this.anchor?.contains(event.target as Node))this.close();},true);
   document.addEventListener('focusin',event=>{if(!this.root.hidden&&!this.root.contains(event.target as Node)&&!this.anchor?.contains(event.target as Node))this.close();});
-  document.addEventListener('scroll',event=>{if(!this.root.hidden&&!this.root.contains(event.target as Node))this.close();},true);
+  document.addEventListener('scroll',event=>{
+   if(this.root.hidden||this.root.contains(event.target as Node))return;
+   // A click can finish scrolling its anchor before opening; its queued scroll
+   // event must not dismiss the newly opened picker at that same position.
+   const box=this.anchor?.getBoundingClientRect();
+   if(box&&this.openingAnchor&&(event.target as Node)?.contains(this.anchor)&&Math.abs(box.left-this.openingAnchor.left)<.5&&Math.abs(box.top-this.openingAnchor.top)<.5)return;
+   this.close();
+  },true);
   window.addEventListener('resize',()=>{this.finishDrag();this.position();});
   new ResizeObserver(()=>this.position()).observe(this.root);
   new MutationObserver(()=>{if(owner.hidden)this.close();}).observe(owner,{attributes:true,attributeFilter:['hidden']});
@@ -52,14 +60,14 @@ export class ColourPopover {
   this.root.setAttribute('aria-label',title);this.root.querySelector('.panel-title')!.textContent=title;
   this.root.classList.toggle('colour-popover-solid',!opacity);this.picker.set(paint);
   this.root.querySelector<HTMLElement>('.colour-error')!.hidden=true;this.root.querySelector('input[aria-invalid]')?.removeAttribute('aria-invalid');
-  anchor.setAttribute('aria-expanded','true');this.root.hidden=false;this.position();this.root.querySelector<HTMLElement>('.colour-plane')!.focus({preventScroll:true});
+  anchor.setAttribute('aria-expanded','true');this.root.hidden=false;this.position();const box=anchor.getBoundingClientRect();this.openingAnchor={left:box.left,top:box.top};this.root.querySelector<HTMLElement>('.colour-plane')!.focus({preventScroll:true});
  }
  close(restoreFocus=false):void {
   if(this.root.hidden)return;
   this.finishDrag(true);
   // Commit a typed value before removing its target callback.
   if(document.activeElement instanceof HTMLElement&&this.root.contains(document.activeElement))document.activeElement.blur();
-  const anchor=this.anchor;this.root.hidden=true;anchor?.setAttribute('aria-expanded','false');this.anchor=null;this.change=null;
+  const anchor=this.anchor;this.root.hidden=true;anchor?.setAttribute('aria-expanded','false');this.anchor=null;this.openingAnchor=null;this.change=null;this.onClose();
   if(restoreFocus&&anchor?.isConnected)anchor.focus({preventScroll:true});
  }
  private finishDrag(cancel=false):void {

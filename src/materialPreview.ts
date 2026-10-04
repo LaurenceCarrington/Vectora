@@ -39,6 +39,7 @@ export class MaterialPreview {
     private opening = 0;
     private cameraMotion: { start: number; target: THREE.Vector3; from: THREE.Spherical; to: THREE.Spherical; label: string } | null = null;
     private observer: ResizeObserver;
+    private themeObserver = new MutationObserver(() => this.applyTheme());
     private settings: ProcessSettings = { thickness: 3, vectorDepth: .2, rasterDepth: .2, openCutDepth: .2 };
     private modelSettings = { ...this.settings };
     private pendingSettings = { ...this.settings };
@@ -62,6 +63,7 @@ export class MaterialPreview {
             return;
         const opening = ++this.opening;
         this.dialog.showModal();
+        this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
         this.trigger.setAttribute('aria-expanded', 'true');
         this.message('Preparing preview…');
         this.get('[data-preview-error]').hidden = true;
@@ -77,7 +79,7 @@ export class MaterialPreview {
             this.stage.append(canvas);
             canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); if(this.dialog.open&&this.renderer?.domElement===canvas)this.message('The graphics context was lost. Close and reopen Preview.'); });
             this.scene = new THREE.Scene();
-            this.scene.background = new THREE.Color('#202226');
+            this.applyTheme();
             this.scene.add(new THREE.HemisphereLight('#ffffff', '#6b7383', 2.2));
             const light = new THREE.DirectionalLight('#fff7e5', 3);
             light.position.set(2, 4, 2);
@@ -194,9 +196,10 @@ export class MaterialPreview {
                 disposePreview(this.grid);
             }
             const span = Math.max(model.bounds.width, model.bounds.height, settings.thickness), size = span * 4;
-            this.grid = new THREE.GridHelper(size, 40, '#434a54', '#30363f');
+            this.grid = new THREE.GridHelper(size, 40);
             this.grid.position.y = -.1;
             this.scene.add(this.grid);
+            this.applyTheme();
             this.get('[data-preview-message]').hidden = true;
             this.get('[data-preview-status]').textContent = `${model.pieces} ${model.pieces === 1 ? 'piece' : 'pieces'} · ${model.holes} ${model.holes === 1 ? 'hole' : 'holes'} · ${Number(model.bounds.width.toFixed(2))} × ${Number(model.bounds.height.toFixed(2))} × ${settings.thickness} mm${model.stock ? ' · Fitted blank' : ''}`;
             if (first)
@@ -213,6 +216,23 @@ export class MaterialPreview {
             if (revision === this.surfaceRevision && this.dialog.open)
                 this.message(error instanceof Error ? error.message : 'Could not render this preview.');
         }
+    }
+    private applyTheme(): void {
+        const styles = getComputedStyle(this.dialog);
+        this.scene.background = new THREE.Color(styles.getPropertyValue('--preview-background').trim());
+        if (this.grid) {
+            const colours = this.grid.geometry.getAttribute('color');
+            const centre = new THREE.Color(styles.getPropertyValue('--preview-grid-major').trim());
+            const minor = new THREE.Color(styles.getPropertyValue('--preview-grid-minor').trim());
+            // GridHelper emits four vertices per step; only its middle step uses the centre colour.
+            const middle = (colours.count / 4 - 1) / 2;
+            for (let i = 0; i < colours.count; i++) {
+                const colour = Math.floor(i / 4) === middle ? centre : minor;
+                colours.setXYZ(i, colour.r, colour.g, colour.b);
+            }
+            colours.needsUpdate = true;
+        }
+        this.requestRender();
     }
     private radius(): number { return this.model ? Math.max(.1, Math.hypot(this.model.bounds.width, this.model.bounds.height, this.modelSettings.thickness) / 2) : 1; }
     private fitDistance(): number { const fov = THREE.MathUtils.degToRad(this.camera.fov), angle = Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * this.camera.aspect)); return this.radius() / Math.sin(angle / 2) * 1.2; }
@@ -330,5 +350,5 @@ export class MaterialPreview {
         return; const moving = this.cameraMotion ? this.stepCamera(performance.now()) : this.controls?.update(); this.clipping(); this.renderer.render(this.scene, this.camera); if (moving)
         this.requestRender(); }); }
     private message(text: string): void { const message = this.get('[data-preview-message]'); message.textContent = text; message.hidden = false; }
-    private close(): void { this.cameraMotion = null; ++this.opening; ++this.revision; ++this.surfaceRevision; clearTimeout(this.timer); cancelAnimationFrame(this.frame); this.frame = 0; this.observer.disconnect(); this.worker?.terminate(); this.worker = null; this.controls?.dispose(); this.controls = null; disposePreview(this.scene); this.environment?.dispose(); this.environment = null; this.renderer?.dispose(); this.renderer?.forceContextLoss(); this.renderer?.domElement.remove(); this.renderer = null; this.root = new THREE.Group(); this.grid = null; this.model = null; this.input = null; this.trigger.setAttribute('aria-expanded', 'false'); this.trigger.focus(); }
+    private close(): void { this.cameraMotion = null; ++this.opening; ++this.revision; ++this.surfaceRevision; clearTimeout(this.timer); cancelAnimationFrame(this.frame); this.frame = 0; this.observer.disconnect(); this.themeObserver.disconnect(); this.worker?.terminate(); this.worker = null; this.controls?.dispose(); this.controls = null; disposePreview(this.scene); this.environment?.dispose(); this.environment = null; this.renderer?.dispose(); this.renderer?.forceContextLoss(); this.renderer?.domElement.remove(); this.renderer = null; this.root = new THREE.Group(); this.grid = null; this.model = null; this.input = null; this.trigger.setAttribute('aria-expanded', 'false'); this.trigger.focus(); }
 }

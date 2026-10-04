@@ -9,7 +9,7 @@ import {pathsOf} from './geometry';
 import {loadTextFont,TEXT_FONTS} from './text';
 import {DIMENSION_TOOLS} from './dimensions';
 import {MAX_COORDINATE_MM,MIN_ZOOM,MAX_ZOOM} from './units';
-import {LAYER_TYPES} from './documentLayers';
+import {LAYER_TYPES,validateLayerColour} from './documentLayers';
 import {MAX_SOURCE_CONTOURS,MAX_SOURCE_SEGMENTS} from './processingLimits';
 
 export const MAX_DOCUMENT_BYTES=50*1024*1024;
@@ -41,7 +41,7 @@ export function documentKey(editor:CADEditor,snapshot=editor.snapshot()):string 
  const {artwork,cutlines,layers,canvasSize,grid}=snapshot;return JSON.stringify({artwork,cutlines,layers,canvasSize,grid});
 }
 export function encodeDocument(editor:CADEditor,pretty=true):string {
- const layers=editor.documentLayers.map(layer=>({id:layer.data.documentId,name:layer.name,role:layer.data.objectRole,visible:layer.visible,locked:layer.locked,objects:layer.children.map(child=>{
+ const layers=editor.documentLayers.map(layer=>({id:layer.data.documentId,name:layer.name,role:layer.data.objectRole,visible:layer.visible,locked:layer.locked,...(layer.data.colour?{colour:layer.data.colour}:{}),objects:layer.children.map(child=>{
   const item=child as Shape;
   return {kind:item instanceof paper.Path?'path':'compound',contours:pathsOf(item).map(path=>{
    const copy=documentPath(path);try{return {closed:copy.closed,segments:copy.segments.map(s=>[s.point.x,s.point.y,s.handleIn.x,s.handleIn.y,s.handleOut.x,s.handleOut.y])};}finally{copy.remove();}
@@ -115,7 +115,8 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
   const l=record(rawLayer),layerId=id(l.id),name=string(l.name,200),role=l.role as ObjectRole;
   if(layerIds.has(layerId)||!roles.includes(role)||!name.trim()||!Array.isArray(l.objects))fail();layerIds.add(layerId);
   if((layerId==='artwork'&&role!=='artwork')||(layerId==='cutline'&&role!=='cutline'))fail();
-  const state={id:layerId,name,role,visible:bool(l.visible),locked:bool(l.locked),deleted:false,objects:'[]'};
+  const state:{id:string;name:string;role:ObjectRole;visible:boolean;locked:boolean;deleted:boolean;objects:string;colour?:string}={id:layerId,name,role,visible:bool(l.visible),locked:bool(l.locked),deleted:false,objects:'[]'};
+  if(l.colour!==undefined){try{if(roles.includes(layerId as ObjectRole))fail();state.colour=validateLayerColour(string(l.colour,7));}catch{fail();}}
   const objects:string[]=[];
   for(const rawObject of l.objects){
    const o=record(rawObject),style=record(o.style);if(!['path','compound'].includes(o.kind)||!Array.isArray(o.contours)||!o.contours.length||(o.kind==='path'&&o.contours.length!==1))fail();

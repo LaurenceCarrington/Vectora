@@ -40,7 +40,7 @@ export function applyArtworkTheme(item: paper.Item, colour = artworkColor()): vo
 }
 
 /** Theme-only neutral colour changes must not dirty documents or enter undo history. */
-export function artworkSnapshot(item: paper.Item): string {
+export function artworkSnapshot(item: paper.Item,preserveNeutral=false): string {
   // Work on Paper's exported value directly rather than stringify/parse every path.
   const json:any=item.exportJSON({precision:12,asString:false});
   // Paper assigns new global gradient IDs when restoring history. Canonical local
@@ -50,7 +50,7 @@ export function artworkSnapshot(item: paper.Item): string {
     const rewrite=(value:any):void=>{if(Array.isArray(value)){if(value.length===1&&ids.has(value[0]))value[0]=ids.get(value[0]);else value.forEach(rewrite);}else if(value&&typeof value==='object')for(const key of Object.keys(value))if(key!=='data')rewrite(value[key]);};
     rewrite(json);json[0][1]=Object.fromEntries(Object.entries(dictionary).map(([key,value])=>[ids.get(key),value]));
   }
-  if(item.data.customColour)return JSON.stringify(json);
+  if(item.data.customColour||preserveNeutral)return JSON.stringify(json);
   const visit = (value: any): void => {
     if (!value || typeof value !== 'object') return;
     for (const key of Object.keys(value)) {
