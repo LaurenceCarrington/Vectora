@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 const DEV='http://127.0.0.1:5174';
 
-test('Preferences matches the reference, navigates accessibly and keeps placeholders inert',async({page})=>{
+test('Preferences matches the reference, navigates accessibly and keeps editor shortcuts contained',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   const style=()=>page.locator('#preferences-shell').evaluate(element=>{const s=getComputedStyle(element);return {background:s.backgroundColor,color:s.color,width:s.width,height:s.height,borderRadius:s.borderRadius};});
   await page.goto(DEV+'/reference/design-system.html');
@@ -11,7 +11,7 @@ test('Preferences matches the reference, navigates accessibly and keeps placehol
   const before=await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:e.snapshot(),tool:e.tool,grid:e.snapToGridEnabled,snapping:e.snappingEnabled};});
   const gear=page.getByRole('button',{name:'Settings',exact:true});await gear.click();
   const dialog=page.getByRole('dialog',{name:'Preferences',exact:true});await expect(dialog).toBeVisible();
-  expect(await style()).toEqual(reference);
+  expect(await style()).toEqual(reference);await expect(dialog.getByRole('tab')).toHaveText(['General','Grid','Snapping','Appearance']);
   await expect(dialog.getByRole('tab',{name:'Snapping',exact:true})).toBeFocused();
   await dialog.getByRole('tab',{name:'Grid',exact:true}).click();
   await expect(dialog.getByRole('tabpanel',{name:'Grid',exact:true})).toBeVisible();
@@ -19,12 +19,12 @@ test('Preferences matches the reference, navigates accessibly and keeps placehol
   await expect(dialog.getByRole('status')).toHaveText('Changes apply immediately.');
   await dialog.getByRole('tab',{name:'Snapping',exact:true}).click();
   await expect(dialog.getByRole('tabpanel',{name:'Snapping',exact:true}).getByRole('switch')).toHaveCount(7);
-  expect(await dialog.locator('[role="tabpanel"]').evaluateAll(panels=>panels.length===5&&panels.filter(panel=>!['pref-page-snapping','pref-page-grid','pref-page-appearance'].includes(panel.id)).every(panel=>panel.childElementCount===0&&panel.textContent===''))).toBe(true);
+  await expect(dialog.locator('#pref-page-general [data-general]')).toHaveCount(5);
   await expect(dialog.getByRole('button',{name:'Reset preferences',exact:true})).toHaveCount(0);
   await expect(dialog.getByRole('status')).toHaveText('Changes apply immediately.');
   await page.keyboard.press('ArrowDown');await expect(dialog.getByRole('tab',{name:'Appearance',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(dialog.getByRole('tabpanel',{name:'Appearance',exact:true})).toBeVisible();
-  await page.keyboard.press('Home');await expect(dialog.getByRole('tab',{name:'General',exact:true})).toBeFocused();
+  await page.keyboard.press('Home');await expect(dialog.getByRole('tab',{name:'General',exact:true})).toBeFocused();await page.keyboard.press('End');await expect(dialog.getByRole('tab',{name:'Appearance',exact:true})).toBeFocused();await page.keyboard.press('Home');await expect(dialog.getByRole('tab',{name:'General',exact:true})).toBeFocused();
   for(const key of ['r','s','Delete','Control+z','Space'])await page.keyboard.press(key);
   expect(await page.evaluate(()=>{const e=(window as any).__vectora;return {snapshot:e.snapshot(),tool:e.tool,grid:e.snapToGridEnabled,snapping:e.snappingEnabled};})).toEqual(before);
   for(let i=0;i<8;i++){await page.keyboard.press('Tab');expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBe(true);}
@@ -41,10 +41,10 @@ test('Preferences matches the reference, navigates accessibly and keeps placehol
   expect(errors).toEqual([]);
 });
 
-test('production Settings opens the placeholder Preferences dialog',async({page})=>{
+test('production Settings opens Preferences without the unused Editing tab',async({page})=>{
   await page.goto('http://127.0.0.1:4173');await page.getByRole('button',{name:'Settings',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'Preferences',exact:true});await expect(dialog).toBeVisible();
-  await dialog.getByRole('tab',{name:'Editing',exact:true}).click();await expect(dialog.getByRole('tabpanel',{name:'Editing',exact:true})).toBeEmpty();
+  await expect(dialog.getByRole('tab')).toHaveText(['General','Grid','Snapping','Appearance']);await expect(dialog.getByRole('tab',{name:'Editing',exact:true})).toHaveCount(0);await dialog.getByRole('tab',{name:'General',exact:true}).click();await expect(dialog.getByRole('tabpanel',{name:'General',exact:true}).getByRole('combobox')).toHaveCount(5);
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
 });
 

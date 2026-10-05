@@ -1,3 +1,4 @@
+import {generalPreferences} from './generalPreferences';
 import type {GridConfig} from './gridGeometry';
 import {NewDocumentDialog} from './newDocumentDialog';
 import type {CanvasSize} from './canvasSize';
@@ -30,6 +31,9 @@ export class DocumentFiles {
  private changedDuringStartup=false;
  private timer:number|undefined;
  private cachePending=true;
+ private committedContents='';
+ private committedKey='';
+ private committedViewKey='';
  private unloadFlushed=false;
  private cachedViewKey='';
  private cachedSavedKey='';
@@ -61,13 +65,17 @@ export class DocumentFiles {
   // Keep the already captured draft until real input resumes after cancellation.
   const resume=()=>{this.unloadFlushed=false;};
   document.addEventListener('pointerdown',resume,{capture:true});document.addEventListener('keydown',resume,{capture:true});editor.canvas.addEventListener('wheel',resume,{passive:true});
-  const schedule=()=>{if(this.timer===undefined)this.timer=window.setTimeout(()=>{this.timer=undefined;this.cache();},250);};
-  editor.onDocumentChange=snapshot=>{resume();this.cachePending=true;this.cache(snapshot);};
+  const schedule=()=>this.scheduleBackup();
+  window.addEventListener('vectora-general-change',()=>{if(this.timer!==undefined){clearTimeout(this.timer);this.timer=undefined;this.scheduleBackup();}});
+  editor.onDocumentChange=snapshot=>{if(this.restoring)return;resume();this.cachePending=true;this.captureCommitted(snapshot);this.renderTabs(this.renamed||this.committedKey!==this.savedKey||!!this.draft());this.scheduleBackup();};
   editor.canvas.addEventListener('pointerup',schedule);editor.canvas.addEventListener('wheel',schedule,{passive:true});
   document.querySelector('#inline-text')!.addEventListener('input',schedule);
   document.addEventListener('click',schedule);document.addEventListener('keyup',schedule);
 
  }
+ get recoveryBytes():number{return this.recovery.usageBytes;}
+ private scheduleBackup():void {if(this.timer===undefined)this.timer=window.setTimeout(()=>{this.timer=undefined;this.cache();},generalPreferences.value.backupInterval);}
+ private captureCommitted(snapshot?:DocumentSnapshot):void {this.committedContents=encodeDocument(this.editor,false);this.committedKey=documentKey(this.editor,snapshot);this.committedViewKey=JSON.stringify([paper.view.zoom,paper.view.center.x,paper.view.center.y]);}
  private get activeTab():DocumentTab {return this.tabs.find(tab=>tab.id===this.activeId)!;}
  private renderTabs(activeDirty?:boolean):void {
   this.tabBar.render(this.tabs.map(tab=>({id:tab.id,filename:tab.id===this.activeId?this.filename:tab.filename,dirty:tab.id===this.activeId?(activeDirty??(this.dirty||!!this.draft())):tab.dirty})),this.activeId,this.busy);
@@ -146,27 +154,36 @@ export class DocumentFiles {
   }catch(error){this.notify(`Could not fully restore the browser copy. ${error instanceof Error?error.message:String(error)}`,'warning');}
   finally{
    this.restoring=false;
-   if(!restored&&!this.changedDuringStartup){const settings=await this.setup.open(undefined,'startup',this.editor.grid.config);this.createBlank(false,settings?.canvasSize??{kind:'infinite'},settings?.grid??this.editor.grid.config);this.cachePending=true;}
+   if(!this.changedDuringStartup&&(!restored||generalPreferences.value.startup==='new')){
+    const settings=await this.setup.open(undefined,restored?'new':'startup',this.editor.grid.config);
+    if(settings||!restored){if(restored)this.rememberActive();this.createBlank(restored,settings?.canvasSize??{kind:'infinite'},settings?.grid??this.editor.grid.config);this.cachePending=true;}
+   }
+   this.captureCommitted();
    this.recoveryReady=true;workspace.inert=false;if(this.changedDuringStartup||!restored||this.cachePending)this.cache();if(!restored)this.editor.canvas.focus({preventScroll:true});
   }
  }
  private cache(snapshot?:DocumentSnapshot):void {
+  if(this.timer!==undefined){clearTimeout(this.timer);this.timer=undefined;}
   if(this.restoring||this.unloadFlushed)return;
   if(!this.recoveryReady){this.changedDuringStartup=true;return;}
-  if(this.editor.hasPendingGesture)return;
+  const pending=this.editor.hasPendingGesture;
   const draft=this.draft(),viewKey=JSON.stringify([this.activeId,this.filename,this.renamed,this.editor.activeLayerId,paper.view.zoom,paper.view.center.x,paper.view.center.y,draft,this.tabs.map(tab=>tab.id)]);
   if(!this.cachePending&&!this.recovery.needsRetry&&viewKey===this.cachedViewKey&&this.savedKey===this.cachedSavedKey)return;
   // Recovery does not need file-export indentation or another history snapshot.
-  let contents=encodeDocument(this.editor,false);
+  const retained=pending||this.cachePending;
+  let contents=retained?this.committedContents:encodeDocument(this.editor,false);
+  // Reuse committed geometry; camera movement after a commit only changes the view.
+  if(retained&&!pending&&this.committedViewKey!==JSON.stringify([paper.view.zoom,paper.view.center.x,paper.view.center.y])){const data=JSON.parse(contents);data.view={zoom:paper.view.zoom,center:[paper.view.center.x,paper.view.center.y]};contents=JSON.stringify(data);}
   // Inline editing temporarily hides the original glyphs behind its textarea.
   if(draft?.sourceId){const data=JSON.parse(contents);for(const layer of data.layers)for(const object of layer.objects)if(object.data.uid===draft.sourceId)object.visible=true;contents=JSON.stringify(data);}
-  const dirty=this.renamed||documentKey(this.editor,snapshot)!==this.savedKey||!!draft;
+  const dirty=this.renamed||(retained?this.committedKey:documentKey(this.editor,snapshot))!==this.savedKey||!!draft;
   this.activeTab.contents=contents;this.activeTab.filename=this.filename;this.activeTab.dirty=dirty;
   this.renderTabs(dirty);
   this.cachePending=false;this.cachedViewKey=viewKey;this.cachedSavedKey=this.savedKey;
   this.recovery.write({contents,filename:this.filename,dirty,draft,activeTabId:this.activeId,tabs:this.tabs.map(({id,filename,contents,dirty})=>({id,filename,contents,dirty}))});
  }
  private updateName():void {
+  this.captureCommitted();
   this.nameControl.setName(this.filename);
   this.renderTabs();
  }

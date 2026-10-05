@@ -1,3 +1,5 @@
+import {generalPreferences,UNIT_NAMES} from './generalPreferences';
+import {bindLength,setLength,readLength} from './measurementDisplay';
 import {AppearancePanel} from './appearancePanel';
 import {ObjectCreation} from './objectCreation';
 import {ObjectProperties} from './objectProperties';
@@ -64,7 +66,7 @@ const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElem
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
   const selected=editor.selected;if(!selected?.data.text)return;
-  const uid=selected.data.uid,fontId=textFontSelect.value,size=textSize.valueAsNumber,request=++textStyleRequest;
+  const uid=selected.data.uid,fontId=textFontSelect.value,size=readLength(textSize),request=++textStyleRequest;
   textFontSelect.disabled=true;textSize.disabled=true;$<HTMLButtonElement>('#edit-text').disabled=true;
   try{await loadTextFont(fontId);const current=editor.selected;if(request!==textStyleRequest||editor.textEditing||current!==selected)return;editor.saveText(current.data.text.content,size,null,uid,fontId);}
   catch(error){notify((error as Error).message,true);update();}
@@ -215,14 +217,14 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button')) {
 }
 function disable(button:HTMLButtonElement):void {button.disabled=true;button.title=(button.title||button.textContent?.trim()||'This control')+' — not yet available';}
 new RasterToVector($<HTMLDialogElement>('#raster-dialog'),editor,$<HTMLButtonElement>('[data-raster-open]'),()=>{editor.cancel();closeMenus();});
-new Preferences($<HTMLDialogElement>('#preferences-dialog'),$<HTMLButtonElement>('[aria-label="Settings"]'),()=>{editor.cancel();closeMenus();});
+new Preferences($<HTMLDialogElement>('#preferences-dialog'),$<HTMLButtonElement>('[aria-label="Settings"]'),()=>{editor.cancel();closeMenus();},()=>documentFiles.recoveryBytes);
 new HelpGuide($<HTMLButtonElement>('[data-help-open]'),()=>{
   if(!inlineText.finish(false,false))return false;
   editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
 });
 $('[aria-label="Undo"]').onclick=()=>editor.undo();$('[aria-label="Redo"]').onclick=()=>editor.redo();
 for(const key of ['x','y','width','height'] as const){const input=$<HTMLInputElement>('#field-'+key);input.value='';input.min=(key==='width'||key==='height')?'0.001':'';input.addEventListener('change',()=>{
-  try{if(!input.value.trim())throw new Error('Enter a number.');if((key==='x'||key==='y')&&preciseGeometry(editor.selected))editor.setPreciseProperty(key,input.valueAsNumber);else editor.setProperty(key,input.valueAsNumber);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
+  try{if(!input.value.trim())throw new Error('Enter a number.');if((key==='x'||key==='y')&&preciseGeometry(editor.selected))editor.setPreciseProperty(key,readLength(input));else editor.setProperty(key,readLength(input));input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
   catch(error){input.setAttribute('aria-invalid','true');input.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
 });}
 const rotationInput=$<HTMLInputElement>('#field-rotation');
@@ -230,7 +232,7 @@ const objectProperties=new ObjectProperties($('#selection-properties'),editor,me
 const lineStyleInput=$<HTMLSelectElement>('#field-line-style'),lineWeightInput=$<HTMLInputElement>('#field-line-weight');
 lineStyleInput.addEventListener('change',()=>attempt(()=>editor.setLineDesign(lineStyleInput.value as LineDesign)));
 lineWeightInput.addEventListener('change',()=>{
-  try{editor.setLineWeight(lineWeightInput.valueAsNumber);lineWeightInput.setAttribute('aria-invalid','false');lineWeightInput.closest('.number-shell')!.classList.remove('is-invalid');}
+  try{editor.setLineWeight(readLength(lineWeightInput));lineWeightInput.setAttribute('aria-invalid','false');lineWeightInput.closest('.number-shell')!.classList.remove('is-invalid');}
   catch(error){lineWeightInput.setAttribute('aria-invalid','true');lineWeightInput.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
 });
 rotationInput.addEventListener('change',()=>{
@@ -240,7 +242,7 @@ rotationInput.addEventListener('change',()=>{
 for(const key of ['radius','start','sweep'] as const){
   const input=$<HTMLInputElement>('#arc-'+key);
   input.addEventListener('change',()=>{
-    try{editor.setArcProperty(key,input.valueAsNumber);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
+    try{editor.setArcProperty(key,key==='radius'?readLength(input):input.valueAsNumber);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
     catch(error){input.setAttribute('aria-invalid','true');input.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
   });
 }
@@ -264,6 +266,8 @@ const exportDialog=new ExportDialog(editor,()=>{
  editor.cancel();closeMenus();selectionContextMenu.close();editor.nodes.closeMenu();return true;
 },notify);
 function update():void {
+  $('.ruler-unit').textContent=generalPreferences.value.units;
+  for(const [selector,name] of [['.ruler-left','Vertical'],['.ruler-bottom','Horizontal']])$(selector).setAttribute('aria-label',`${name} ruler in ${UNIT_NAMES[generalPreferences.value.units]}`);
   rulers.update(paper.view.bounds,paper.view.zoom);
   updatePropertiesContent();
   const strokeItems=editor.lineAppearanceItems,weights=strokeItems.map(lineWeightMM),designs=strokeItems.map(lineDesign);
@@ -271,14 +275,14 @@ function update():void {
   lineStyleInput.disabled=lineWeightInput.disabled=!editor.canEditLineAppearance;
   lineStyleInput.value=designs.length&&designs.every(design=>design===designs[0])?designs[0]:'mixed';
   if(document.activeElement!==lineWeightInput){
-    lineWeightInput.value=weights.length&&weights.every(weight=>Math.abs(weight-weights[0])<1e-9)?String(Number(weights[0].toFixed(6))):'';
+    setLength(lineWeightInput,weights.length&&weights.every(weight=>Math.abs(weight-weights[0])<1e-9)?weights[0]:null,'Line weight');
     lineWeightInput.placeholder=weights.length?'Mixed':'';lineWeightInput.setAttribute('aria-invalid','false');lineWeightInput.closest('.number-shell')!.classList.remove('is-invalid');
   }
   convertTextButton.hidden=!editor.selectedItems.some(item=>item.data.text);
   convertTextButton.disabled=!editor.canConvertText;
   $('#text-properties').hidden=!editor.selected?.data.text;
   $('#selection-name').hidden=!!editor.selected?.data.text;
-  if(editor.selected?.data.text){const text=editor.selected.data.text;if(document.activeElement!==textFontSelect)textFontSelect.value=text.fontId??'lato';if(document.activeElement!==textSize)textSize.value=String(text.sizeMM);}
+  if(editor.selected?.data.text){const text=editor.selected.data.text;if(document.activeElement!==textFontSelect)textFontSelect.value=text.fontId??'lato';if(document.activeElement!==textSize)setLength(textSize,text.sizeMM,'Font size');}
   inlineText.render();
   $('[data-node-tool]').classList.toggle('selected',editor.tool==='nodes');
   $('[data-node-tool]').setAttribute('aria-pressed',String(editor.tool==='nodes'));
@@ -318,14 +322,14 @@ function update():void {
   duplicateButton.hidden=!duplicatePoint;
   if(duplicatePoint){duplicateButton.style.left=`${duplicatePoint.x}px`;duplicateButton.style.top=`${duplicatePoint.y}px`;}
   const selected=editor.selected,bounds=editor.selectionBounds,count=editor.selectedItems.length;
-  for(const key of ['x','y','width','height'] as const){const input=$<HTMLInputElement>('#field-'+key);input.disabled=!bounds||((key==='width'||key==='height')&&bounds[key]<0.001);input.title=bounds&&(key==='width'||key==='height')&&bounds[key]<0.001?'Drag an endpoint to change direction':'';if(document.activeElement!==input){input.value=bounds?String(Number(bounds[key].toFixed(6))):'';input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
+  for(const key of ['x','y','width','height'] as const){const input=$<HTMLInputElement>('#field-'+key);input.disabled=!bounds||((key==='width'||key==='height')&&bounds[key]<0.001);input.title=bounds&&(key==='width'||key==='height')&&bounds[key]<0.001?'Drag an endpoint to change direction':'';if(document.activeElement!==input){setLength(input,bounds?bounds[key]:null,({x:'X position',y:'Y position',width:'Width',height:'Height'})[key]);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
   rotationInput.disabled=!count;
   if(document.activeElement!==rotationInput){rotationInput.value=count?String(Number(editor.selectionRotation.toFixed(6))):'';rotationInput.setAttribute('aria-invalid','false');rotationInput.closest('.number-shell')!.classList.remove('is-invalid');}
   $('#rotation-label').textContent=count>1?'By':'R';
   rotationInput.setAttribute('aria-label',count>1?'Rotate selection by (degrees)':'Rotation (degrees)');
   $('#rotation-help').textContent=count>1?'Rotate together around the selection centre. Enter an amount to add.':'Clockwise rotation about the centre. Shift-drag snaps to 15°.';
   $('#arc-controls').hidden=!editor.selectedArc;
-  for(const key of ['radius','start','sweep'] as const){const input=$<HTMLInputElement>('#arc-'+key);if(document.activeElement!==input){input.value=editor.selectedArc?String(Number(editor.selectedArc[key].toFixed(6))):'';input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
+  for(const key of ['radius','start','sweep'] as const){const input=$<HTMLInputElement>('#arc-'+key);if(document.activeElement!==input){if(key==='radius')setLength(input,editor.selectedArc?.radius??null,'Radius');else input.value=editor.selectedArc?String(Number(editor.selectedArc[key].toFixed(6))):'';input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
   $('#selection-name').textContent=count>1?`${count} objects selected · Combined bounds`:selected?`${selected.data.name} · ${selected.layer.name}`:'Select an object to edit its bounds.';
   objectProperties.render();
   $<HTMLButtonElement>('[aria-label="Undo"]').disabled=!editor.canUndo;$<HTMLButtonElement>('[aria-label="Redo"]').disabled=!editor.canRedo;
@@ -347,6 +351,8 @@ function update():void {
   $('#pref-snap-grid-help').textContent=editor.grid.type==='none'?'Choose a grid type in Grid preferences to enable grid snapping.':'Align to the grid size set in Grid preferences.';
   document.querySelectorAll<HTMLInputElement>('[data-object-snap]').forEach(input=>input.checked=editor.objectSnapModes[input.dataset.objectSnap as ObjectSnapMode]);
 }
+for(const id of ['field-x','field-y','field-width','field-height','field-line-weight','arc-radius','text-property-size'])bindLength($<HTMLInputElement>('#'+id));
+window.addEventListener('vectora-general-change',()=>{objectCreation.refreshMeasurements();editor.refreshMeasurements();update();});
 editor.onChange=update;editor.onMessage=notify;
 editor.onToolChange=tool=>{objectCreation.start(tool);if(objectCreation.active)setPanel(props,true);else if(tool==='fill')setPanel(colour,true);else updatePropertiesContent();};
 initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});

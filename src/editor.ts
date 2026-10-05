@@ -83,6 +83,7 @@ export class CADEditor {
   get selected():Shape|null {return this.selection.length===1?this.selection[0]:null;}
   set selected(item:Shape|null){this.selection=item?[item]:[];}
   get selectionRotation():number {return this.selected?.data.rotationDegrees??0;}
+  refreshMeasurements():void {this.changed();}
   private objectBounds(item:Shape):paper.Rectangle {const label=dimensionLabel(item),bounds=label?item.bounds.unite(label.bounds):item.bounds.clone();label?.remove();return bounds;}
   get selectionBounds():paper.Rectangle|null {if(this.selectionBoundsCache!==undefined)return this.selectionBoundsCache?.clone()??null;return this.selection.reduce<paper.Rectangle|null>((bounds,item)=>bounds?bounds.unite(this.objectBounds(item)):this.objectBounds(item),null);}
   tool:ToolName='select';

@@ -1,3 +1,5 @@
+import {bindLength,setLength,readLength} from './measurementDisplay';
+import {generalPreferences,UNIT_NAMES} from './generalPreferences';
 import {buildCreationShape,creationFields,creationKind,CREATION_NAMES,CreationError,type CreationKind} from './shapeCreation';
 import type {LineDesign} from './lineAppearance';
 import type {Shape,ToolName} from './types';
@@ -20,6 +22,7 @@ export class ObjectCreation {
   this.element.onsubmit=event=>{event.preventDefault();event.stopPropagation();this.submit();};
   this.element.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.stop();model.cancel();}};
  }
+ refreshMeasurements():void {for(const input of this.inputs.values())if(input.dataset.lengthBound)setLength(input,readLength(input),input.dataset.lengthLabel);}
  get active():boolean {return this.kind!==null;}
  start(tool:ToolName):void {
   this.resumeTool=null;
@@ -34,6 +37,7 @@ export class ObjectCreation {
    const id=`${this.element.parentElement!.id||'creation'}-new-${field.key}`;
    wrapper.innerHTML=`<label class="creation-label" for="${id}">${field.label}</label><div class="number-shell"><span class="number-prefix">${field.prefix}</span><input class="number-input" id="${id}" type="number" step="${field.integer?'1':'any'}" aria-label="${field.name}" aria-invalid="false"><span class="number-unit">${field.unit}</span></div>`;
    const input=wrapper.querySelector('input')!;input.value=String(Number(field.value.toFixed(6)));if(field.min!==undefined)input.min=String(field.min);if(field.max!==undefined)input.max=String(field.max);input.required=true;
+   if(field.unit==='mm'){bindLength(input,field.label);setLength(input,field.value,field.label);}
    input.oninput=()=>{input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');if(this.error&&!this.model.context().layer.error)this.error.hidden=true;};
    this.inputs.set(field.key,input);grid.append(wrapper);
   }
@@ -41,9 +45,10 @@ export class ObjectCreation {
   if(kind==='circle'){
    const wrapper=document.createElement('label');wrapper.className='creation-measurement';wrapper.innerHTML='<span class="creation-label">Measurement</span><select class="number-input" aria-label="Circle measurement"><option value="radius">Radius</option><option value="diameter">Diameter</option></select>';this.element.insertBefore(wrapper,grid);
    const select=wrapper.querySelector('select')!;select.onchange=()=>{
-    const next=select.value as 'radius'|'diameter',input=this.inputs.get('radius')!,value=input.valueAsNumber;
-    if(Number.isFinite(value)&&next!==this.measurement)input.value=String(value*(next==='diameter'?2:.5));this.measurement=next;
-    input.setAttribute('aria-label',`${next==='radius'?'Radius':'Diameter'} (millimetres)`);input.closest('.creation-field')!.querySelector('.creation-label')!.textContent=next==='radius'?'Radius':'Diameter';input.previousElementSibling!.textContent=next==='radius'?'R':'Ø';
+    const next=select.value as 'radius'|'diameter',input=this.inputs.get('radius')!,value=readLength(input);
+    input.dataset.lengthMin=next==='diameter'?'0.002':'0.001';
+    if(Number.isFinite(value)&&next!==this.measurement)setLength(input,value*(next==='diameter'?2:.5),next==='radius'?'Radius':'Diameter',true);this.measurement=next;
+    input.setAttribute('aria-label',`${next==='radius'?'Radius':'Diameter'} (${UNIT_NAMES[generalPreferences.value.units]})`);input.closest('.creation-field')!.querySelector('.creation-label')!.textContent=next==='radius'?'Radius':'Diameter';input.previousElementSibling!.textContent=next==='radius'?'R':'Ø';
    };
   }
   this.destination=document.createElement('p');this.destination.className='subtext creation-destination';this.element.append(this.destination);
@@ -72,7 +77,7 @@ export class ObjectCreation {
   if(!this.kind)return;const context=this.model.context();if(context.pending||context.layer.error){this.sync();return;}
   let shape:Shape|undefined;
   try{
-   const values=Object.fromEntries([...this.inputs].map(([key,input])=>[key,input.value.trim()?input.valueAsNumber:NaN]));
+   const values=Object.fromEntries([...this.inputs].map(([key,input])=>[key,input.value.trim()?(input.dataset.lengthBound?readLength(input):input.valueAsNumber):NaN]));
    const style=this.element.querySelector<HTMLSelectElement>('[aria-label="Line style"]')!.value as LineDesign;
    shape=buildCreationShape(this.kind,values,this.measurement,style,context.layer.colour);
    this.model.insert(shape,CREATION_NAMES[this.kind]);this.stop();

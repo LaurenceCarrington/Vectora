@@ -1,3 +1,4 @@
+import {generalPreferences} from './generalPreferences';
 import {canvasPresets,unitScale,validateCanvasSize,MAX_CANVAS_MM,type CanvasSize,type CanvasUnit} from './canvasSize';
 import {GRID_NAMES,GRID_TYPES,GRID_HELP,type GridConfig,type GridType} from './gridGeometry';
 import {DEFAULT_GRID,GRID_ANGLES,validateGridSettings} from './gridSettings';
@@ -47,10 +48,13 @@ export class NewDocumentDialog {
   this.get('[data-setup-grid-angle-field]').hidden=type!=='polar';this.get('[data-setup-grid-help]').textContent=GRID_HELP[type];
  }
  private get<T extends HTMLElement=HTMLElement>(selector:string):T{return this.dialog.querySelector<T>(selector)!;}
- open(size:CanvasSize={kind:'infinite'},mode:'new'|'startup'|'edit'='new',grid:GridConfig=DEFAULT_GRID):Promise<WorkspaceSetup|null>{
+ open(size:CanvasSize|undefined=undefined,mode:'new'|'startup'|'edit'='new',grid:GridConfig=DEFAULT_GRID):Promise<WorkspaceSetup|null>{
   if(this.dialog.open)return Promise.resolve(null);
   this.grid=validateGridSettings(grid);this.get<HTMLInputElement>('[data-setup-grid-size]').value=String(this.grid.spacing);this.get<HTMLSelectElement>('[data-setup-grid-angle]').value=String(this.grid.angle);this.renderGrid();this.category='machine';this.showCategory();
+  const preset=canvasPresets.find(p=>p.id===generalPreferences.value.canvasPreset)!;
+  const useDefault=size===undefined;size??=preset.id==='infinite'?{kind:'infinite'}:{kind:'fixed',width:preset.width,height:preset.height,unit:preset.unit??'mm'};
   this.size=structuredClone(size);this.preset=size.kind==='infinite'?'infinite':'custom';this.unit=size.kind==='fixed'?size.unit:'mm';this.width=size.kind==='fixed'?size.width:300;this.height=size.kind==='fixed'?size.height:200;
+  if(useDefault){this.preset=preset.id;if(preset.group==='machine'||preset.group==='sticker'){this.category=preset.group;this.showCategory();}}
   this.dialog.dataset.mode=mode;this.get('#new-document-title').textContent=mode==='edit'?'Canvas size':'New document';this.get('[data-setup-create]').textContent=mode==='edit'?'Apply':'Create document';this.get('[data-setup-cancel]').textContent=mode==='startup'?'Use infinite canvas':'Cancel';this.get('[data-setup-error]').hidden=true;this.render();this.dialog.returnValue='';
   return new Promise(resolve=>{this.resolve=resolve;this.dialog.showModal();this.get<HTMLButtonElement>(`[data-canvas-preset="${this.preset}"]`).focus();});
  }

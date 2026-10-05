@@ -22,5 +22,5 @@ test('Font cleanup during navigation cannot overwrite the captured text draft',a
  // If navigation is cancelled, a real subsequent edit resumes normal caching.
  await page.locator('#cad-canvas').focus();await page.keyboard.press('v');
  await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[30,30,20,20]}),'After cancellation');});
- const resumed=await page.evaluate(async()=>{const {DocumentRecovery}=await import('/src/documentRecovery.ts');const data=await new DocumentRecovery(()=>{}).read();return {draft:data?.draft,objects:JSON.parse(data!.contents).layers.flatMap((l:any)=>l.objects).length};});expect(resumed).toEqual({draft:undefined,objects:1});
+ await expect.poll(()=>page.evaluate(async()=>{const {DocumentRecovery}=await import('/src/documentRecovery.ts');const data=await new DocumentRecovery(()=>{}).read();return {draft:data?.draft,objects:JSON.parse(data!.contents).layers.flatMap((l:any)=>l.objects).length};})).toEqual({draft:undefined,objects:1});
 });

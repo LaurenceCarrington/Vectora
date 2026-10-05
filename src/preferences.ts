@@ -1,13 +1,15 @@
+import {initializeGeneralPreferences} from './generalPreferences';
 /** Preferences navigation with live grid and snapping controls and reserved category panels. */
 export class Preferences {
-  constructor(private dialog:HTMLDialogElement, private trigger:HTMLButtonElement, beforeOpen:()=>void) {
+  constructor(private dialog:HTMLDialogElement, private trigger:HTMLButtonElement, beforeOpen:()=>void, recoveryUsage:()=>number=()=>0) {
+    initializeGeneralPreferences(dialog.querySelector<HTMLElement>('#pref-page-general')!,recoveryUsage);
     const tabs=[...dialog.querySelectorAll<HTMLButtonElement>('[data-pref-tab]')];
     const pages=[...dialog.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
     const content=dialog.querySelector<HTMLElement>('.preferences-content')!;
     const select=(tab:HTMLButtonElement,focus=false)=>{
       for(const item of tabs){const active=item===tab;item.setAttribute('aria-selected',String(active));item.tabIndex=active?0:-1;}
       for(const page of pages)page.hidden=page.id!==tab.getAttribute('aria-controls');
-      dialog.querySelector('#preferences-status')!.textContent=['grid','snapping','appearance'].includes(tab.dataset.prefTab??'')?'Changes apply immediately.':'Coming soon — settings are placeholders.';
+      dialog.querySelector('#preferences-status')!.textContent=['general','grid','snapping','appearance'].includes(tab.dataset.prefTab??'')?'Changes apply immediately.':'Coming soon — settings are placeholders.';
       content.scrollTop=0;if(focus)tab.focus();
     };
     tabs.forEach((tab,index)=>{

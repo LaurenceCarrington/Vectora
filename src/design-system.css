@@ -1408,3 +1408,14 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
  .material-preview-settings {border-left:0;border-top:1px solid var(--menu-border)}
  .material-preview-footer {padding:10px 12px}
 }
+
+.general-setting > .number-input, .general-setting label > .number-input { display: block; width: 100%; margin-top: 8px; }
+.general-setting > .prefs-setting-copy + .number-input { margin-top: 12px; }
+.general-setting > label:not(.prefs-setting-title), .general-fields label { display: block; font-size: var(--text-sm); color: var(--color-text); }
+.general-setting > .prefs-setting-help { margin-bottom: 12px; }
+.general-fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-top: 12px; }
+.general-setting legend { float: left; width: 100%; padding: 0; }
+.general-setting > .prefs-setting-help { clear: both; }
+.general-setting select.number-input { height: var(--input-height); border: var(--border-width) solid var(--input-border-color); background: var(--color-surface); border-radius: var(--input-radius); }
+.general-setting select.number-input:focus-visible { outline: 2px solid var(--chrome-accent); outline-offset: -2px; }
+@media (max-width: 480px) { .general-fields { grid-template-columns: minmax(0,1fr); } }

@@ -25,6 +25,8 @@ Vectora is a browser-based 2D CAD and vector drawing app for creating precise ar
 
 A fixed canvas is a visual size guide: you can draw outside it, and it does not crop exports or automatically set their size. Change it later through **File → Canvas size**. Grid settings remain editable in **Preferences → Grid** and are saved separately for each document.
 
+**Preferences → General** remembers your default canvas preset, measurement units (mm/cm/inches), decimal places, startup choice and recovery interval in this browser. New-document defaults do not change an existing canvas or grid. Units apply to Properties, precise creation, rulers and dimension labels; focused fields show unrounded values and display rounding never alters geometry. Startup can restore tabs or open New document alongside recovered tabs. Recovery shows the working-copy size and, where supported, estimated browser site storage usage. Backups run every 250 ms to one minute and are attempted again when leaving the page; save `.vectora` files for independent copies.
+
 ## Moving around and editing
 
 Scroll over the canvas to zoom around the pointer. Hold **Space** and drag to pan. Click the zoom percentage in the bottom bar to return to **100%**. The magnet at the bottom of the left toolbar, or **S**, pauses and resumes snapping; configure individual modes in **Preferences → Snapping**.

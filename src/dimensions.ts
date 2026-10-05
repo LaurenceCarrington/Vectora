@@ -1,3 +1,4 @@
+import {lengthLabel} from './measurementDisplay';
 import {artworkColor} from './shapeStyles';
 import paper from 'paper';
 import type { Shape, ToolName } from './types';
@@ -10,7 +11,7 @@ export const DIMENSION_TOOLS:DimensionTool[]=['dimension-aligned','dimension-lin
 export const DIMENSION_NAMES:Record<DimensionTool,string>={'dimension-aligned':'Aligned dimension','dimension-linear':'Linear dimension','dimension-radial':'Radial dimension','dimension-diameter':'Diameter dimension',leader:'Leader callout'};
 export interface DimensionData {kind:DimensionTool;points:[number,number][];axis?:'x'|'y';text?:string;transform:[number,number,number,number,number,number]}
 export function isDimensionTool(tool:ToolName):tool is DimensionTool{return DIMENSION_TOOLS.includes(tool as DimensionTool);}
-const mm=(value:number)=>`${Number(value.toFixed(2))} mm`;
+const mm=lengthLabel;
 export function dimensionLayout(data:DimensionData){
   const [a,b,c]=data.points.map(point=>new paper.Point(point)),matrix=new paper.Matrix(...data.transform);
   const lines:paper.Point[][]=[];
