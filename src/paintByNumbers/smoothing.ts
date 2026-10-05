@@ -35,6 +35,25 @@ function labelFits(loops:Point[][],label:Point,rx:number,ry:number):boolean {
  if(!rect.every(p=>contains(p,loops)))return false;
  for(const loop of loops)for(let i=0;i<loop.length;i++){const a=loop[i],b=loop[(i+1)%loop.length];if(a[0]>x-rx&&a[0]<x+rx&&a[1]>y-ry&&a[1]<y+ry)return false;for(let j=0;j<4;j++)if(intersects(a,b,rect[j],rect[(j+1)%4]))return false;}return true;
 }
+/** Relocate a number after smoothing rather than reverting its whole region.
+ * Intersect horizontal interior spans across the complete glyph-height slab.
+ * Between contour vertices, segment intersections vary linearly, so slab ends
+ * and vertex heights describe the extrema of every admissible rectangle. */
+function relocateLabel(loops:Point[][],label:Point,rx:number,ry:number,budget:{remaining:number}):Point|undefined {
+ const points=loops.flat(),ys=[...new Set(points.map(p=>p[1]))].sort((a,b)=>a-b),min=ys[0]+ry,max=ys[ys.length-1]-ry;
+ if(min>=max)return;
+ const spans=(y:number):[number,number][]|undefined=>{const hits:number[]=[];for(const loop of loops)for(let i=0;i<loop.length;i++){if(--budget.remaining<0)return;const a=loop[i],b=loop[(i+1)%loop.length];if((a[1]>y)!==(b[1]>y))hits.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1]));}hits.sort((a,b)=>a-b);const out:[number,number][]=[];for(let i=0;i+1<hits.length;i+=2)out.push([hits[i],hits[i+1]]);return out;};
+ const intersect=(a:[number,number][],b:[number,number][])=>{const out:[number,number][]=[];let i=0,j=0;while(i<a.length&&j<b.length){const left=Math.max(a[i][0],b[j][0]),right=Math.min(a[i][1],b[j][1]);if(right-left>2*rx)out.push([left,right]);if(a[i][1]<b[j][1])i++;else j++;}return out;};
+ // Start near the existing label. Bound row sampling independently of image
+ // resolution, keeping detailed uploads responsive and deterministic.
+ const step=Math.max(.5,ry/2,(max-min)/256),rows=[Math.max(min,Math.min(max,label[1]))];for(let y=min+1e-5;y<max;y+=step)rows.push(y);
+ rows.sort((a,b)=>Math.abs(a-label[1])-Math.abs(b-label[1])||a-b);
+ let best:Point|undefined,bestDistance=Infinity;
+ for(const y of rows){if((y-label[1])**2>=bestDistance)continue;let allowed=spans(y-ry);if(!allowed)return best;const levels=[y+ry,...ys.filter(v=>v>y-ry&&v<y+ry).flatMap(v=>[v-1e-7,v+1e-7])];for(const level of levels){const row=spans(level);if(!row)return best;allowed=intersect(allowed,row);if(!allowed.length)break;}
+  for(const [left,right] of allowed){const x=Math.max(left+rx+1e-6,Math.min(right-rx-1e-6,label[0])),candidate:Point=[x,y],distance=(x-label[0])**2+(y-label[1])**2;if(distance<bestDistance&&labelFits(loops,candidate,rx,ry)){best=candidate;bestDistance=distance;}}
+ }
+ return best;
+}
 
 /** Smooth each shared chain once, then reuse its exact reverse for its neighbour. */
 export function smoothRegions(result:PaintResult,s:ProcessingSettings):PaintResult {
@@ -61,6 +80,7 @@ export function smoothRegions(result:PaintResult,s:ProcessingSettings):PaintResu
  for(let i=0;i<edges.length;i++)if(edges[i].chain<0)walk(i,edges[i].a);
  const owners=new Uint8Array(chains.length);for(const edge of edges)owners[edge.chain]=Math.max(owners[edge.chain],edge.owners.length);
  const fixed=new Set<number>();
+ const labelBudget={remaining:2000000};
  const build=()=>result.regions.map(region=>({...region,contours:region.contours.map(loop=>{
   const refs=loop.map((p,i)=>{const e=edges[lookup.get(edgeKey(code(p),code(loop[(i+1)%loop.length])))!];return {id:e.chain,forward:(e.a===code(p))===e.forward};});
   const first=refs.findIndex((ref,i)=>ref.id!==refs[(i+refs.length-1)%refs.length].id);
@@ -73,7 +93,9 @@ export function smoothRegions(result:PaintResult,s:ProcessingSettings):PaintResu
   for(let i=0;i<regions.length;i++){
    const r=regions[i],original=result.regions[i],m=s.metrics[r.paletteIndex],rx=(m.width*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageWidthMM/result.width),ry=(m.height*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageHeightMM/result.height);
    vertices+=r.contours.reduce((n,c)=>n+c.length,0);
-   if(r.contours.some((c,j)=>c.length<3||area(c)*area(original.contours[j])<=0||Math.abs(area(c))<Math.abs(area(original.contours[j]))*.25)||!labelFits(r.contours,r.label,rx,ry))for(const loop of original.contours)for(let j=0;j<loop.length;j++)bad.add(edges[lookup.get(edgeKey(code(loop[j]),code(loop[(j+1)%loop.length])))!].chain);
+   const invalid=r.contours.some((c,j)=>c.length<3||area(c)*area(original.contours[j])<=0||Math.abs(area(c))<Math.abs(area(original.contours[j]))*.25);
+   if(!invalid&&!labelFits(r.contours,r.label,rx,ry)){const label=relocateLabel(r.contours,r.label,rx,ry,labelBudget);if(label)r.label=label;}
+   if(invalid||!labelFits(r.contours,r.label,rx,ry))for(const loop of original.contours)for(let j=0;j<loop.length;j++)bad.add(edges[lookup.get(edgeKey(code(loop[j]),code(loop[(j+1)%loop.length])))!].chain);
   }
   if(vertices>MAX_VERTICES){
    const growth=chains.map((c,id)=>({id,extra:(c.smooth.length-c.raw.length)*owners[id]})).filter(c=>!fixed.has(c.id)&&c.extra>0).sort((a,b)=>b.extra-a.extra||a.id-b.id);
