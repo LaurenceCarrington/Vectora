@@ -2,9 +2,16 @@ import paper from 'paper';
 import {loadTextFont,createTextShape,transformText} from '../text';
 import type {Shape} from '../types';
 import type {LabelMetric,SheetItem,SheetLayout} from './types';
+import {sheetSVG} from './layout';
 let metrics:Promise<LabelMetric[]>|undefined;
 export function loadLabelMetrics():Promise<LabelMetric[]> {
  return metrics??=(async()=>{await loadTextFont('lato');return Array.from({length:32},(_,i)=>{const shape=createTextShape({content:String(i+1),sizeMM:1,fontId:'lato',transform:[1,0,0,1,0,0]});try{const b=shape.bounds;return {number:i+1,left:b.x,top:b.y,width:b.width,height:b.height};}finally{shape.remove();}});})().catch(error=>{metrics=undefined;throw error;});
+}
+/** Use the same actual glyph outlines and ink-bound centring as insertion. */
+export function previewSheetSVG(layout:SheetLayout,view:'numbered'|'reference'):string {
+ const glyphs=new Map<string,paper.CompoundPath>();
+ try{return sheetSVG(layout,view,item=>{const key=JSON.stringify([item.content,item.sizeMM]);let shape=glyphs.get(key);if(!shape){shape=createTextShape({content:item.content,sizeMM:item.sizeMM,fontId:'lato',transform:[1,0,0,1,0,0]});glyphs.set(key,shape);}shape.translate(new paper.Point(item.x,item.y).subtract(shape.bounds.center));return `<path data-paint-label="true" d="${shape.pathData}" fill="${item.colour}" stroke="none"/>`;});}
+ finally{glyphs.forEach(shape=>shape.remove());}
 }
 export async function prepareSheets(layout:SheetLayout,center:paper.Point,includeReference:boolean):Promise<{name:string;items:Shape[]}[]> {
  await loadTextFont('lato');const sheets:{name:string;items:Shape[]}[]=[],allocated:Shape[]=[];

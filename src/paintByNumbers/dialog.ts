@@ -2,8 +2,8 @@ import paper from 'paper';
 import {ColourPopover} from '../colourPopover';
 import {validateRasterImage,MAX_RASTER_PIXELS} from '../rasterImage';
 import type {Shape} from '../types';
-import {pageFrame,layoutSheets,sheetSVG} from './layout';
-import {loadLabelMetrics,prepareSheets} from './paperSheets';
+import {pageFrame,layoutSheets} from './layout';
+import {loadLabelMetrics,prepareSheets,previewSheetSVG} from './paperSheets';
 import {DEFAULT_PAGE,type PaintResult,type PageSettings,type RasterSource} from './types';
 interface Host {insert:(sheets:{name:string;items:Shape[]}[])=>void;canInsert:boolean;returnFocus:()=>void}
 const field=(key:string,label:string,value:number,min:number,max:number,step:number,unit='')=>`<label class="generator-field">${label}<span class="number-shell"><input class="number-input" data-paint-setting="${key}" aria-label="${label}" type="number" value="${value}" min="${min}" max="${max}" step="${step}" required><span class="number-unit">${unit}</span></span></label>`;
@@ -74,7 +74,7 @@ export class PaintByNumbersDialog {
  }
  private choose(view:typeof this.view):void {this.view=view;this.dialog.querySelectorAll<HTMLButtonElement>('[data-paint-tab]').forEach(b=>{const active=b.dataset.paintTab===view;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;});this.render();}
  private render():void {
-  if(!this.result)return;try{const layout=layoutSheets({...this.result,palette:this.palette},this.page());this.get('[data-paint-view]').innerHTML=sheetSVG(layout,this.view);this.get('[data-paint-view]').setAttribute('aria-busy','false');this.get('[data-paint-size]').textContent=`${layout.widthMM} × ${layout.heightMM} mm · ${this.result.regions.length} regions · ${this.palette.length} colours`;
+  if(!this.result)return;try{const layout=layoutSheets({...this.result,palette:this.palette},this.page());this.get('[data-paint-view]').innerHTML=previewSheetSVG(layout,this.view);this.get('[data-paint-view]').setAttribute('aria-busy','false');this.get('[data-paint-size]').textContent=`${layout.widthMM} × ${layout.heightMM} mm · ${this.result.regions.length} regions · ${this.palette.length} colours`;
    this.feedback(this.host.canInsert?`${this.result.regions.length} regions · Insert editable artwork, then export the numbered selection.`:'Reference preview · insert paths in the editor.');this.get<HTMLButtonElement>('[data-paint-insert]').disabled=!this.host.canInsert||this.readyKey!==this.key()||this.inserting;
   }catch(error){this.clear((error as Error).message,true);}
  }

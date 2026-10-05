@@ -52,8 +52,29 @@ export function buildRegions(image:QuantizedImage,s:ProcessingSettings):PaintRes
    }
    if(point)positions.set(id,point);else unfit.push(id);
   }
-  if(!unfit.length)break;if(pass===15)throw failLabel();let changed=false;
-  for(const key of unfit){const id=root(key);if(id!==key)continue;const b=neighbour(id);if(b===undefined)throw failLabel();absorb(id,b);changed=true;}if(!changed)throw failLabel();
+  // A tall glyph can fit a narrow limb outside the isotropic shortlist. Scan
+  // every possible rectangle in O(pixels), before merging any valid detail.
+  const envelopes=new Map<number,{right:number;bottom:number;width:number;height:number}>();
+  for(const id of unfit){const m=s.metrics[remap.get(components[id].colour)!],rx=(m.width*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageWidthMM/w),ry=(m.height*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageHeightMM/h),left=Math.floor(.5-rx),right=Math.ceil(.5+rx)-1,top=Math.floor(.5-ry),bottom=Math.ceil(.5+ry)-1;envelopes.set(id,{right,bottom,width:right-left+1,height:bottom-top+1});}
+  const best=new Map<number,number>(),deque=new Int32Array(h);
+  for(let X=0;X<w&&envelopes.size;X++){
+   let previous=-1,start=0,head=0,tail=0;
+   for(let Y=0;Y<h;Y++){
+    const id=grid[Y*w+X],box=envelopes.get(id);
+    if(id!==previous){head=tail=0;start=Y;previous=id;}
+    if(!box||box.width>w||box.height>h)continue;
+    const top=Y-box.height+1;
+    while(head<tail&&deque[head]<top)head++;
+    while(head<tail&&run[deque[tail-1]*w+X]>=run[Y*w+X])tail--;
+    deque[tail++]=Y;
+    if(top<start||run[deque[head]*w+X]<box.width)continue;
+    const x=X-box.right,y=Y-box.bottom,c=components[id],score=dist[y*w+x]-Math.hypot(x-(c.minX+c.maxX)/2,y-(c.minY+c.maxY)/2)/(w+h)*.01;
+    if(score>(best.get(id)??-Infinity)){best.set(id,score);positions.set(id,[x+.5,y+.5]);}
+   }
+  }
+  const remaining=unfit.filter(id=>!positions.has(id));
+  if(!remaining.length)break;if(pass===15)throw failLabel();let changed=false;
+  for(const key of remaining){const id=root(key);if(id!==key)continue;const b=neighbour(id);if(b===undefined)throw failLabel();absorb(id,b);changed=true;}if(!changed)throw failLabel();
  }
  const contours=traceBoundaries(grid,w,h);let vertexCount=0;const regions:PaintRegion[]=[];
  for(const [id,loops] of contours){vertexCount+=loops.reduce((n,c)=>n+c.length,0);if(vertexCount>MAX_VERTICES)throw failDetail();regions.push({id,paletteIndex:remap.get(components[id].colour)!,contours:loops,label:positions.get(id)!,pixels:components[id].size});}
@@ -71,7 +92,11 @@ function traceBoundaries(grid:Int32Array,w:number,h:number):Map<number,Point[][]
  const result=new Map<number,Point[][]>();let vertices=0;
  for(const [id,edges] of byRegion){const outgoing=new Map<number,Edge[]>();for(const e of edges){const a=outgoing.get(e.a)??[];a.push(e);outgoing.set(e.a,a);}const loops:Point[][]=[];
   for(const initial of edges)if(!initial.used){let e=initial;const raw:Point[]=[],limit=edges.length+1;do{e.used=true;raw.push(xy(e.a));const next=(outgoing.get(e.b)??[]).filter(v=>!v.used);if(e.b===initial.a)break;next.sort((a,b)=>[1,0,3,2].indexOf((a.direction-e.direction+4)%4)-[1,0,3,2].indexOf((b.direction-e.direction+4)%4));if(!next.length||raw.length>limit)throw new Error('Could not build closed colour regions. Try lower detail.');e=next[0];}while(true);
-   const points=raw.filter((b,i)=>{const a=raw[(i+raw.length-1)%raw.length],c=raw[(i+1)%raw.length];return (b[0]-a[0])*(c[1]-b[1])!==(b[1]-a[1])*(c[0]-b[0])||junction(b);});if(points.length<3)throw failDetail();vertices+=points.length;if(vertices>MAX_VERTICES)throw failDetail();loops.push(points);
+   // Diagonal hole/exterior contacts revisit a vertex. Separate the cycles
+   // without changing their winding or the occupied even-odd area.
+   const stack:Point[]=[],seen=new Map<number,number>(),cycles:Point[][]=[];
+   for(const point of [...raw,raw[0]]){const code=point[1]*stride+point[0],at=seen.get(code);if(at===undefined){seen.set(code,stack.length);stack.push(point);}else{const cycle=stack.slice(at);if(cycle.length>=3)cycles.push(cycle);for(const p of stack.splice(at+1))seen.delete(p[1]*stride+p[0]);}}
+   for(const cycle of cycles){const points=cycle.filter((b,i)=>{const a=cycle[(i+cycle.length-1)%cycle.length],c=cycle[(i+1)%cycle.length];return (b[0]-a[0])*(c[1]-b[1])!==(b[1]-a[1])*(c[0]-b[0])||junction(b);});if(points.length<3)throw failDetail();vertices+=points.length;if(vertices>MAX_VERTICES)throw failDetail();loops.push(points);}
   }result.set(id,loops);
  }
  return result;

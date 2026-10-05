@@ -1,4 +1,5 @@
 import {CanvasGuide} from './canvasGuide';
+import {MAX_DOCUMENT_OBJECTS,MAX_DOCUMENT_LAYERS} from './processingLimits';
 import {preciseGeometry,editedPreciseShape,type PreciseProperty} from './shapeProperties';
 import {LINE_DESIGNS,applyLineDesign,applyLineWeight,validLineWeight,type LineDesign} from './lineAppearance';
 import {validateCanvasSize,type CanvasSize} from './canvasSize';
@@ -687,6 +688,8 @@ export class CADEditor {
       if(!sheets.length||sheets.length>2||sheets.some(sheet=>!sheet.items.length)||new Set(items).size!==items.length)throw new Error('Choose a valid generated sheet.');
       sheets.forEach(sheet=>validateLayerName(sheet.name));
       if(items.some(item=>!(item instanceof paper.Path||item instanceof paper.CompoundPath)||item.isInserted()))throw new Error('Generated artwork must be detached from the document.');
+      if(this.objects.length+items.length>MAX_DOCUMENT_OBJECTS)throw new Error('The generated sheets would exceed this document’s object limit. Remove objects or use a new document.');
+      if(this.documentLayers.length+sheets.length>MAX_DOCUMENT_LAYERS)throw new Error('The generated sheets would exceed this document’s layer limit. Remove layers or use a new document.');
       validateGeometryInput([...this.objects,...items]);
       for(const item of items){
         if(!Number.isFinite(item.strokeWidth)||item.strokeWidth<0||item.strokeWidth>10000)throw new Error('Invalid generated line weight.');

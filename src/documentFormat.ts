@@ -10,7 +10,7 @@ import {loadTextFont,TEXT_FONTS} from './text';
 import {DIMENSION_TOOLS} from './dimensions';
 import {MAX_COORDINATE_MM,MIN_ZOOM,MAX_ZOOM} from './units';
 import {LAYER_TYPES,validateLayerColour} from './documentLayers';
-import {MAX_SOURCE_CONTOURS,MAX_SOURCE_SEGMENTS} from './processingLimits';
+import {MAX_SOURCE_CONTOURS,MAX_SOURCE_SEGMENTS,MAX_DOCUMENT_OBJECTS,MAX_DOCUMENT_LAYERS} from './processingLimits';
 
 export const MAX_DOCUMENT_BYTES=50*1024*1024;
 type JsonObject=Record<string,any>;
@@ -91,14 +91,14 @@ export async function decodeDocument(contents:string):Promise<{snapshot:Document
  if(file.format!=='vectora'||file.units!=='mm')fail();
  if(file.version!==1)throw new Error('This Vectora document version is not supported.');
  const rasterLayerInitialized=file.rasterLayerInitialized===undefined?false:bool(file.rasterLayerInitialized);
- if(!Array.isArray(file.layers)||file.layers.length>1000)fail();
+ if(!Array.isArray(file.layers)||file.layers.length>MAX_DOCUMENT_LAYERS)fail();
  // Count the entire document before constructing any Paper paths. Empty
  // contours still allocate objects and must consume a contour budget.
  let objectCount=0,contourCount=0,segmentCount=0;
  for(const rawLayer of file.layers){
   const l=record(rawLayer);if(!Array.isArray(l.objects))fail();
   for(const rawObject of l.objects){
-   if(++objectCount>20000)throw new Error('This document contains too many objects.');
+   if(++objectCount>MAX_DOCUMENT_OBJECTS)throw new Error('This document contains too many objects.');
    const o=record(rawObject);if(!Array.isArray(o.contours))fail();
    if((contourCount+=o.contours.length)>MAX_SOURCE_CONTOURS)throw new Error('This document contains too many contours.');
    for(const rawContour of o.contours){
