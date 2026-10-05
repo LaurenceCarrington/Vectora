@@ -46,7 +46,7 @@ export function buildRegions(image:QuantizedImage,s:ProcessingSettings):PaintRes
    if(list.length<24||score>list.at(-1)!.score){const entry={index:i,score};let at=list.findIndex(v=>v.score<score);if(at<0)at=list.length;list.splice(at,0,entry);if(list.length>24)list.pop();candidates.set(id,list);}
   }
   positions.clear();const unfit:number[]=[];
-  for(const id of roots){const metric=s.metrics[remap.get(components[id].colour)!],rx=(metric.width*s.labelSizeMM/2+.2)/(s.imageWidthMM/w),ry=(metric.height*s.labelSizeMM/2+.2)/(s.imageHeightMM/h);let point:Point|undefined;
+  for(const id of roots){const metric=s.metrics[remap.get(components[id].colour)!],rx=(metric.width*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageWidthMM/w),ry=(metric.height*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageHeightMM/h);let point:Point|undefined;
    for(const candidate of candidates.get(id)??[]){const x=candidate.index%w+.5,y=Math.floor(candidate.index/w)+.5,x0=Math.floor(x-rx),x1=Math.ceil(x+rx)-1,y0=Math.floor(y-ry),y1=Math.ceil(y+ry)-1;if(x0<0||x1>=w||y0<0||y1>=h)continue;
     let fits=true;for(let Y=y0;Y<=y1;Y++)if(grid[Y*w+x1]!==id||run[Y*w+x1]<x1-x0+1){fits=false;break;}if(fits){point=[x,y];break;}
    }
