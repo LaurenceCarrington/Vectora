@@ -1,14 +1,16 @@
 import {traceBinaryImage,traceLoopToSvgPath,type TracePathCommand} from './vectorizer/autoTracer';
 import {traceCenterlines,centerlinePathToSvgPath} from './vectorizer/centerlineTracer';
 import {preprocessImageData} from './vectorizer/imagePreprocess';
-export type TraceMode='outline'|'centerline'|'fill';
+import {processColourRaster} from './colourRasterTrace';
+export type TraceMode='outline'|'centerline'|'fill'|'colour';
 export type TracePoint=[number,number];
-export interface TracePath {points:TracePoint[];closed:boolean;commands?:readonly TracePathCommand[];svg:string}
+export interface TracePath {points:TracePoint[];closed:boolean;commands?:readonly TracePathCommand[];svg:string;contours?:TracePoint[][];fill?:string}
 export interface TraceResult {paths:TracePath[];width:number;height:number;mode:TraceMode;pointCount:number;foregroundPixels:number}
-export interface RasterTraceSettings {threshold:number;brightness:number;contrast:number;despeckleSize:number;invert:boolean;simplifyTolerance:number;curveFitting:number;cornerSensitivity:number}
-export const DEFAULT_TRACE_SETTINGS:RasterTraceSettings={threshold:128,brightness:0,contrast:0,despeckleSize:8,invert:false,simplifyTolerance:1.25,curveFitting:0.65,cornerSensitivity:0.55};
+export interface RasterTraceSettings {threshold:number;brightness:number;contrast:number;despeckleSize:number;invert:boolean;simplifyTolerance:number;curveFitting:number;cornerSensitivity:number;colourCount:number;colourSmoothing:number}
+export const DEFAULT_TRACE_SETTINGS:RasterTraceSettings={threshold:128,brightness:0,contrast:0,despeckleSize:8,invert:false,simplifyTolerance:1.25,curveFitting:0.65,cornerSensitivity:0.55,colourCount:16,colourSmoothing:2};
 /** Adapter around the original Vectora preprocessing and tracing pipeline. */
 export function processRaster(source:ImageData,mode:TraceMode,settings:RasterTraceSettings){
+  if(mode==='colour')return processColourRaster(source,settings);
   const preprocessed=preprocessImageData(source,settings);
   const options={...settings,minimumPathArea:Math.max(2,settings.despeckleSize),maximumPaths:5000};
   const traced=mode==='centerline'?traceCenterlines(preprocessed.mask,source.width,source.height,{minimumPathLength:Math.max(2,settings.despeckleSize),simplifyTolerance:settings.simplifyTolerance,maximumPaths:5000}):traceBinaryImage(preprocessed.mask,source.width,source.height,options);

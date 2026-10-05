@@ -25,6 +25,6 @@ export async function prepareSheets(layout:SheetLayout,center:paper.Point,includ
    }
    shape.data.name=item.name;return shape;
   };
-  const offset=center.subtract(new paper.Point(layout.widthMM/2,layout.heightMM/2));sheets.push({name:'Paint by numbers',items:layout.numbered.map(item=>create(item,offset))});if(includeReference)sheets.push({name:'Colour reference',items:layout.reference.map(item=>create(item,offset.add(new paper.Point(layout.widthMM+20,0))))});return sheets;
+  const offset=center.subtract(new paper.Point(layout.widthMM/2,layout.heightMM/2));sheets.push({name:'Colour by numbers',items:layout.numbered.map(item=>create(item,offset))});if(includeReference)sheets.push({name:'Colour reference',items:layout.reference.map(item=>create(item,offset.add(new paper.Point(layout.widthMM+20,0))))});return sheets;
  }catch(error){allocated.forEach(shape=>shape.remove());throw error;}
 }

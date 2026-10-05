@@ -62,9 +62,10 @@ function metadata(value:unknown,role:ObjectRole,ids:Set<string>,fonts:Set<string
  if(data.customStroke!==undefined)out.customStroke=bool(data.customStroke);
  if(data.regionFillColor!==undefined)out.regionFillColor=colour(data.regionFillColor);
  if(data.rasterTrace!==undefined){
-  const trace=record(data.rasterTrace);if(!['outline','centerline','fill'].includes(trace.mode))fail();out.rasterTrace={mode:trace.mode};
+  const trace=record(data.rasterTrace);if(!['outline','centerline','fill','colour'].includes(trace.mode))fail();out.rasterTrace={mode:trace.mode};
   if(trace.sourceName!==undefined)out.rasterTrace.sourceName=string(trace.sourceName,1000);
   if(trace.settings!==undefined){const settings=record(trace.settings),saved:JsonObject={invert:bool(settings.invert)};for(const key of ['threshold','brightness','contrast','despeckleSize','simplifyTolerance','curveFitting','cornerSensitivity'])saved[key]=number(settings[key],10000);out.rasterTrace.settings=saved;}
+  if(trace.mode==='colour'&&trace.settings!==undefined){const settings=record(trace.settings),count=number(settings.colourCount,32),smoothing=number(settings.colourSmoothing,2);if(!Number.isInteger(count)||count<2||!Number.isInteger(smoothing)||smoothing<0)fail();out.rasterTrace.settings.colourCount=count;out.rasterTrace.settings.colourSmoothing=smoothing;}
  }
  if(data.arc!==undefined){const a=record(data.arc);out.arc={cx:number(a.cx),cy:number(a.cy),radius:number(a.radius),start:number(a.start,1e12),sweep:number(a.sweep,359)};if(a.radius<0.001||Math.abs(a.sweep)<1)fail();}
  if(data.text!==undefined){

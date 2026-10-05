@@ -3,9 +3,9 @@ type RGB=[number,number,number];
 const distance=(a:RGB,b:RGB)=>(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;
 const hex=(c:RGB)=>'#'+c.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase();
 /** Weighted bounded histogram clustering, without random state or per-pixel iterations. */
-export function quantize(source:RasterSource,colours:number):QuantizedImage {
+export function quantize(source:RasterSource,colours:number,maximumDimension=1200):QuantizedImage {
  const {width,height,data}=source;
- if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||width>1200||height>1200||!(data instanceof Uint8ClampedArray)||data.length!==width*height*4)throw new Error('Invalid analysis image. Maximum size is 1200 pixels per side.');
+ if(![1200,1600].includes(maximumDimension)||!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||width>maximumDimension||height>maximumDimension||!(data instanceof Uint8ClampedArray)||data.length!==width*height*4)throw new Error(`Invalid analysis image. Maximum size is ${maximumDimension} pixels per side.`);
  if(!Number.isInteger(colours)||colours<2||colours>32)throw new Error('Choose 2–32 colours.');
  const count=new Uint32Array(32768),sumR=new Float64Array(32768),sumG=new Float64Array(32768),sumB=new Float64Array(32768),pixelBins=new Int32Array(width*height).fill(-1);
  for(let i=0;i<pixelBins.length;i++){

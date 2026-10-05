@@ -91,11 +91,12 @@ export function smoothRegions(result:PaintResult,s:ProcessingSettings):PaintResu
  for(let pass=0;pass<4;pass++){
   const regions=build(),bad=new Set<number>();let vertices=0;
   for(let i=0;i<regions.length;i++){
-   const r=regions[i],original=result.regions[i],m=s.metrics[r.paletteIndex],rx=(m.width*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageWidthMM/result.width),ry=(m.height*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageHeightMM/result.height);
+   const r=regions[i],original=result.regions[i];
    vertices+=r.contours.reduce((n,c)=>n+c.length,0);
    const invalid=r.contours.some((c,j)=>c.length<3||area(c)*area(original.contours[j])<=0||Math.abs(area(c))<Math.abs(area(original.contours[j]))*.25);
-   if(!invalid&&!labelFits(r.contours,r.label,rx,ry)){const label=relocateLabel(r.contours,r.label,rx,ry,labelBudget);if(label)r.label=label;}
-   if(invalid||!labelFits(r.contours,r.label,rx,ry))for(const loop of original.contours)for(let j=0;j<loop.length;j++)bad.add(edges[lookup.get(edgeKey(code(loop[j]),code(loop[(j+1)%loop.length])))!].chain);
+   let validLabel=true;
+   if(s.fitLabels!==false){const m=s.metrics[r.paletteIndex],rx=(m.width*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageWidthMM/result.width),ry=(m.height*s.labelSizeMM/2+(s.clearanceMM??.2))/(s.imageHeightMM/result.height);validLabel=labelFits(r.contours,r.label,rx,ry);if(!invalid&&!validLabel){const label=relocateLabel(r.contours,r.label,rx,ry,labelBudget);if(label){r.label=label;validLabel=true;}}}
+   if(invalid||!validLabel)for(const loop of original.contours)for(let j=0;j<loop.length;j++)bad.add(edges[lookup.get(edgeKey(code(loop[j]),code(loop[(j+1)%loop.length])))!].chain);
   }
   if(vertices>MAX_VERTICES){
    const growth=chains.map((c,id)=>({id,extra:(c.smooth.length-c.raw.length)*owners[id]})).filter(c=>!fixed.has(c.id)&&c.extra>0).sort((a,b)=>b.extra-a.extra||a.id-b.id);

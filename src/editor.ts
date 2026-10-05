@@ -717,7 +717,9 @@ export class CADEditor {
   }
   addTracedShapes(items:Shape[],name:string):void {
     if(!items.length)return;
-    const layer=this.drawingLayer();
+    const colour=items.every(item=>item.data.rasterTrace?.mode==='colour'),layer=colour?this.artwork:this.drawingLayer();
+    if(layer.data.deleted||!layer.visible||layer.locked)throw new Error('Show and unlock Artwork before inserting colour vectors.');
+    if(colour){if(this.objects.length+items.length>MAX_DOCUMENT_OBJECTS)throw new Error('These colour vectors would exceed the document object limit. Use fewer colours, more cleanup or a new document.');validateGeometryInput([...this.objects,...items]);}
     const before=this.snapshot();
     items.forEach((item,index)=>{item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name:items.length>1?`${name} · Path ${index+1}`:name};this.insertDrawing(item,layer);});
     this.selection=items;this.commit(before);

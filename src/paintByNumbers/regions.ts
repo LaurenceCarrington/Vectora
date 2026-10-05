@@ -34,6 +34,9 @@ export function buildRegions(image:QuantizedImage,s:ProcessingSettings):PaintRes
   for(let i=0;i<n;i++)grid[i]=ids[i]<0?-1:root(ids[i]);
   const roots=components.flatMap((c,i)=>c.parent===i?[i]:[]);if(roots.length>MAX_REGIONS)throw failDetail();
   used=[...new Set(roots.map(r=>components[r].colour))].sort((a,b)=>a-b);remap=new Map(used.map((c,i)=>[c,i]));
+  // Colour tracing has no printed numbers: retain narrow regions without
+  // merging them merely because a glyph rectangle cannot fit inside.
+  if(s.fitLabels===false){for(const id of roots){const c=components[id];positions.set(id,[(c.minX+c.maxX+1)/2,(c.minY+c.maxY+1)/2]);}break;}
   // Chebyshev distance ranks interior candidates; exact rectangles below verify glyph fit.
   for(let i=0;i<n;i++){
    const id=grid[i],x=i%w,y=Math.floor(i/w);if(id<0){dist[i]=0;run[i]=0;continue;}
