@@ -25,9 +25,9 @@ test('Start–end arc previews its angle, snaps a semicircle and commits one edi
  await expect(page.locator('#tool-status')).toContainText('180°');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);
  await page.screenshot({path:'test-results/endpoint-arc-preview.png'});await page.mouse.click(540,353);
  const result=await page.evaluate(()=>{const e=(window as any).__vectora,s=e.selected;return {arc:s.data.arc,ends:[s.firstSegment.point.toJSON(),s.lastSegment.point.toJSON()],tool:e.tool,count:e.objects.length,snapshot:e.snapshot()};});
- expect(result.arc.radius).toBeCloseTo(20,6);expect(result.arc.sweep).toBe(180);expect(result.ends[0][1]).toBeCloseTo(-40,6);expect(result.ends[1][1]).toBeCloseTo(0,6);expect(result.count).toBe(1);expect(result.tool).toBe('select');await expect(page.locator('#properties-panel')).toBeHidden();
+ expect(result.arc.radius).toBeCloseTo(20,6);expect(result.arc.sweep).toBe(180);expect(result.ends[0][1]).toBeCloseTo(-40,6);expect(result.ends[1][1]).toBeCloseTo(0,6);expect(result.count).toBe(1);expect(result.tool).toBe('select');await expect(page.locator('#properties-panel')).toBeVisible();
  await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(result.snapshot);
- await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#arc-controls')).toBeVisible();await expect(page.locator('#arc-sweep')).toHaveValue('180');
+ if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#arc-controls')).toBeVisible();await expect(page.locator('#arc-sweep')).toHaveValue('180');
 });
 
 test('Start–end arc steps back, cancels safely and applies Shift angle snapping',async({page})=>{

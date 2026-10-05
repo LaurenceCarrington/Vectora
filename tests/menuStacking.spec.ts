@@ -26,7 +26,7 @@ test('Open menus stay above rails and docked panels and restore their stacking o
  const overlapX=Math.max(s.x,panel.x)+20,overlapY=Math.max(s.y,panel.y)+50;
  expect(overlapX).toBeLessThan(Math.min(s.x+s.width,panel.x+panel.width));expect(await hitsMenu('#primary-shapes-menu',overlapX,overlapY)).toBe(true);
  await shapes.getByRole('menuitemradio',{name:/Rectangle/}).click();await expect(shapes).toBeHidden();expect(await page.locator('.left-toolbar').evaluate(el=>getComputedStyle(el).zIndex)).toBe('4');
- await expect(page.locator('#primary-layers-panel')).toBeVisible();
+ await expect(page.locator('#properties-panel')).toBeVisible();await expect(page.locator('#properties-panel .object-creation')).toBeVisible();
 });
 
 

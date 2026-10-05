@@ -31,6 +31,10 @@ Scroll over the canvas to zoom around the pointer. Hold **Space** and drag to pa
 
 Click an object to select it, or drag from empty canvas to select fully enclosed objects. **Shift-click** toggles an object in the selection; **Shift-drag** adds objects. Drag selected objects to move them, square handles to resize, and the round handle above the selection to rotate. The floating selection menu contains alignment, shape operations and other editing tools. Right-click with Select for copy, paste and layer changes.
 
+Selecting **Rectangle, Circle, Ellipse, Polygon, Star, Heart, Line or an arc tool** opens Properties with a creation form. Enter exact position and dimensions, choose line style/weight and click **Add to canvas**. The object goes into the active visible, unlocked layer, is selected and can be undone in one step. Circle offers radius/diameter; Line uses length and clockwise angle; polygons/stars have side/point counts; arcs have radius, start and signed sweep. Draft fields do not change the drawing. Normal canvas gestures remain available, and Properties shows the completed object for editing.
+
+Editing **Properties** uses the same compact controls: circle radius/diameter, line length/angle, regular polygon/star radius and side/point count, and circular arc radius/start/sweep. X/Y is the centre for circles, regular polygons/stars and arcs, or the start of a line. **Bounds & rotation** contains additional axis-aligned size controls; freeform paths and multi-selections show bounds directly. Each edit preserves the layer and styling and supports undo.
+
 Use **Node editing (N)** to reshape paths. Drag nodes and curve handles, double-click a path to add a node, or right-click a node for corner and path operations. In **Properties → Line**, choose Solid, Dashed, Dotted or Dash-dot and enter a physical line weight.
 
 The top toolbar’s **Search** finds available tools. The **Help** icon opens a guide with controls, keyboard commands and worked examples. Notifications are stored behind the bell icon at the bottom of the right toolbar.

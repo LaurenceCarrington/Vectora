@@ -23,7 +23,18 @@ export function arcPoint(arc:ArcGeometry,angle:number):paper.Point {
 }
 export function createCircularArc(arc:ArcGeometry):paper.Path {
   if(![arc.cx,arc.cy,arc.radius,arc.start,arc.sweep].every(Number.isFinite)||arc.radius<MIN_DIMENSION_MM||arc.radius>MAX_COORDINATE_MM||Math.abs(arc.sweep)<1||Math.abs(arc.sweep)>359)throw new Error('Use a radius of at least 0.001 mm and a sweep from 1° to 359° in either direction.');
-  const path=createArc(arcPoint(arc,arc.start),arcPoint(arc,arc.start+arc.sweep/2),arcPoint(arc,arc.start+arc.sweep));
+  // Known circular parameters do not need the three-point collinearity threshold.
+  // Build at most 90° cubic spans, including tiny radii and shallow signed sweeps.
+  const spans=Math.ceil(Math.abs(arc.sweep)/90),step=arc.sweep/spans;
+  const path=new paper.Path({insert:false,closed:false});
+  for(let i=0;i<=spans;i++){
+    const angle=(arc.start+i*step)*Math.PI/180,k=4/3*Math.tan(step*Math.PI/720)*arc.radius;
+    const tangent=new paper.Point(-Math.sin(angle),Math.cos(angle)).multiply(k);
+    path.add(new paper.Segment(arcPoint(arc,arc.start+i*step),i?tangent.multiply(-1):undefined,i<spans?tangent:undefined));
+  }
+  if(![path.bounds.left,path.bounds.right,path.bounds.top,path.bounds.bottom].every(validNumber)){
+    path.remove();throw new Error('The arc exceeds the document coordinate limits.');
+  }
   path.data.arc={...arc};return path;
 }
 export function updateCircularArc(path:paper.Path,arc:ArcGeometry):void {

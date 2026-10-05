@@ -64,13 +64,13 @@ export class FloatingSelectionMenu {
     window.visualViewport?.addEventListener('scroll',()=>this.place());
   }
 
-  render(): void {
+  render(suppressed=false): void {
     const count = this.editor.selectedItems.length;
-    if (!count) {
+    if (!count || suppressed) {
       this.finishDrag(true);
       if (this.menu.contains(document.activeElement)) this.editor.canvas.focus({ preventScroll: true });
     }
-    this.menu.hidden = count === 0 || this.editor.patterns.active;
+    this.menu.hidden = suppressed || count === 0 || this.editor.patterns.active;
     const label = `${count} selected`;
     if (this.count.textContent !== label) this.count.textContent = label;
     this.place();

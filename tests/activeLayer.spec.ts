@@ -7,6 +7,7 @@ test('Layer rows direct all pointer drawing tools into the chosen layer with mat
  await page.goto(DEV);await page.getByRole('button',{name:'Layers',exact:true}).click();
  const choices=[['raster','#000000','rectangle'],['cutline','#ff0000','rectangle'],['engrave','#0000ff','circle'],['construction','#ff00ff','ellipse'],['artwork','#ffffff','polygon'],['cutline','#ff0000','line'],['engrave','#0000ff','freehand'],['construction','#ff00ff','arc'],['cutline','#ff0000','polyline'],['engrave','#0000ff','arc-three-point'],['construction','#ff00ff','arc-endpoints']];
  for(const [id,colour,tool] of choices){
+  if(await page.locator('#primary-layers-panel').isHidden())await page.getByRole('button',{name:'Layers',exact:true}).click();
   await page.locator(`[data-layer-id="${id}"] [data-layer-action="select"]`).click();
   await expect(page.locator(`[data-layer-id="${id}"] [data-layer-action="select"]`)).toHaveAttribute('aria-pressed','true');
   await page.evaluate(tool=>{const e=(window as any).__vectora;e.setSnappingEnabled(false);e.setTool(tool);},tool);

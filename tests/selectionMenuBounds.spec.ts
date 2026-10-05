@@ -21,7 +21,7 @@ test('Selection menu and grip stay reachable at every canvas edge and after layo
  await grip.focus();for(let i=0;i<160;i++)await page.keyboard.press('Shift+ArrowRight');for(let i=0;i<100;i++)await page.keyboard.press('Shift+ArrowUp');await reachable();
  await page.getByRole('button',{name:'Properties',exact:true}).click();await reachable();
  const panel=(await page.locator('#properties-panel').boundingBox())!,r=(await menu.boundingBox())!;expect(r.x+r.width).toBeLessThanOrEqual(panel.x);
- await page.setViewportSize({width:390,height:750});await reachable();await expect(menu).toHaveClass(/is-over-dock/);
+ await page.setViewportSize({width:390,height:750});await expect(menu).toBeHidden();
  await page.getByRole('button',{name:'Properties',exact:true}).click();await reachable();
  const start=(await grip.boundingBox())!;await page.mouse.move(start.x+10,start.y+10);await page.mouse.down();await page.mouse.move(380,700);
  await page.setViewportSize({width:320,height:550});await page.mouse.up();await reachable();

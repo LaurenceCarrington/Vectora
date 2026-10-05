@@ -1,4 +1,8 @@
 import {AppearancePanel} from './appearancePanel';
+import {ObjectCreation} from './objectCreation';
+import {ObjectProperties} from './objectProperties';
+import {preciseGeometry} from './shapeProperties';
+import {layerColour} from './documentLayers';
 import {lineDesign,lineWeightMM,type LineDesign} from './lineAppearance';
 import type {ArrangementAction} from './arrangement';
 import type {ShapeOperation} from './shapeOperationGeometry';
@@ -38,15 +42,24 @@ function notify(message:string,kind:boolean|AlertKind=false):void {
 }
 function attempt(action:()=>void):void {try{action();}catch(error){notify(error instanceof Error?error.message:String(error),true);}}
 const props=$('#properties-panel'),layers=$('#primary-layers-panel'),colour=$('#colour-panel');
+const objectCreation=new ObjectCreation(props.querySelector('.editor-panel-body')!,{
+ context:()=>{const layer=editor.activeLayer;return {tool:editor.tool,selection:editor.selectedItems.map(item=>item.data.uid).join('|'),pending:editor.hasPendingGesture,centre:paper.view.center,sides:editor.polygonSides,points:editor.starPoints,layer:{name:layer?.name??'No active layer',colour:layer?layerColour(layer):'#383838',error:!layer?'Add a layer before creating an object.':!layer.visible||layer.locked?`Show and unlock ${layer.name} before adding an object.`:undefined}};},
+ insert:(shape,name)=>{editor.addShape(shape,name);editor.setTool('select');editor.canvas.focus({preventScroll:true});},
+ cancel:()=>{editor.cancel();editor.canvas.focus({preventScroll:true});}
+});
 const colourButton=$<HTMLButtonElement>('[data-colour-trigger]');
 const colourPanel=new AppearancePanel(colour,(paint,commit)=>attempt(()=>editor.setPaint(paint.hex,paint.opacity,commit)),()=>{setPanel(colour,false);colourButton.focus();},()=>editor.setFillColor('none'),(paint,commit)=>attempt(()=>editor.setFillPaint(paint,commit)));
 let colourSelection='',lastFillPaint='';
 const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersButton=$<HTMLButtonElement>('[aria-label="Layers"]');
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});
 const selectionMenu=new FloatingSelectionMenu($('#selection-menu'),editor,()=>{closeMenus();selectionContextMenu.close();});
+function updateSelectionMenu():void {
+  // The narrow dock occupies the canvas; resume its contextual bar on close.
+  selectionMenu.render(objectCreation.active||(!props.hidden&&window.matchMedia('(max-width:700px)').matches));
+}
 const selectionContextMenu=new SelectionContextMenu(editor,()=>closeMenus());
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
-const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>{if(!inlineText.finish(false,false))return false;closeMenus();selectionContextMenu.close();selectionMenu.popouts.close();return true;},notify);
+const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>{if(!inlineText.finish(false,false))return false;objectCreation.stop();updatePropertiesContent();updateSelectionMenu();closeMenus();selectionContextMenu.close();selectionMenu.popouts.close();return true;},notify);
 const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElement>('#text-property-size');
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
@@ -102,22 +115,24 @@ duplicateButton.addEventListener('keydown',event=>{
 
 function updatePropertiesContent():void {
   const hasSelection=editor.selectedItems.length>0;
-  $('#properties-empty').hidden=hasSelection;
-  $('#selection-properties').hidden=!hasSelection;
+  const creating=objectCreation.sync();
+  $('#properties-empty').hidden=hasSelection||creating;
+  $('#selection-properties').hidden=!hasSelection||creating;
 }
 function setPanel(panel:HTMLElement,open:boolean):void {
+  if(panel!==props||!open)objectCreation.stop();
   updatePropertiesContent();
   props.hidden=panel!==props||!open;layers.hidden=panel!==layers||!open;colour.hidden=panel!==colour||!open;
   if(panel===layers&&open)layersPanel.open();
   for(const [button,target] of [[propertiesButton,props],[layersButton,layers],[colourButton,colour]] as const){button.classList.toggle('selected',!target.hidden);button.setAttribute('aria-pressed',String(!target.hidden));button.setAttribute('aria-expanded',String(!target.hidden));}
-  selectionMenu.render();selectionContextMenu.refresh();
+  updateSelectionMenu();selectionContextMenu.refresh();
 }
 setPanel(props,false);
 propertiesButton.setAttribute('aria-controls','properties-panel');
 propertiesButton.onclick=()=>setPanel(props,props.hidden);
 layersButton.onclick=()=>setPanel(layers,layers.hidden);
 colourButton.onclick=()=>{if(!inlineText.finish(false,false))return;setPanel(colour,colour.hidden);};
-$('#close-properties').onclick=()=>{setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
+$('#close-properties').onclick=()=>{objectCreation.stop();setPanel(props,false);propertiesButton.focus();};$('#close-layers').onclick=()=>{setPanel(layers,false);layersButton.focus();};
 const shapeMenu=$('#primary-shapes-menu'),fileMenu=$('#primary-file-menu'),lineMenu=$('#primary-lines-menu'),arcMenu=$('#primary-arcs-menu'),deleteMenu=$('#primary-delete-menu'),dimensionMenu=$('#primary-dimensions-menu'),imageMenu=$('#primary-images-menu'),generatorMenu=$('#primary-generators-menu');
 const menus=[[shapeMenu,$('[data-shape-trigger]')],[fileMenu,$('[data-file-trigger]')],[lineMenu,$('[data-line-trigger]')],[arcMenu,$('[data-arc-trigger]')],[deleteMenu,$('[data-delete-trigger]')],[dimensionMenu,$('[data-dimension-trigger]')],[imageMenu,$('[data-image-trigger]')],[generatorMenu,$('[data-generator-trigger]')]] as const;
 function closeMenus():void {selectionMenu.popouts.close();alerts.close();for(const [menu,trigger] of menus){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}}
@@ -207,10 +222,11 @@ new HelpGuide($<HTMLButtonElement>('[data-help-open]'),()=>{
 });
 $('[aria-label="Undo"]').onclick=()=>editor.undo();$('[aria-label="Redo"]').onclick=()=>editor.redo();
 for(const key of ['x','y','width','height'] as const){const input=$<HTMLInputElement>('#field-'+key);input.value='';input.min=(key==='width'||key==='height')?'0.001':'';input.addEventListener('change',()=>{
-  try{if(!input.value.trim())throw new Error('Enter a number.');editor.setProperty(key,input.valueAsNumber);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
+  try{if(!input.value.trim())throw new Error('Enter a number.');if((key==='x'||key==='y')&&preciseGeometry(editor.selected))editor.setPreciseProperty(key,input.valueAsNumber);else editor.setProperty(key,input.valueAsNumber);input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}
   catch(error){input.setAttribute('aria-invalid','true');input.closest('.number-shell')!.classList.add('is-invalid');notify((error as Error).message,true);}
 });}
 const rotationInput=$<HTMLInputElement>('#field-rotation');
+const objectProperties=new ObjectProperties($('#selection-properties'),editor,message=>notify(message,true));
 const lineStyleInput=$<HTMLSelectElement>('#field-line-style'),lineWeightInput=$<HTMLInputElement>('#field-line-weight');
 lineStyleInput.addEventListener('change',()=>attempt(()=>editor.setLineDesign(lineStyleInput.value as LineDesign)));
 lineWeightInput.addEventListener('change',()=>{
@@ -311,6 +327,7 @@ function update():void {
   $('#arc-controls').hidden=!editor.selectedArc;
   for(const key of ['radius','start','sweep'] as const){const input=$<HTMLInputElement>('#arc-'+key);if(document.activeElement!==input){input.value=editor.selectedArc?String(Number(editor.selectedArc[key].toFixed(6))):'';input.setAttribute('aria-invalid','false');input.closest('.number-shell')!.classList.remove('is-invalid');}}
   $('#selection-name').textContent=count>1?`${count} objects selected · Combined bounds`:selected?`${selected.data.name} · ${selected.layer.name}`:'Select an object to edit its bounds.';
+  objectProperties.render();
   $<HTMLButtonElement>('[aria-label="Undo"]').disabled=!editor.canUndo;$<HTMLButtonElement>('[aria-label="Redo"]').disabled=!editor.canRedo;
   $('#tool-status').textContent=({fill:'Colour fill · B · Click an enclosed area',select:editor.selectedArc?'Arc · Drag handles · Shift: 15°':count>1?`Select · V · ${count} selected`:'Select · V',nodes:'Nodes · N · Double-click to add · Right-click for actions',text:'Text · T · Click to place',rectangle:'Rectangle · R · Shift for square',circle:'Circle · C · Drag from centre',ellipse:'Ellipse · E · Shift for circle',heart:'Heart · Drag opposite corners · Shift for equal proportions',polygon:`Polygon · Y · ${editor.polygonSides} sides · ↑/↓ · Shift: 15°`,star:`Star · ⇧ Y · ${editor.starPoints} points · ↑/↓ · Shift: 15°`,line:'Line · L · Drag · Shift: 45°',polyline:'Polyline · P · Click points · Enter to finish',freehand:'Freehand · F · Drag to draw · No snapping',arc:`Centre arc · A · ${editor.arcHint}`,'arc-endpoints':`Start–end arc · ${editor.endpointArcHint}`,'arc-three-point':`Three-point arc · ⇧ A · ${editor.threePointArcHint}`,'dissect-delete':'Dissect delete · K · Click a section','line-delete':'Line delete · ⇧ K · Click an outline'} as Record<ToolName,string>)[editor.tool];
   if(isDimensionTool(editor.tool))$('#tool-status').textContent=`${DIMENSION_NAMES[editor.tool]}${editor.tool==='dimension-aligned'?' · D':''} · ${editor.dimensions.hint}`;
@@ -325,16 +342,21 @@ function update():void {
   document.querySelectorAll<HTMLElement>('[data-dimension-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.dimensionTool===editor.tool)));
   document.querySelectorAll<HTMLElement>('[data-delete-tool]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.deleteTool===editor.tool)));
   layersPanel.render();
-  selectionMenu.render();selectionContextMenu.refresh();
+  updateSelectionMenu();selectionContextMenu.refresh();
   snappingMaster.checked=editor.snappingEnabled;gridSnapSetting.checked=editor.snapToGridEnabled;gridSnapSetting.disabled=editor.grid.type==='none';
   $('#pref-snap-grid-help').textContent=editor.grid.type==='none'?'Choose a grid type in Grid preferences to enable grid snapping.':'Align to the grid size set in Grid preferences.';
   document.querySelectorAll<HTMLInputElement>('[data-object-snap]').forEach(input=>input.checked=editor.objectSnapModes[input.dataset.objectSnap as ObjectSnapMode]);
 }
 editor.onChange=update;editor.onMessage=notify;
-editor.onToolChange=tool=>{if(tool==='fill')setPanel(colour,true);};
+editor.onToolChange=tool=>{objectCreation.start(tool);if(objectCreation.active)setPanel(props,true);else if(tool==='fill')setPanel(colour,true);else updatePropertiesContent();};
 initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
 update();
 void documentFiles.restoreRecovery(()=>inlineText.recoveryDraft);
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape'||!objectCreation.active||document.querySelector('dialog[open]'))return;
+  event.preventDefault();event.stopPropagation();closeMenus();
+  objectCreation.stop();editor.cancel();update();editor.canvas.focus({preventScroll:true});
+},true);
 initializeClipper().then(()=>{$('#wasm-status').textContent='Outline engine ready';update();}).catch(error=>{$('#wasm-status').textContent='Outline engine unavailable. Reload to retry.';notify(`Could not load the outline engine: ${error instanceof Error?error.message:String(error)}`,true);});
 document.addEventListener('pointerdown',e=>{if(!(e.target instanceof Element))return;for(const [menu,trigger] of menus)if(!menu.contains(e.target)&&!trigger.contains(e.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});
 document.addEventListener('keydown',event=>{
@@ -408,7 +430,7 @@ for(const button of arrangementButtons){
 }
 searchButton('notifications','Notifications','Application','[data-notifications-trigger]','alerts messages history');
 const needsSelection=()=>editor.canCopySelection?undefined:'Select one or more objects';
-for(const [id,label,icon,field,keywords] of [['move','Move / position','select','x','translate coordinates'],['resize','Resize','width','width','scale size width height'],['rotate','Rotate','rotate','rotation','angle rotation']] as const)searchTools.push({id,label,group:'Properties',icon,keywords,unavailable:()=>editor.selectedItems.length?undefined:'Select one or more objects',run:()=>{setPanel(props,true);$<HTMLInputElement>(`#field-${field}`).focus();}});
+for(const [id,label,icon,field,keywords] of [['move','Move / position','select','x','translate coordinates'],['resize','Resize','width','width','scale size width height'],['rotate','Rotate','rotate','rotation','angle rotation']] as const)searchTools.push({id,label,group:'Properties',icon,keywords,unavailable:()=>editor.selectedItems.length?undefined:'Select one or more objects',run:()=>{setPanel(props,true);const input=$<HTMLInputElement>(`#field-${field}`),details=input.closest('details');if(details)details.open=true;input.focus();}});
 for(const [id,label,selector,keywords] of [['arc-semicircle','Semicircle 180°','#arc-semicircle','arc half circle'],['arc-flip','Flip arc','#arc-flip','reverse arc sweep']] as const){
  searchButton(id,label,'Arc properties',selector,keywords);
  searchTools.at(-1)!.unavailable=()=>editor.selectedArc?undefined:'Select a circular arc';

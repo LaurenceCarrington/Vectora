@@ -26,3 +26,7 @@ button:disabled:hover { background:transparent; }
 #duplicate-selection::before { display:none; }
 
 #cad-canvas.pattern-picking { cursor:crosshair !important; }
+
+/* Keep creation and editing field grids aligned with the shared specimens. */
+.editor-panel :is(.object-creation,.object-properties) .number-grid { margin-top:0; gap:12px 8px; }
+.editor-panel .object-properties details .number-grid { margin-top:8px; }

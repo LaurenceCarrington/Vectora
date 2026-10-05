@@ -667,6 +667,26 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 .image-menu { width:224px; min-height:96px; max-width:calc(100vw - var(--workspace-edge-inset) * 2 - var(--toolbar-width) - var(--menu-offset)); }
 
+/* Exact object creation shares the Properties fields, button and focus treatment. */
+:is(.object-creation,.object-properties) { display:grid; gap:12px; margin:0; padding:8px 0 12px; }
+:is(.object-creation,.object-properties)[hidden] { display:none; }
+:is(.object-creation,.object-properties) h3 { margin:0; font-size:16px; line-height:22px; color:var(--menu-foreground); }
+:is(.object-creation,.object-properties) .subtext { margin:0; font-size:12px; line-height:18px; }
+:is(.object-creation .creation-fields,.object-properties .number-grid) { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px 8px; margin:0; }
+.creation-field { min-width:0; }
+.creation-full-width { grid-column:1 / -1; }
+.creation-label { display:block; margin:0 0 4px; color:var(--menu-muted); font-size:12px; line-height:18px; }
+.creation-field .number-shell { width:100%; min-width:0; }
+.creation-field .number-input { min-width:0; width:100%; padding:0 6px; font-size:12px; }
+.creation-field .number-prefix { min-width:24px; padding-left:5px; padding-right:5px; }
+.creation-field .number-unit { margin-right:0; padding-left:2px; padding-right:6px; font-size:10px; }
+.creation-measurement .number-input,.creation-label > select { display:block; width:100%; height:36px; margin-top:4px; border:1px solid var(--menu-border); color:var(--menu-foreground); background:var(--menu-background); }
+.creation-error { margin:0; color:var(--color-danger); font-size:12px; line-height:18px; }
+.creation-submit { width:100%; }
+.creation-specimen { position:relative; inset:auto; width:min(300px,100%); height:auto; margin-top:16px; background:var(--menu-background); color:var(--menu-foreground); border:1px solid var(--menu-border); }
+.creation-specimen .creation-demo-body { min-height:0; overflow:auto; }
+.creation-demo-choice { max-width:300px; }
+
 /* Shape and path stroke controls share Properties field tokens. */
 .line-appearance { display:grid; gap:12px; border-top:2px solid var(--color-canvas); margin-top:20px; padding-top:16px; }
 .line-appearance[hidden] { display:none; }
@@ -686,6 +706,19 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 .rotation-field { display:grid; gap:8px; margin-top:16px; }
 .rotation-field .number-prefix { min-width:var(--input-prefix-width); }
+
+/* Editing uses the same labelled fields; precise geometry keeps bounds secondary. */
+.object-properties :is(.line-appearance,.arc-controls) { margin:0; padding:0; border:0; }
+.object-properties :is(.line-appearance,.arc-controls) h3 { display:none; }
+.object-properties .number-prefix { min-width:24px; padding-left:5px; padding-right:5px; }
+.object-properties .rotation-field { grid-column:1 / -1; margin:0; gap:4px; }
+.object-properties .property-precise-fields { display:grid; gap:12px; }
+.object-properties .property-precise-fields[hidden] { display:none; }
+.object-properties details { min-width:0; margin:0; padding:8px 0 0; border:0; border-top:1px solid var(--menu-border); border-radius:0; background:transparent; }
+.object-properties summary { cursor:pointer; color:var(--menu-foreground); font-size:12px; line-height:20px; }
+.object-properties details .number-grid { margin-top:8px; }
+.object-properties .arc-actions .button { flex:1; min-width:0; font-size:12px; }
+.object-properties .text-properties { margin:0; }
 
 /* No-selection message inside the shared charcoal Properties panel. */
 .properties-empty { display:flex; flex-direction:column; align-items:center; gap:var(--space-16); padding:40px var(--space-24); text-align:center; }

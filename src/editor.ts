@@ -1,4 +1,5 @@
 import {CanvasGuide} from './canvasGuide';
+import {preciseGeometry,editedPreciseShape,type PreciseProperty} from './shapeProperties';
 import {LINE_DESIGNS,applyLineDesign,applyLineWeight,validLineWeight,type LineDesign} from './lineAppearance';
 import {validateCanvasSize,type CanvasSize} from './canvasSize';
 import {applyFillPaint,refreshFillPaint,validateFillPaint,paintColour,type FillPaint} from './fillPaint';
@@ -706,6 +707,12 @@ export class CADEditor {
     if(this.selectedArc&&(key==='width'||key==='height')){const scale=value/original[key];bounds.width=original.width*scale;bounds.height=original.height*scale;}
     if(![bounds.left,bounds.top,bounds.right,bounds.bottom].every(validNumber)) throw new Error('The resulting bounds exceed ±1,000,000 mm.');
     this.transformSelection(this.selection,original,bounds);this.commit(before);
+  }
+  setPreciseProperty(key:PreciseProperty,value:number):void {
+    const source=this.selected,geometry=preciseGeometry(source);
+    if(!(source instanceof paper.Path)||!geometry||!this.canFlipSelection)return;
+    const copy=editedPreciseShape(source,geometry,key,value),before=this.snapshot();
+    this.replaceItems([source],[copy]);this.commit(before);
   }
   get lineAppearanceItems():readonly Shape[] {return this.selection.filter(item=>!item.data.text&&!item.data.dimension&&this.isEditable(item));}
   get canEditLineAppearance():boolean {return this.canFlipSelection&&this.lineAppearanceItems.length>0;}

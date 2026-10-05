@@ -15,8 +15,8 @@ async function draw(page:any,tool='r') {
   if(await snap.getAttribute('aria-pressed')==='true')await snap.click();
   await page.locator('#cad-canvas').focus();await page.keyboard.press(tool);
   await page.mouse.move(280,270);await page.mouse.down();await page.mouse.move(580,440,{steps:5});await page.mouse.up();
-  await expect(page.locator('#properties-panel')).toBeHidden();
-  await page.getByRole('button',{name:'Properties',exact:true}).click();
+  await expect(page.locator('#properties-panel')).toBeVisible();
+  if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();
 }
 test('geometry, topology, transforms, history and DXF acceptance',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -130,7 +130,7 @@ test('resize handles, aspect ratio, circle, pointer capture and focus loss',asyn
   await page.locator('#cad-canvas').focus();await page.keyboard.press('r');await page.mouse.click(250,500);
   expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(count);
   await page.mouse.move(300,650);await page.mouse.down();await page.mouse.move(4,880);await page.mouse.up();
-  await page.keyboard.press('v');await page.mouse.click(1000,800); // Empty canvas beside the floating menu.
+  await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('v');await page.mouse.click(1000,800); // Empty canvas beside the floating menu.
   expect(await page.evaluate(()=>(window as any).__vectora.selected)).toBeNull();expect(errors).toEqual([]);
 });
 test('initialization failure and empty export produce useful feedback',async({page})=>{
@@ -143,7 +143,7 @@ test('initialization failure and empty export produce useful feedback',async({pa
 test('reference component styles and geometry match at the same viewport',async({page})=>{
   await page.goto(DEV+'/reference/design-system.html');
   const styles=async()=>page.evaluate(()=>{
-    return ['.top-toolbar','.left-toolbar','.right-toolbar','.tool','.brand','[for="field-x"]'].map(selector=>{
+    return ['.top-toolbar','.left-toolbar','.right-toolbar','.tool','.brand','.object-properties .number-prefix[for$="field-x"]'].map(selector=>{
       const element=document.querySelector(selector)!;const css=getComputedStyle(element);return {background:css.backgroundColor,color:css.color,font:css.fontFamily,fontSize:css.fontSize,borderRadius:css.borderRadius,padding:css.padding,width:selector==='.top-toolbar'?'fill':css.width,height:selector==='.left-toolbar'||selector==='.right-toolbar'?'fill':css.height};
     });
   });
@@ -229,8 +229,8 @@ test('snap to grid draws, moves, resizes and preserves exact numeric edits',asyn
   await docDrag([-2,2],[1.6,5.8],true);
   const constrained=await bounds();expect(constrained[2]/constrained[3]).toBeCloseTo(20/15,5);
   await closePanel();await page.keyboard.press('c');await docDrag([-25.2,15.1],[-12.8,15]);expect(await bounds()).toEqual([-37,3,24,24]);
-  await expect(page.locator('#properties-panel')).toBeHidden();await page.getByRole('button',{name:'Properties',exact:true}).click();
-  await page.locator('#field-x').fill('-37.25');await page.locator('#field-x').press('Tab');expect((await bounds())[0]).toBe(-37.25);
+  await expect(page.locator('#properties-panel')).toBeVisible();if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();
+  await page.locator('#field-x').fill('-25.25');await page.locator('#field-x').press('Tab');expect((await bounds())[0]).toBe(-37.25);
   // Typing S in a field cannot toggle snapping; clicking an off-grid object cannot move it.
   await page.locator('#field-x').focus();await page.keyboard.press('s');await expect(snap).toHaveAttribute('aria-pressed','true');
   await closePanel();await page.keyboard.press('v');await docDrag([-25.25,15],[-25.25,15]);expect((await bounds())[0]).toBe(-37.25);
@@ -291,7 +291,7 @@ test('Layers matches reference and controls real objects, visibility, locking an
   await page.keyboard.press('r');await page.mouse.move(250,550);await page.mouse.down();await page.mouse.move(400,650);await page.mouse.up();
   await expect(page.locator('.toast-warning .toast-copy p').first()).toHaveText('Show and unlock Artwork before drawing.');
   expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
-  await panel.getByRole('button',{name:'Unlock Artwork',exact:true}).click();
+  await page.getByRole('button',{name:'Layers',exact:true}).click();await panel.getByRole('button',{name:'Unlock Artwork',exact:true}).click();
   await panel.getByRole('button',{name:'Rectangle',exact:true}).click();
   const header=panel.locator('.layer-heading'),headerBox=(await header.boundingBox())!;
   await page.mouse.move(headerBox.x+20,headerBox.y+20);await page.mouse.down();await page.mouse.move(headerBox.x-100,headerBox.y+90);await page.mouse.up();
@@ -343,8 +343,8 @@ test('production ellipse and polygon menu tools draw and export',async({page})=>
     if(await page.locator('#properties-panel').isVisible())await page.locator('#close-properties').click();
     await page.getByRole('button',{name:'Shapes',exact:true}).click();await page.getByRole('menuitemradio',{name,exact:true}).click();
     await page.mouse.move(...start);await page.mouse.down();await page.mouse.move(...end,{steps:4});await page.mouse.up();
-    await expect(page.locator('#properties-panel')).toBeHidden();
-    await page.getByRole('button',{name:'Properties',exact:true}).click();
+    await expect(page.locator('#properties-panel')).toBeVisible();
+    if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();
     await expect(page.locator('#selection-name')).toContainText(name);
   }
   await openDXFSettings(page,true);const download=page.waitForEvent('download');await page.locator('#export-dialog [data-export-submit]').click();expect((await download).suggestedFilename()).toBe('Untitled.dxf');
@@ -434,10 +434,10 @@ test('line drawing supports snapped axis-aligned paths, endpoint editing and cut
   await page.locator('#primary-lines-menu').screenshot({path:'test-results/lines-menu.png'});
   await page.getByRole('menuitemradio',{name:'Line',exact:true}).click();await drag([-34,-17],[-12,-17]);
   expect(await shape()).toEqual({name:'Line',closed:false,fill:null,points:[[-35,-15],[-10,-15]],bounds:[-35,-15,25,0]});
-  await expect(page.locator('#properties-panel')).toBeHidden();await page.getByRole('button',{name:'Properties',exact:true}).click();
+  await expect(page.locator('#properties-panel')).toBeVisible();if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();
   await expect(page.locator('#field-height')).toHaveValue('0');await expect(page.locator('#field-height')).toBeDisabled();await expect(page.locator('#create-outline')).toHaveCount(0);
   await page.locator('#field-x').fill('-35.25');await page.locator('#field-x').press('Tab');expect((await shape()).bounds).toEqual([-35.25,-15,25,0]);
-  await page.locator('#field-width').fill('30');await page.locator('#field-width').press('Tab');expect((await shape()).bounds).toEqual([-35.25,-15,30,0]);
+  await page.locator('#shape-bounds-details summary').click();await page.locator('#field-width').fill('30');await page.locator('#field-width').press('Tab');expect((await shape()).bounds).toEqual([-35.25,-15,30,0]);
   await page.locator('#close-properties').click();await page.locator('#cad-canvas').focus();await page.keyboard.press('Control+z');await page.keyboard.press('Control+z');
   await page.keyboard.press('v');await drag([-10,-15],[-10,0]);expect((await shape()).points).toEqual([[-35,-15],[-10,0]]);
   await page.keyboard.press('Control+z');expect((await shape()).bounds).toEqual([-35,-15,25,0]);
@@ -496,7 +496,9 @@ test('Arc creates an exact snapped semicircle in one drag, with editable circula
   await arcDrag(page,[1,1],[21,1]);const original=await arcState(page);
   expect(original.arc).toEqual({cx:0,cy:0,radius:20,start:180,sweep:180});expect(original.tool).toBe('select');expect(original.closed).toBe(false);expect(original.fill).toBeNull();
   for(const [i,n] of [-20,-20,40,20].entries())expect(original.bounds[i]).toBeCloseTo(n,7);
-  await expect(page.locator('#properties-panel')).toBeHidden();
+  await expect(page.locator('#properties-panel')).toBeVisible();
+  // Close the dock to expose the right endpoint at this zoom.
+  await page.locator('#close-properties').click();
   // Radius diamond changes radius alone; endpoints change sweep and orientation independently.
   await arcDrag(page,[0,-20],[0,-31]);expect((await arcState(page)).arc.radius).toBe(30);
   await arcDrag(page,[30,0],[1,30]);expect((await arcState(page)).arc.sweep).toBe(270);
@@ -504,11 +506,11 @@ test('Arc creates an exact snapped semicircle in one drag, with editable circula
   await arcDrag(page,[0,0],[11,6]);expect((await arcState(page)).arc).toMatchObject({cx:10,cy:5,radius:30,sweep:270});
   const moved=await arcState(page);await arcDrag(page,[10,5],[20,10],true);expect((await arcState(page)).snapshot).toEqual(moved.snapshot);
   await page.keyboard.press('Control+z');expect((await arcState(page)).arc.cx).toBe(0);await page.keyboard.press('Control+Shift+z');expect((await arcState(page)).snapshot).toEqual(moved.snapshot);
-  await page.getByRole('button',{name:'Properties',exact:true}).click();await page.locator('#arc-radius').fill('12.345');await page.locator('#arc-radius').press('Tab');expect((await arcState(page)).arc.radius).toBe(12.345);
+  if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();await page.locator('#arc-radius').fill('12.345');await page.locator('#arc-radius').press('Tab');expect((await arcState(page)).arc.radius).toBe(12.345);
   await page.locator('#arc-start').fill('180');await page.locator('#arc-start').press('Tab');
   await page.getByRole('button',{name:'Semicircle 180°',exact:true}).click();expect((await arcState(page)).arc.sweep).toBe(180);
   await page.getByRole('button',{name:'Flip arc',exact:true}).click();expect((await arcState(page)).arc.sweep).toBe(-180);
-  await page.locator('#field-width').fill('80');await page.locator('#field-width').press('Tab');const scaled=await arcState(page);expect(scaled.arc.radius).toBeCloseTo(40,6);expect(scaled.bounds[3]).toBeCloseTo(40,6);
+  await page.locator('#shape-bounds-details summary').click();await page.locator('#field-width').fill('80');await page.locator('#field-width').press('Tab');const scaled=await arcState(page);expect(scaled.arc.radius).toBeCloseTo(40,6);expect(scaled.bounds[3]).toBeCloseTo(40,6);
   await page.locator('#arc-sweep').fill('0');await page.locator('#arc-sweep').press('Tab');await expect(page.locator('#arc-sweep')).toHaveAttribute('aria-invalid','true');expect((await arcState(page)).snapshot).toEqual(scaled.snapshot);
   await page.locator('#arc-sweep').fill('180');await page.locator('#arc-sweep').press('Tab');
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);expect((await arcState(page)).color.toLowerCase()).toBe('#ff0000');
@@ -532,7 +534,7 @@ test('Arc drafts cancel safely, angular snapping and group transforms preserve v
 test('production Arc menu draws and exports a semicircle with exact controls',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
   await page.getByRole('button',{name:'Arcs',exact:true}).click();await expect(page.getByRole('menuitemradio',{name:'Centre arc',exact:true})).toBeFocused();await page.keyboard.press('Enter');
-  await page.mouse.move(440,500);await page.mouse.down();await page.mouse.move(590,500,{steps:5});await page.mouse.up();await expect(page.locator('#properties-panel')).toBeHidden();
+  await page.mouse.move(440,500);await page.mouse.down();await page.mouse.move(590,500,{steps:5});await page.mouse.up();await expect(page.locator('#properties-panel')).toBeVisible();
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Arc · Cut Path');await expect(page.locator('#arc-sweep')).toHaveValue('180');
   await page.locator('#arc-radius').fill('25');await page.locator('#arc-radius').press('Tab');await expect(page.locator('#field-width')).toHaveValue('50');await expect(page.locator('#field-height')).toHaveValue('25');
   const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
@@ -552,7 +554,7 @@ test('Three-point arc restores snapped drawing, validation, cancellation, histor
   expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);
   await click([1,1]);const arc=await arcState(page);expect(arc.arc).toBeNull();expect(arc.closed).toBe(false);expect(arc.fill).toBeNull();
   for(const [i,n] of [-30,-15,30,15].entries())expect(arc.bounds[i]).toBeCloseTo(n,7);
-  await expect(page.locator('#properties-panel')).toBeHidden();await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);await page.keyboard.press('Control+Shift+z');expect((await arcState(page)).snapshot).toEqual(arc.snapshot);
+  await expect(page.locator('#properties-panel')).toBeVisible();await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(0);await page.keyboard.press('Control+Shift+z');expect((await arcState(page)).snapshot).toEqual(arc.snapshot);
   await click([5,5]);await click([10,10]);await page.keyboard.press('Backspace');await expect(page.locator('#tool-status')).toContainText('Click curve point');await page.keyboard.press('Escape');expect((await arcState(page)).snapshot).toEqual(arc.snapshot);
   await click([5,5]);await page.keyboard.press('a');expect((await arcState(page)).snapshot).toEqual(arc.snapshot);await expect(page.locator('#tool-status')).toContainText('Centre arc · A');
   await page.keyboard.press('Shift+a');await click([5,5]);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));expect((await arcState(page)).snapshot).toEqual(arc.snapshot);
@@ -568,7 +570,7 @@ test('Arcs pop-out matches the reference, supports keyboard selection and both p
   await page.getByRole('button',{name:'Arcs',exact:true}).click();await expect(page.locator('#primary-shapes-menu')).toBeHidden();expect(await menuStyle()).toEqual(reference);
   await page.screenshot({path:'test-results/arcs-menu.png'});
   await page.keyboard.press('Home');await page.keyboard.press('ArrowDown');await expect(page.getByRole('menuitemradio',{name:'Three-point arc',exact:true})).toBeFocused();await page.keyboard.press('Enter');await expect(page.locator('#primary-arcs-menu')).toBeHidden();await expect(page.locator('#tool-status')).toContainText('Three-point arc');
-  await page.mouse.click(260,500);await page.mouse.click(410,350);await page.mouse.click(560,500);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Arc · Artwork');await expect(page.locator('#arc-controls')).toBeHidden();
+  await page.mouse.click(260,500);await page.mouse.click(410,350);await page.mouse.click(560,500);if(await page.locator('#properties-panel').isHidden())await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#selection-name')).toHaveText('Arc · Artwork');await expect(page.locator('#arc-controls')).toBeHidden();
   await page.getByRole('button',{name:'Arcs',exact:true}).click();await page.keyboard.press('Home');await expect(page.getByRole('menuitemradio',{name:'Centre arc',exact:true})).toBeFocused();await page.keyboard.press('Escape');await expect(page.locator('#primary-arcs-menu')).toBeHidden();await expect(page.getByRole('button',{name:'Arcs',exact:true})).toBeFocused();
   await page.getByRole('button',{name:'Arcs',exact:true}).click();await page.getByRole('menuitemradio',{name:'Centre arc',exact:true}).click();await expect(page.locator('#tool-status')).toContainText('Centre arc');
 });
@@ -707,7 +709,7 @@ test('Group rotation preserves spacing, cut style, circular arc metadata and DXF
 });
 test('production numeric rotation supports flat lines and DXF export without changing layers',async({page})=>{
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Snapping',exact:true}).click();await page.locator('#cad-canvas').focus();await page.keyboard.press('l');await page.mouse.move(300,350);await page.mouse.down();await page.mouse.move(500,350);await page.mouse.up();
-  await page.getByRole('button',{name:'Properties',exact:true}).click();const length=Number(await page.locator('#field-width').inputValue());await page.locator('#field-rotation').fill('90');await page.locator('#field-rotation').press('Tab');expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(0,6);expect(Number(await page.locator('#field-height').inputValue())).toBeCloseTo(length,6);
+  await expect(page.locator('#properties-panel')).toBeVisible();await page.locator('#shape-bounds-details summary').click();const length=Number(await page.locator('#field-width').inputValue());await page.locator('#field-rotation').fill('90');await page.locator('#field-rotation').press('Tab');expect(Number(await page.locator('#field-width').inputValue())).toBeCloseTo(0,6);expect(Number(await page.locator('#field-height').inputValue())).toBeCloseTo(length,6);
   await page.getByRole('button',{name:'Layers',exact:true}).click();await dragSelectionToLayer(page);await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#field-rotation')).toHaveValue('90');await expect(page.locator('#selection-name')).toHaveText('Line · Cut Path');const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
 });
 
@@ -717,7 +719,8 @@ test('Properties empty state matches the reference and follows selection while p
   await page.goto(PREVIEW);await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');await page.getByRole('button',{name:'Properties',exact:true}).click();
   await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#field-width')).toBeHidden();await expect(page.locator('#properties-panel #export-dxf')).toHaveCount(0);expect(await appearance('#properties-empty')).toEqual(reference);await page.screenshot({path:'test-results/properties-empty.png'});
   await page.locator('#cad-canvas').focus();await page.keyboard.press('r');await page.mouse.move(280,300);await page.mouse.down();await page.mouse.move(500,450,{steps:5});await page.mouse.up();await expect(page.locator('#properties-empty')).toBeHidden();await expect(page.locator('#field-width')).toBeVisible();
-  await page.keyboard.press('Delete');await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#field-width')).toBeHidden();await page.keyboard.press('Control+z');await expect(page.locator('#field-width')).toBeVisible();
+  // Empty Properties applies to Select; active drawing tools restore creation fields.
+  await page.keyboard.press('v');await page.keyboard.press('Delete');await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#field-width')).toBeHidden();await page.keyboard.press('Control+z');await expect(page.locator('#field-width')).toBeVisible();
   await page.keyboard.press('Escape');await expect(page.locator('#properties-empty')).toBeVisible();await openDXFSettings(page);await expect(page.locator('#export-dialog')).toBeVisible();await openDXFSettings(page,true);const download=page.waitForEvent('download');await exportDXFFile(page);expect((await download).suggestedFilename()).toBe('Untitled.dxf');
   await page.locator('#close-properties').click();await page.getByRole('button',{name:'Properties',exact:true}).click();await expect(page.locator('#properties-empty')).toBeVisible();await expect(page.locator('#properties-panel #export-dxf')).toHaveCount(0);
 });
@@ -881,7 +884,7 @@ test('duplicate appears after drawing and its connector stays behind the resize 
   expect(result).toMatchObject({tool:'rectangle',behind:true,anchor:0,cssStem:'none'});expect(result.gap).toBeCloseTo(28,8);
   await page.screenshot({path:'test-results/duplicate-created-shape.png'});
   await button.click();expect(await page.evaluate(()=>(window as any).__vectora.objects.length)).toBe(2);
-  await expect(button).toBeVisible();await expect(page.locator('#properties-panel')).toBeHidden();
+  await expect(button).toBeVisible();await expect(page.locator('#properties-panel')).toBeVisible();
   await page.locator('#cad-canvas').focus();await page.keyboard.press('k');await expect(button).toBeHidden();
 });
 
