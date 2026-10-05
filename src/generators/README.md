@@ -49,7 +49,7 @@ References used for feature terminology and scope (implementation is original):
 
 ## Pattern and decorative profiles
 
-`patternCatalog.ts` adds 14 profiles across five families; `patterns.ts` generates plain millimetre geometry without Paper.js or new dependencies. The workbench remains lazy-loaded.
+`patternCatalog.ts` adds 16 profiles across six families; `patterns.ts` generates plain millimetre geometry without Paper.js or new dependencies. The workbench remains lazy-loaded.
 
 - Voronoi cells use half-plane intersections, seeded stratified sites and optional Lloyd centroid relaxation. Insetting shared bisectors by half the requested web leaves a material gap; the panel border remains solid. Collapsed cells are omitted and counted.
 - Hypotrochoids/epitrochoids use inside/outside rolling-circle equations. Whole periods close only when the radius ratio and revolution count complete a period. Cycloids along a line stay open. Curves use a second-derivative bound for approximately 0.015 mm chord error; intentional crossings remain editable.
@@ -65,3 +65,9 @@ Mathematical references (independently implemented):
 - [Ken Perlin, Improving Noise](https://mrl.cs.nyu.edu/~perlin/paper445.pdf): gradient noise and quintic interpolation. This implementation is a seeded 2D variant, not copied reference code.
 
 `tests/patternGenerators.spec.ts` checks clearances, borders, periods, maze connectivity, image tone/alpha/inversion, seeded repeatability, density validation, local file replacement, undo and responsive theme layouts.
+
+## Jigsaw puzzles
+
+`jigsaw.ts` generates each internal edge once as five rounded cubic sections, sampled using de Casteljau subdivision with a 0.015 mm control-hull chord bound. Adjacent pieces reuse the same points in reverse, so tabs and sockets match exactly. Seeded random direction, depth and placement are bounded to avoid neighbouring tabs colliding; outside edges stay straight. Tab size is a percentage of the smaller cell dimension; variation shrinks depth and shifts placement.
+
+Cutting layout inserts one perimeter and continuous open row/column paths, without duplicate shared cuts. Individual closed pieces inserts one editable path per cell. Zero spacing assembles the original puzzle with duplicate shared boundaries; positive spacing packs conservative tab envelopes with at least the entered gap between bounds. Assembled dimensions describe the nominal puzzle, not the separated layout. No kerf offsets are applied. Limits are 1,000 pieces, 5 mm minimum cell dimensions and a bounded sampling budget below the common 50,000-point output cap. Seed/settings reproduce the same geometry. `tests/jigsawGenerator.spec.ts` covers shared-edge uniqueness, complementary pieces, topology, spacing, density limits, insertion, history, document round-trip and exports.

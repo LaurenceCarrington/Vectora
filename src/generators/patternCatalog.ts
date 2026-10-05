@@ -1,12 +1,16 @@
 import type {Field,Profile} from './catalog';
-export type PatternFamily='voronoi'|'spirograph'|'maze'|'halftone'|'waveform';
+export type PatternFamily='voronoi'|'spirograph'|'maze'|'jigsaw'|'halftone'|'waveform';
 const n=(key:string,label:string,value:number,min:number,max:number,step=.1,unit='mm'):Field=>({key,label,value,min,max,step,unit});
 const panel=[n('width','Width',120,10,2000),n('height','Height',90,10,2000),n('border','Solid border',5,.1,200)];
 const seed=n('seed','Seed',1,1,2147483647,1,'');
+const jigsaw=[n('width','Width',300,10,2000),n('height','Height',200,10,2000),n('columns','Columns',6,1,50,1,''),n('rows','Rows',4,1,50,1,''),n('tabSize','Tab size',15,5,20,1,'%'),n('variation','Variation',15,0,30,1,'%'),seed];
 const maze=[...panel.slice(0,2),n('columns','Columns',12,2,80,1,''),n('rows','Rows',9,2,80,1,''),seed];
 const image=[...panel,n('spacing','Point spacing',3,.2,100),n('maxDiameter','Maximum hole diameter',2.4,.1,100),n('minDiameter','Minimum hole diameter',.4,.05,100),n('gap','Minimum material gap',.5,.05,50),n('contrast','Contrast',100,0,300,1,'%'),{...n('invert','Invert image',0,0,1,1,''),toggle:true},seed];
 const wave=[...panel,n('rows','Wave rows',8,1,100,1,''),n('amplitude','Amplitude',3,0,200),n('wavelength','Wavelength',30,.5,1000),n('gap','Minimum gap',.5,.05,50)];
 export const PATTERN_CATALOG:Record<PatternFamily,{title:string;icon:string;profiles:Profile[]}>= {
+ jigsaw:{title:'Jigsaw puzzle',icon:'jigsaw',profiles:[
+ {id:'jigsaw-cuts',label:'Cutting layout',description:'Matching rounded tabs and sockets with straight outside edges. Each shared internal edge is cut once.',fields:jigsaw},
+ {id:'jigsaw-pieces',label:'Individual closed pieces',description:'Separate editable piece outlines. Piece spacing separates their bounds; zero spacing assembles them with duplicated shared edges.',fields:[...jigsaw,n('gap','Piece spacing',5,0,100)]}]},
  voronoi:{title:'Voronoi pattern',icon:'voronoi',profiles:[{id:'voronoi-cells',label:'Voronoi cut-out panel',description:'Seeded polygon cells with a solid outside border and material webs between holes.',fields:[...panel,n('count','Cells',50,2,250,1,''),n('web','Material web',2,.1,50),n('relax','Relaxation passes',1,0,3,1,''),seed]}]},
  spirograph:{title:'Spirograph & cycloid',icon:'spirograph',profiles:[
  ...['hypotrochoid','epitrochoid'].map(id=>({id,label:id==='hypotrochoid'?'Spirograph · inside rolling circle':'Spirograph · outside rolling circle',description:'Fixed and rolling circle radii set the curve. A whole period closes naturally; partial periods remain open.',fields:[n('fixed','Fixed radius',45,.1,500),n('rolling','Rolling radius',18,.1,500),n('offset','Pen offset',12,.1,500),n('turns','Revolutions',2,1,100,1,'')]})),

@@ -11,7 +11,7 @@ Vectora is a browser-based 2D CAD and vector drawing app for creating precise ar
 - **Combine and repeat:** Weld, Subtract and Intersect closed shapes, or create rectangular and circular patterns with editable copies.
 - **Create text and artwork:** type directly on the canvas, choose bundled fonts, convert lettering to paths, and trace images into outlines, centre lines or filled vectors.
 - **Apply fills:** colour individual enclosed regions, including intersections between overlapping outlines. Choose solid colours, linear or radial gradients, and stripes, crosshatch, dots or checkerboard patterns.
-- **Generate designs:** gears, racks, sprockets, pulleys, fasteners, cams, finger-jointed boxes, living hinges, packaging nets, trusses, Voronoi panels, spirographs, mazes, halftone holes and wave patterns. Generators produce editable 2D paths and views.
+- **Generate designs:** gears, racks, sprockets, pulleys, fasteners, cams, finger-jointed boxes, living hinges, packaging nets, trusses, Voronoi panels, spirographs, mazes, jigsaw puzzles, halftone holes and wave patterns. Generators produce editable 2D paths and views.
 - **Preview finished pieces:** inspect a 360° material preview with through-cut outlines and holes, recessed vector/raster engraving, six materials, sheet thickness and optional Artwork colours.
 - **Manage documents:** open multiple tabbed projects, use Undo/Redo, and save editable `.vectora` files with their layers, text, canvas, grid and view settings.
 

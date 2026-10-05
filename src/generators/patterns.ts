@@ -1,6 +1,7 @@
 import type {Contour,Generated,Point} from './geometry';
 import type {PatternFamily} from './patternCatalog';
 import {rectangleOutline} from './structural';
+import {jigsaw} from './jigsaw';
 export interface PatternImage {width:number;height:number;data:Uint8ClampedArray}
 type Draft=Omit<Generated,'name'|'bounds'>;
 const TAU=2*Math.PI;
@@ -20,6 +21,7 @@ function perlin(seed:number):(x:number,y:number)=>number {
  return(x,y)=>{const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;return mix(mix(grad(ix,iy,fx,fy),grad(ix+1,iy,fx-1,fy),fade(fx)),mix(grad(ix,iy+1,fx,fy-1),grad(ix+1,iy+1,fx-1,fy-1),fade(fx)),fade(fy));};
 }
 export function pattern(family:PatternFamily,id:string,v:Record<string,number>,image?:PatternImage):Draft {
+ if(family==='jigsaw')return jigsaw(id,v);
  const r:Draft={parts:[],guides:[],metrics:{},notes:[]},w=v.width,h=v.height,b=v.border,rnd=random(v.seed??1);
  const add=(name:string,contours:Contour[])=>r.parts.push({name,contours});
  if(['voronoi','halftone','waveform'].includes(family))check(2*b<Math.min(w,h),'The border must leave space inside the panel.');
