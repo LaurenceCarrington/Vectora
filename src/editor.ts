@@ -20,7 +20,7 @@ import { DimensionTools } from './dimensionTools';
 import { dimensionLabel, isDimensionTool } from './dimensions';
 import type { AlertKind } from './alerts';
 import { createDeletePlan, disposeDeletePlan, documentPath, type DeletePlan } from './deletion';
-import { pathsOf } from './geometry';
+import { pathsOf,validateGeometryInput } from './geometry';
 import { closeNearestPaths } from './closePath';
 import { createTextShape, isStrokeFont, transformText, type TextData } from './text';
 import { createArc, createEndpointArc, arcPoint, createCircularArc, updateCircularArc, snapArcAngle, type ArcGeometry } from './arc';
@@ -679,6 +679,29 @@ export class CADEditor {
     if(item.fillColor&&!item.data.text&&item.data.rasterTrace?.mode!=='fill')item.fillColor=null;
     item.data={...item.data,uid:crypto.randomUUID(),role:layerRole(layer),name};
     if(layerRole(layer)!=='artwork'||layer.data.colour)this.styleForLayer(item,layer);layer.addChild(item);this.selected=item;this.commit(before);
+  }
+  /** Detached printable artwork, including new layers, enters history in one transaction. */
+  addArtworkSheets(sheets:readonly {name:string;items:Shape[]}[]):void {
+    const items=sheets.flatMap(sheet=>sheet.items);
+    try{
+      if(!sheets.length||sheets.length>2||sheets.some(sheet=>!sheet.items.length)||new Set(items).size!==items.length)throw new Error('Choose a valid generated sheet.');
+      sheets.forEach(sheet=>validateLayerName(sheet.name));
+      if(items.some(item=>!(item instanceof paper.Path||item instanceof paper.CompoundPath)||item.isInserted()))throw new Error('Generated artwork must be detached from the document.');
+      validateGeometryInput([...this.objects,...items]);
+      for(const item of items){
+        if(!Number.isFinite(item.strokeWidth)||item.strokeWidth<0||item.strokeWidth>10000)throw new Error('Invalid generated line weight.');
+        for(const path of pathsOf(item))for(const segment of path.segments)if(![segment.point.x,segment.point.y,segment.handleIn.x,segment.handleIn.y,segment.handleOut.x,segment.handleOut.y].every(validNumber))throw new Error('Generated geometry exceeds the supported coordinate range.');
+      }
+    }catch(error){items.filter(item=>!item.isInserted()).forEach(item=>item.remove());throw error;}
+    this.cancel();const before=this.snapshot();
+    try{
+      const created=sheets.map(sheet=>{
+        let name=sheet.name,index=2;while(this.documentLayers.some(layer=>layer.name===name))name=`${sheet.name} ${index++}`;
+        const layer=this.createDocumentLayer('artwork',name,crypto.randomUUID());
+        for(const item of sheet.items){item.data={...item.data,uid:crypto.randomUUID(),role:'artwork',name:item.data.name??name};this.insertDrawing(item,layer);}return layer;
+      });
+      this.selection=[...created[0].children] as Shape[];this.commit(before);
+    }catch(error){items.forEach(item=>item.remove());this.restore(before);throw error;}
   }
   addGeneratedShapes(items:{shape:Shape;name:string;operation?:'engrave'}[]):void {
     if(!items.length)return;
