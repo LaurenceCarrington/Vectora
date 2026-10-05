@@ -1,5 +1,7 @@
 import {generalPreferences,UNIT_NAMES} from './generalPreferences';
 import {bindLength,setLength,readLength} from './measurementDisplay';
+import {CanvasColourSampler} from './canvasColourSampler';
+import {captureArtwork} from './captureArtwork';
 import {AppearancePanel} from './appearancePanel';
 import {ObjectCreation} from './objectCreation';
 import {ObjectProperties} from './objectProperties';
@@ -51,6 +53,8 @@ const objectCreation=new ObjectCreation(props.querySelector('.editor-panel-body'
 });
 const colourButton=$<HTMLButtonElement>('[data-colour-trigger]');
 const colourPanel=new AppearancePanel(colour,(paint,commit)=>attempt(()=>editor.setPaint(paint.hex,paint.opacity,commit)),()=>{setPanel(colour,false);colourButton.focus();},()=>editor.setFillColor('none'),(paint,commit)=>attempt(()=>editor.setFillPaint(paint,commit)));
+const colourSampler=new CanvasColourSampler(editor.canvas,()=>captureArtwork(editor),()=>!colour.hidden&&!colour.querySelector<HTMLElement>('#appearance-colour')!.hidden,error=>notify(error instanceof Error?error.message:String(error),editor.hasPendingGesture||editor.textEditing?'warning':'error'));
+colourPanel.enableSampler((button,choose)=>colourSampler.start(button,choose));
 let colourSelection='',lastFillPaint='';
 const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersButton=$<HTMLButtonElement>('[aria-label="Layers"]');
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});
@@ -62,6 +66,9 @@ function updateSelectionMenu():void {
 const selectionContextMenu=new SelectionContextMenu(editor,()=>closeMenus());
 const inlineText=new InlineText($<HTMLTextAreaElement>('#inline-text'),editor);
 const documentFiles=new DocumentFiles(editor,$<HTMLDialogElement>('#document-dialog'),$<HTMLInputElement>('#open-document-file'),()=>{if(!inlineText.finish(false,false))return false;objectCreation.stop();updatePropertiesContent();updateSelectionMenu();closeMenus();selectionContextMenu.close();selectionMenu.popouts.close();return true;},notify);
+// Async edits (for example font loading) must not leave stale sampling pixels.
+const documentChanged=editor.onDocumentChange;
+editor.onDocumentChange=snapshot=>{colourSampler.cancel();documentChanged(snapshot);};
 const textFontSelect=$<HTMLSelectElement>('#text-font'),textSize=$<HTMLInputElement>('#text-property-size');
 let textStyleRequest=0;
 async function updateTextStyle():Promise<void> {
@@ -357,7 +364,7 @@ for(const id of ['field-x','field-y','field-width','field-height','field-line-we
 window.addEventListener('vectora-general-change',()=>{objectCreation.refreshMeasurements();editor.refreshMeasurements();update();});
 editor.onChange=update;editor.onMessage=notify;
 editor.onToolChange=tool=>{objectCreation.start(tool);if(objectCreation.active)setPanel(props,true);else if(tool==='fill')setPanel(colour,true);else updatePropertiesContent();};
-initializeThemeControls(()=>{inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
+initializeThemeControls(()=>{colourSampler.cancel();inlineText.finish(false,false);editor.cancel();editor.refreshTheme();});
 update();
 void documentFiles.restoreRecovery(()=>inlineText.recoveryDraft);
 document.addEventListener('keydown',event=>{

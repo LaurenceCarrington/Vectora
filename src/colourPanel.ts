@@ -46,6 +46,10 @@ export class ColourPanel {
   root.querySelector<HTMLButtonElement>('[data-save-colour]')!.onclick=()=>{const list=root.querySelector<HTMLElement>('[data-saved-swatches]')!,paint=this.paint;if([...list.children].some(b=>(b as HTMLElement).dataset.colour===paint.hex&&(b as HTMLElement).dataset.opacity===String(paint.opacity)))return;const button=document.createElement('button');button.type='button';button.className='colour-swatch';button.dataset.colour=paint.hex;button.dataset.opacity=String(paint.opacity);button.style.setProperty('--swatch',paint.hex);button.title=`${paint.hex} · ${Math.round(paint.opacity*100)}%`;button.setAttribute('aria-label',button.title);list.append(button);if(list.children.length>12)list.firstElementChild!.remove();root.querySelector<HTMLElement>('.colour-saved')!.hidden=false;};
   this.render();
  }
+ enableSampler(start:(button:HTMLButtonElement,choose:(paint:Paint)=>void)=>void):void {
+  const button=document.createElement('button');button.type='button';button.className='panel-icon';button.setAttribute('aria-label','Pick colour from canvas');button.setAttribute('aria-pressed','false');button.title='Pick colour from canvas · Arrows move · Enter picks · Escape cancels';button.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-pipette"/></svg>';
+  this.root.querySelector('[data-save-colour]')!.before(button);button.onclick=()=>start(button,paint=>{this.set(paint);this.hex.setAttribute('aria-invalid','false');this.root.querySelector<HTMLElement>('.colour-error')!.hidden=true;this.publish(true);});
+ }
  setNoFill(value:boolean):void {this.root.querySelector('[data-colour-none]')!.setAttribute('aria-pressed',String(value));}
  private get paint():Paint{return {hex:hsvToHex(this.h,this.s,this.v),opacity:this.opacity};}
  private publish(commit:boolean):void {this.busy=true;try{this.change(this.paint,commit);}finally{this.busy=false;}}

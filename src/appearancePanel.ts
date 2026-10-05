@@ -81,6 +81,7 @@ export class AppearancePanel {
  private error(kind:string,message:string):void {const el=this.root.querySelector<HTMLElement>(`[data-paint-error="${kind}"]`)!;el.textContent=message;el.hidden=!message;}
  set(paint:Paint):void {if(this.busy)return;this.solid=paint;this.colour.set(paint);this.tab('colour',false);}
  setAppearance(paint:FillPaint):void {if(this.busy)return;if(paint.kind==='colour'){this.set({hex:paint.colour,opacity:paint.opacity});return;}if(paint.kind==='gradient'){this.gradient=structuredClone(paint);this.renderGradient();}else{this.pattern=structuredClone(paint);this.renderPattern();}this.tab(paint.kind,false);}
+ enableSampler(start:(button:HTMLButtonElement,choose:(paint:Paint)=>void)=>void):void {this.colour.enableSampler(start);}
  setNoFill(value:boolean):void {this.colour.setNoFill(value);this.root.querySelectorAll('[data-paint-none]').forEach(b=>b.setAttribute('aria-pressed',String(value)));}
  hint(text:string):void {this.colour.hint(text);}
 }
