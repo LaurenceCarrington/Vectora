@@ -1,5 +1,7 @@
 import {generalPreferences,UNIT_NAMES} from './generalPreferences';
 import {bindLength,setLength,readLength} from './measurementDisplay';
+import {ColourPopover} from './colourPopover';
+import type {Paint} from './colourPanel';
 import {CanvasColourSampler} from './canvasColourSampler';
 import {captureArtwork} from './captureArtwork';
 import {AppearancePanel} from './appearancePanel';
@@ -53,8 +55,10 @@ const objectCreation=new ObjectCreation(props.querySelector('.editor-panel-body'
 });
 const colourButton=$<HTMLButtonElement>('[data-colour-trigger]');
 const colourPanel=new AppearancePanel(colour,(paint,commit)=>attempt(()=>editor.setPaint(paint.hex,paint.opacity,commit)),()=>{setPanel(colour,false);colourButton.focus();},()=>editor.setFillColor('none'),(paint,commit)=>attempt(()=>editor.setFillPaint(paint,commit)));
-const colourSampler=new CanvasColourSampler(editor.canvas,()=>captureArtwork(editor),()=>!colour.hidden&&!colour.querySelector<HTMLElement>('#appearance-colour')!.hidden,error=>notify(error instanceof Error?error.message:String(error),editor.hasPendingGesture||editor.textEditing?'warning':'error'));
-colourPanel.enableSampler((button,choose)=>colourSampler.start(button,choose));
+let samplingButton:HTMLButtonElement|null=null;
+const colourSampler=new CanvasColourSampler(editor.canvas,()=>captureArtwork(editor),()=>!!samplingButton?.isConnected&&!!samplingButton.getClientRects().length&&!samplingButton.closest('[hidden]'),error=>notify(error instanceof Error?error.message:String(error),editor.hasPendingGesture||editor.textEditing?'warning':'error'));
+const startColourSampling=(button:HTMLButtonElement,choose:(paint:Paint)=>void)=>{samplingButton=button;colourSampler.start(button,choose);};
+colourPanel.enableSampler(startColourSampling);ColourPopover.configureCanvasSampler(startColourSampling);
 let colourSelection='',lastFillPaint='';
 const propertiesButton=$<HTMLButtonElement>('[aria-label="Properties"]'),layersButton=$<HTMLButtonElement>('[aria-label="Layers"]');
 const layersPanel=new LayersPanel(layers,editor,()=>{setPanel(layers,false);layersButton.focus();});

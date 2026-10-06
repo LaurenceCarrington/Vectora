@@ -2,6 +2,9 @@ import {ColourPanel,type Paint} from './colourPanel';
 
 /** A shared picker outside scrolling docks, anchored to the colour being edited. */
 export class ColourPopover {
+ private static canvasSampler:((button:HTMLButtonElement,choose:(paint:Paint)=>void)=>void)|null=null;
+ /** Floating editor menus share one sampler; modal image dialogs use their own workflow. */
+ static configureCanvasSampler(start:(button:HTMLButtonElement,choose:(paint:Paint)=>void)=>void):void {this.canvasSampler=start;}
  private root=document.createElement('div');
  private picker:ColourPanel;
  private anchor:HTMLButtonElement|null=null;
@@ -14,6 +17,7 @@ export class ColourPopover {
   this.root.className='colour-panel colour-popover';this.root.id=`${idPrefix}-colour-popover`;this.root.hidden=true;
   this.root.setAttribute('role','dialog');document.body.append(this.root);
   this.picker=new ColourPanel(this.root,(paint,commit)=>this.change?.(paint,commit),()=>this.close(true),()=>{},false,`${idPrefix}-picker`);
+  if(!(owner instanceof HTMLDialogElement))this.picker.enableSampler((button,choose)=>ColourPopover.canvasSampler?.(button,paint=>choose({...paint,opacity:this.root.classList.contains('colour-popover-solid')?1:paint.opacity})));
   this.root.querySelector('.panel-eyebrow')!.remove();this.root.querySelector('[data-colour-none]')!.remove();this.root.querySelector('.colour-hint')!.remove();
   this.root.querySelector('[aria-label="Close Colour panel"]')!.setAttribute('aria-label','Close colour picker');
   this.header=this.root.querySelector<HTMLElement>('.layers-header')!;
