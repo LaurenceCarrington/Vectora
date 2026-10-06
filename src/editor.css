@@ -10,10 +10,9 @@ html,body { width:100%; height:100%; overflow:hidden; }
 .editor-panel:has(.text-properties:not([hidden])) .layers-header { margin-bottom:0; }
 .editor-panel .number-grid { margin-top:16px; gap:10px; }
 .export-option { display:flex; align-items:center; gap:8px; font-size:12px; }
-.export-option input { accent-color:var(--menu-selected); }
-button:disabled { opacity:0.4; cursor:not-allowed; }
-button:disabled:hover { background:transparent; }
-.button:disabled { background:var(--button-disabled-background); }
+.export-option input { accent-color:var(--chrome-accent); }
+button:disabled:not(.button) { opacity:0.4; cursor:not-allowed; }
+button:disabled:not(.button):hover { background:transparent; }
 @media(max-width:700px) { .brand { padding:0 4px; } .brand-wordmark { display:none; } .preview-caption { font-size:10px; letter-spacing:1px; } }
 .editor-panel .layers-header > div { flex:1; }
 

@@ -29,12 +29,12 @@
   --color-grid-minor: #2B2F35;
   --color-grid-major: #414853;
   --preview-background: var(--color-grid-background);
-  --preview-foreground: #EEF1F5;
-  --preview-muted: #B5BEC9;
-  --preview-border: #434A54;
-  --preview-grid-major: var(--preview-border);
+  --preview-foreground: var(--menu-foreground);
+  --preview-muted: var(--menu-muted);
+  --preview-border: var(--menu-border);
+  --preview-grid-major: #434A54;
   --preview-grid-minor: #30363F;
-  --preview-hover: #383C43;
+  --preview-hover: var(--menu-hover);
   --color-danger: #F2A7A0;
   --color-warning: #F5C28B;
   --color-positive: #A8D8B9;
@@ -46,9 +46,10 @@
   --color-construction: #FF00FF;
   --layer-construction: #FF00FF;
   --layer-raster: #000000;
-  --color-focus: #383838;
+  --color-focus: var(--chrome-accent);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --text-control: 13px;
   --text-xs: 12px;
   --text-sm: 14px;
   --text-md: 16px;
@@ -78,6 +79,7 @@
   --input-radius: 0px;
   --input-border-color: #383838;
   --input-icon-color: #383838;
+  --input-background: var(--color-surface);
   --input-prefix-width: 36px;
   --input-prefix-background: var(--color-toolbar);
   --input-prefix-foreground: var(--color-surface);
@@ -91,6 +93,7 @@
   --toggle-height: 28px;
   --toggle-thumb-size: 20px;
   --toggle-inset: 4px;
+  --toggle-active-thumb: var(--menu-background);
   --tool-size: 36px;
   --button-height: 32px;
   --button-padding-x: 12px;
@@ -156,6 +159,7 @@
   --menu-icon-size: 20px;
   --menu-item-gap: 4px;
   --menu-shadow: 0 4px 16px #00000020;
+  --modal-backdrop: #14161A99;
   --floating-control-height: 32px;
   --floating-padding: 4px;
   --floating-gap: 4px;
@@ -172,6 +176,10 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; color: var(--color-text); background: var(--color-canvas); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
+:where(button, input, select, textarea) { font:inherit; }
+:where(input[type="checkbox"], input[type="radio"]) { accent-color:var(--chrome-accent); }
+:where(output, kbd, input, .number-unit, .number-prefix) { font-variant-numeric:tabular-nums; }
+kbd { font-family:var(--font-sans); }
 main { max-width: 1240px; margin: auto; padding: var(--space-48) var(--space-32); }
 h1,h2,h3,p { margin: 0; } h1 { font-size: var(--text-display); line-height: 48px; font-weight: 600; letter-spacing: -2px; margin: var(--space-12) 0; }
 h2 { font-size: var(--text-xl); font-weight: 600; line-height: 32px; } h3 { font-size: var(--text-md); font-weight: 600; }
@@ -204,11 +212,11 @@ section { margin-top: var(--space-32); }
 /* Document-aligned millimetre rulers, above the canvas and below menus/panels. */
 .canvas-ruler { position:absolute; z-index:2; display:block; overflow:hidden; background:var(--menu-background); color:var(--menu-muted); pointer-events:none; }
 .canvas-ruler line { stroke:var(--menu-muted); stroke-width:1; stroke-linecap:butt; opacity:.65; }
-.canvas-ruler text { fill:currentColor; stroke:none; font-family:var(--font-mono); font-size:9px; font-weight:400; }
+.canvas-ruler text { fill:currentColor; stroke:none; font-family:var(--font-sans); font-size:9px; font-weight:400; }
 .ruler-left { top:var(--canvas-top); bottom:calc(var(--workspace-footer-height) + var(--ruler-size)); left:var(--toolbar-width); width:var(--ruler-size); height:calc(100% - var(--canvas-top) - var(--workspace-footer-height) - var(--ruler-size)); border-right:1px solid var(--menu-border); }
 .ruler-bottom { left:calc(var(--toolbar-width) + var(--ruler-size)); right:var(--toolbar-width); bottom:var(--workspace-footer-height); width:calc(100% - 2 * var(--toolbar-width) - var(--ruler-size)); height:var(--ruler-size); border-top:1px solid var(--menu-border); }
-.ruler-unit { position:absolute; z-index:2; left:var(--toolbar-width); bottom:var(--workspace-footer-height); width:var(--ruler-size); height:var(--ruler-size); display:grid; place-items:center; background:var(--menu-background); color:var(--menu-muted); font:8px var(--font-mono); pointer-events:none; }
-.workspace-footer { position:absolute; z-index:6; bottom:0; left:0; right:0; height:var(--workspace-footer-height); padding:0 var(--space-16); display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:16px; background:var(--menu-background); border-top:1px solid var(--menu-border); color:var(--menu-muted); font-size:12px; line-height:16px; }
+.ruler-unit { position:absolute; z-index:2; left:var(--toolbar-width); bottom:var(--workspace-footer-height); width:var(--ruler-size); height:var(--ruler-size); display:grid; place-items:center; background:var(--menu-background); color:var(--menu-muted); font:8px var(--font-sans); pointer-events:none; }
+.workspace-footer { position:absolute; z-index:6; bottom:0; left:0; right:0; height:var(--workspace-footer-height); padding:0 var(--space-16); display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:16px; background:var(--menu-background); border-top:1px solid var(--menu-border); color:var(--menu-muted); font-size:var(--text-xs); line-height:16px; }
 .zoom-reset { appearance:none; display:inline; border:0; padding:4px; margin:-4px; background:transparent; color:inherit; font:inherit; line-height:inherit; border-radius:var(--radius-sm); pointer-events:auto; }
 .zoom-reset:hover { color:var(--menu-foreground); text-decoration:underline; text-underline-offset:3px; }
 .workspace-footer > :first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -216,14 +224,14 @@ section { margin-top: var(--space-32); }
 .workspace-footer > :last-child { min-width:0; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media(max-width:700px) { .workspace-footer > :last-child { display:none; } }
 .preview-inner { position: relative; min-width: 940px; height: 640px; }
-.preview-caption { position: absolute; color: var(--color-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
+.preview-caption { position: absolute; color: var(--color-muted); font-size:var(--text-xs); text-transform: uppercase; letter-spacing: 2px; }
 .top-caption { top: 0; left: 50%; transform: translateX(-50%); }
-.toolbar { display: flex; background: var(--color-toolbar); color: white; padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
+.toolbar { display: flex; background: var(--color-toolbar); color:var(--menu-foreground); padding: var(--toolbar-padding); gap: var(--toolbar-gap); border-radius: var(--toolbar-radius); align-items: center; width: fit-content; }
 .application-header { position:absolute; z-index:4; top:0; left:0; right:0; height:var(--application-header-height); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr) minmax(0,1fr); align-items:center; padding:0 16px; background:var(--menu-background); color:var(--menu-foreground); border-bottom:1px solid var(--menu-border); }
 .header-actions { display:flex; align-items:center; justify-self:end; gap:4px; }
 .header-github { text-decoration:none; }
 .header-actions .tool:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
-.document-name { appearance:none; border:0; outline:none; box-shadow:none; background:transparent; padding:0; cursor:text; caret-color:var(--menu-foreground); justify-self:center; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:14px; font-weight:400; color:var(--menu-muted); }
+.document-name { appearance:none; border:0; outline:none; box-shadow:none; background:transparent; padding:0; cursor:text; caret-color:var(--menu-foreground); justify-self:center; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:var(--text-sm); font-weight:400; color:var(--menu-muted); }
 .top-toolbar { position:absolute; top:var(--application-header-height); left:0; right:0; width:100%; height:calc(var(--top-toolbar-height) - var(--application-header-height)); padding:2px 12px; justify-content:flex-start; background:var(--commandbar-background); border-bottom:1px solid var(--menu-border); }
 .brand { justify-self:start; font-size:18px; font-weight:500; display:flex; gap:8px; align-items:center; padding:0; min-width:0; }
 svg { width: var(--icon-lg); height: var(--icon-lg); stroke: currentColor; fill: none; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -250,22 +258,22 @@ button { font-family: inherit; cursor: pointer; }
 .swatch { background: var(--color-surface); border-radius: 12px; overflow: hidden; border: 2px solid var(--color-line); }
 .color { height: 64px; border-bottom: 2px solid var(--color-line); }
 .swatch-info { padding: 12px; display: grid; grid-template-columns: 1fr auto; gap: 4px; }
-.swatch-info strong { font-size: 14px; font-weight: 600; }.swatch-info small,.token { grid-column: 1/-1; color: var(--color-muted); font-size: 12px; }
+.swatch-info strong { font-size:var(--text-sm); font-weight: 600; }.swatch-info small,.token { grid-column: 1/-1; color: var(--color-muted); font-size:var(--text-xs); }
 .semantic-examples { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 16px; }
-.semantic-examples p { color: var(--color-muted); font-size: 12px; margin-left: 4px; }
+.semantic-examples p { color: var(--color-muted); font-size:var(--text-xs); margin-left: 4px; }
 
 
 
 .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .panel { padding: 24px; border: 2px solid var(--color-line); border-radius: 16px; background: white; }
-.font-name { font-size: 24px; font-weight: 600; margin-bottom: 4px; }.subtext { color: var(--color-muted); font-size: 12px; }
+.font-name { font-size: 24px; font-weight: 600; margin-bottom: 4px; }.subtext { color: var(--color-muted); font-size:var(--text-xs); }
 .font-stack { display: block; margin: 12px 0 20px; color: var(--color-muted); overflow-wrap: anywhere; }
 .type-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 2px solid var(--color-canvas); }
 .type-row code { color: var(--color-muted); white-space: nowrap; }
 .spacing { display: flex; align-items: end; gap: 16px; margin: 24px 0; height: 56px; }
-.space-sample { display: flex; align-items: center; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); }
+.space-sample { display: flex; align-items: center; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size:var(--text-xs); color: var(--color-muted); }
 .space-sample i { display: block; background: var(--color-toolbar); width: var(--sample); height: var(--sample); border-radius: 2px; }
-table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: var(--color-muted); text-align: left; font-weight: 500; }th,td { padding: 10px 0; border-bottom: 2px solid var(--color-canvas); }th:last-child,td:last-child { text-align: right; } td code { font-size: 12px; }
+table { border-collapse: collapse; width: 100%; font-size:var(--text-xs); }th { color: var(--color-muted); text-align: left; font-weight: 500; }th,td { padding: 10px 0; border-bottom: 2px solid var(--color-canvas); }th:last-child,td:last-child { text-align: right; } td code { font-size:var(--text-xs); }
 /* All toolbar shells, including floating selection, use square corners at every screen size. */
 /* Pop-out menus: shared by the toolbar and the component specimen. */
 [hidden] { display: none !important; }
@@ -279,7 +287,7 @@ table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: va
 .shape-options { display: flex; flex-direction: column; gap: var(--menu-item-gap); }
 .shape-option { display: flex; align-items: center; gap: var(--space-12); width: 100%; height: var(--menu-item-height); padding: 0 var(--menu-item-padding); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text); font-size: var(--text-sm); line-height: 20px; font-weight: 500; text-align: left; }
 .shape-option svg { width: var(--menu-icon-size); height: var(--menu-icon-size); }
-.shape-option kbd { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 16px; font-weight: 400; color: var(--color-muted); }
+.shape-option kbd { margin-left: auto; font-family: var(--font-sans); font-size: var(--text-xs); line-height: 16px; font-weight: 400; color: var(--color-muted); }
 .shape-option:hover { background: var(--color-canvas); }
 .shape-option[aria-checked="true"] { background: var(--color-toolbar); color:var(--menu-foreground); }
 .shape-option[aria-checked="true"] kbd { color:var(--menu-foreground); }
@@ -292,9 +300,9 @@ table { border-collapse: collapse; width: 100%; font-size: 12px; }th { color: va
 .menu-measurements div { display: grid; grid-template-columns: 88px 1fr; gap: var(--space-8); padding: var(--space-8) 0; border-bottom: var(--border-width) solid var(--color-line); font-size: var(--text-xs); }
 .menu-measurements dt { font-weight: 600; }.menu-measurements dd { margin: 0; color: var(--color-muted); }
 @media (max-width: 800px) { .menu-showcase { grid-template-columns: minmax(0, 1fr); }.menu-stage { padding: var(--space-12); } }
-details { border: 2px solid var(--color-line); border-radius: 12px; background: white; padding: 16px 20px; margin-top: 24px; }summary { cursor: pointer; font-weight: 600; }summary span { color: var(--color-muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
-pre { overflow: auto; padding: 20px; background: var(--color-toolbar); color: white; border-radius: 8px; font-size: 12px; line-height: 20px; max-height: 440px; }
-footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-line); color: var(--color-muted); display: flex; justify-content: space-between; gap: 16px; font-size: 12px; }
+details { border: 2px solid var(--color-line); border-radius: 12px; background: white; padding: 16px 20px; margin-top: 24px; }summary { cursor: pointer; font-weight: 600; }summary span { color: var(--color-muted); font-weight: 400; font-size:var(--text-xs); margin-left: 8px; }
+pre { overflow: auto; padding: 20px; background: var(--color-toolbar); color: white; border-radius: 8px; font-size:var(--text-xs); line-height: 20px; max-height: 440px; }
+footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-line); color: var(--color-muted); display: flex; justify-content: space-between; gap: 16px; font-size:var(--text-xs); }
 @media (max-width: 800px) { main { padding: 24px 16px; }.intro { align-items: start; flex-direction: column; gap: 16px; }h1 { font-size: 32px; line-height: 40px; }.two-cols { grid-template-columns: 1fr; }.swatches { grid-template-columns: repeat(2,1fr); }.section-heading { flex-wrap: wrap; }.section-note { margin-left: 0; width: 100%; }.preview { padding: 0; border-radius: 16px; }.preview-foot { gap: 8px 20px; }.panel { padding: 20px; }footer { flex-direction: column; gap: 4px; } }
 @media (prefers-reduced-motion: no-preference) { .tool { transition: background-color 120ms ease, color 120ms ease; } }
 @media print { main { max-width: none; padding: 0; }.preview { zoom: 0.7; }.two-cols { grid-template-columns: 1fr 1fr; } section, .panel { break-inside: avoid; } details { display: none; } }
@@ -314,7 +322,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .floating-menu .floating-action svg { width:var(--icon-sm); height:var(--icon-sm); }
 .floating-menu .divider { height:20px; margin:0 var(--space-4); }
 .floating-menu { max-width:calc(100% - 2 * var(--floating-edge-inset)); flex-wrap:wrap; }
-.floating-menu .floating-action:disabled { opacity:1; background:transparent; border-color:transparent; color:#999999; cursor:not-allowed; }
+.floating-menu .floating-action:disabled { opacity:1; background:transparent; border-color:transparent; color:var(--menu-disabled); cursor:not-allowed; }
 
 
 
@@ -334,7 +342,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .dropdown-group { display: flex; flex-direction: column; gap: var(--menu-item-gap); }
 .dropdown-option { display: flex; align-items: center; gap: var(--space-12); width: 100%; height: var(--menu-item-height); padding: 0 var(--menu-item-padding); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text); font-size: var(--text-sm); line-height: 20px; font-weight: 500; text-align: left; white-space: nowrap; }
 .dropdown-option svg { width: var(--menu-icon-size); height: var(--menu-icon-size); }
-.dropdown-option kbd { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 16px; font-weight: 400; color: var(--color-muted); }
+.dropdown-option kbd { margin-left: auto; font-family: var(--font-sans); font-size: var(--text-xs); line-height: 16px; font-weight: 400; color: var(--color-muted); }
 .dropdown-option:hover { background: var(--color-canvas); }
 .dropdown-option:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; background: var(--color-toolbar); color: var(--color-surface); }
 .dropdown-option:focus-visible kbd { color: var(--color-surface); }
@@ -393,11 +401,11 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .layer-add-button { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; min-height:32px; padding:4px 8px; }
 .layer-add-button svg { width:16px; height:16px; }
 .layer-add-menu { position:absolute; bottom:100%; left:0; width:100%; min-width:160px; padding:4px; border:1px solid var(--menu-border); z-index:var(--menu-z-index); }
-.layer-add-menu .node-action { min-height:32px; font-size:12px; }
+.layer-add-menu .node-action { min-height:32px; font-size:var(--text-xs); }
 .layer-label { flex:1; min-width:0; }
 .layer-label .layer-select { width:100%; }
 .layer-select > span:last-child { min-width:0; }
-.layer-name-input { width:100%; min-width:0; min-height:32px; padding:4px; box-sizing:border-box; font:inherit; font-size:13px; color:var(--menu-foreground); background:var(--menu-hover); border:1px solid var(--menu-border); border-radius:0; }
+.layer-name-input { width:100%; min-width:0; min-height:32px; padding:4px; box-sizing:border-box; font:inherit; font-size:var(--text-control); color:var(--menu-foreground); background:var(--menu-hover); border:1px solid var(--menu-border); border-radius:0; }
 .layer-name-input[aria-invalid="true"] { border-color:var(--color-error); }
 .layer-colour-button { width:var(--space-12); margin-right:var(--space-4); }
 .layer-colour-button .layer-dot { width:var(--space-12); height:var(--space-12); }
@@ -423,9 +431,9 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .notification-badge { position:absolute; top:0; right:0; min-width:16px; height:16px; padding:0 3px; display:flex; align-items:center; justify-content:center; background:var(--chrome-accent); color:var(--menu-background); font-size:10px; font-weight:700; line-height:16px; border:1px solid var(--menu-background); pointer-events:none; }
 .notifications-panel { margin:0; position:fixed; z-index:100; width:var(--alert-width); display:flex; flex-direction:column; border:1px solid var(--menu-border); background:var(--menu-background); color:var(--menu-foreground); box-shadow:var(--menu-shadow); overflow:hidden; }
 .notifications-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; border-bottom:1px solid var(--menu-border); flex-shrink:0; }
-.notifications-header h2 { margin:0; font-size:14px; font-weight:600; }
-.notifications-header h2 span { margin-left:8px; color:var(--menu-muted); font-size:12px; }
-.notifications-empty { padding:24px 12px; color:var(--menu-muted); font-size:12px; }
+.notifications-header h2 { margin:0; font-size:var(--text-sm); font-weight:600; }
+.notifications-header h2 span { margin-left:8px; color:var(--menu-muted); font-size:var(--text-xs); }
+.notifications-empty { padding:24px 12px; color:var(--menu-muted); font-size:var(--text-xs); }
 .toast-stack { width:100%; min-height:0; overflow-y:auto; overflow-anchor:none; overscroll-behavior:contain; padding:8px; }
 .toast-stack .toast-card { box-shadow:none; }
 .toast-stack:empty { display:none; }
@@ -436,7 +444,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 
 /* Destructive actions use danger colours only at confirmation. */
 .delete-dialog { position: fixed; inset: 0; margin: auto; width: var(--dialog-width); height: fit-content; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); padding: var(--dialog-padding); border: var(--border-width) solid var(--color-line); border-radius:var(--radius-sm); background: var(--color-surface); color: var(--color-text); box-shadow: var(--menu-shadow); overflow: auto; }
-.delete-dialog::backdrop { background: #24242466; }
+.delete-dialog::backdrop { background:var(--modal-backdrop); }
 .delete-dialog-heading { display: flex; align-items: center; gap: var(--space-12); margin-bottom: var(--space-12); }
 .delete-dialog-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--color-danger); color: var(--color-text); }
 .delete-dialog h2 { font-size: var(--text-lg); line-height: 28px; }
@@ -465,17 +473,17 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .control-panel > h3 { margin-bottom: var(--space-4); }
 .slider-example { width: var(--slider-width); max-width: 100%; margin-top: var(--space-24); }
 .slider-label { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-12); font-size: var(--text-sm); line-height: 20px; }
-.slider-label label { font-weight: 500; }.slider-label output { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-muted); }
+.slider-label label { font-weight: 500; }.slider-label output { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--color-muted); }
 .control-disabled-label { font-size: var(--text-xs); color: var(--color-muted); margin-left: var(--space-4); }
-.vectora-slider { --range-fill: var(--color-toolbar); --range-rest: var(--color-line); appearance: none; -webkit-appearance: none; display: block; width: 100%; height: var(--control-hit-height); padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--radius-sm); }
+.vectora-slider { --range-fill: var(--chrome-accent); --range-rest: var(--color-line); appearance: none; -webkit-appearance: none; display: block; width: 100%; height: var(--control-hit-height); padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--radius-sm); }
 .vectora-slider::-webkit-slider-runnable-track { height: var(--slider-track-height); border-radius: var(--radius-pill); background: linear-gradient(to right, var(--range-fill) 0%, var(--range-fill) var(--range-progress), var(--range-rest) var(--range-progress), var(--range-rest) 100%); }
 .vectora-slider::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: var(--slider-thumb-size); height: var(--slider-thumb-size); margin-top: calc((var(--slider-track-height) - var(--slider-thumb-size)) / 2); border: 0; border-radius: var(--radius-pill); background: var(--range-fill); box-shadow: 0 2px 6px #24242420; }
 .vectora-slider::-moz-range-track { height: var(--slider-track-height); border: 0; border-radius: var(--radius-pill); background: linear-gradient(to right, var(--range-fill) 0%, var(--range-fill) var(--range-progress), var(--range-rest) var(--range-progress), var(--range-rest) 100%); }
 .vectora-slider::-moz-range-thumb { width: var(--slider-thumb-size); height: var(--slider-thumb-size); border: 0; border-radius: var(--radius-pill); background: var(--range-fill); box-shadow: 0 2px 6px #24242420; }
 .vectora-slider::-moz-range-progress { background: transparent; }
-.vectora-slider:hover:not(:disabled) { --range-fill: var(--color-hover); }
+.vectora-slider:hover:not(:disabled) { --range-fill: var(--chrome-accent); }
 .vectora-slider:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
-.vectora-slider:disabled { --range-fill: #A0A0A0; cursor: not-allowed; }
+.vectora-slider:disabled { --range-fill: var(--menu-disabled); cursor: not-allowed; }
 .slider-limits { display: flex; justify-content: space-between; color: var(--color-muted); font-size: var(--text-xs); line-height: 16px; }
 .toggle-examples { margin-top: var(--space-24); }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); min-height: 64px; padding: var(--space-8) 0; cursor: pointer; }
@@ -484,18 +492,18 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .toggle-state { display: block; font-size: var(--text-xs); line-height: 16px; color: var(--color-muted); font-weight: 400; }
 .toggle-hit { display: inline-flex; position: relative; align-items: center; flex-shrink: 0; width: var(--toggle-width); height: var(--control-hit-height); }
 .vectora-toggle { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.toggle-track { position: relative; display: block; width: var(--toggle-width); height: var(--toggle-height); border-radius: var(--radius-pill); background: var(--color-line); box-shadow: inset 0 0 0 2px var(--color-muted); pointer-events: none; }
-.toggle-track::after { content: ''; position: absolute; left: var(--toggle-inset); top: var(--toggle-inset); width: var(--toggle-thumb-size); height: var(--toggle-thumb-size); border-radius: var(--radius-pill); background: var(--color-surface); }
-.vectora-toggle:checked + .toggle-track { background: var(--color-toolbar); box-shadow: none; }
-.vectora-toggle:checked + .toggle-track::after { transform: translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-inset) * 2)); }
-.vectora-toggle:hover:not(:disabled):checked + .toggle-track { background: var(--color-hover); }
-.vectora-toggle:focus-visible + .toggle-track { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
-.vectora-toggle:disabled { cursor: not-allowed; }.vectora-toggle:disabled + .toggle-track { background: var(--color-canvas); box-shadow: inset 0 0 0 2px var(--color-line); }
-.vectora-toggle:disabled:checked + .toggle-track { background: #A0A0A0; box-shadow: none; }
+.toggle-track { position: relative; display: block; width: var(--toggle-width); height: var(--toggle-height); border-radius: var(--radius-pill); background: var(--menu-hover); box-shadow: inset 0 0 0 2px var(--menu-muted); pointer-events: none; }
+.toggle-track::after { content: ''; position: absolute; left: var(--toggle-inset); top: var(--toggle-inset); width: var(--toggle-thumb-size); height: var(--toggle-thumb-size); border-radius: var(--radius-pill); background: var(--menu-foreground); }
+.vectora-toggle:checked + .toggle-track { background: var(--chrome-accent); box-shadow: none; }
+.vectora-toggle:checked + .toggle-track::after { background: var(--toggle-active-thumb); transform: translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - var(--toggle-inset) * 2)); }
+.vectora-toggle:hover:not(:disabled):checked + .toggle-track { box-shadow: inset 0 0 0 2px var(--toggle-active-thumb); }
+.vectora-toggle:focus-visible + .toggle-track { outline:2px solid var(--chrome-accent); outline-offset:3px; }
+.vectora-toggle:disabled { cursor: not-allowed; }.vectora-toggle:disabled + .toggle-track { background: var(--menu-hover); box-shadow: inset 0 0 0 2px var(--menu-border); }
+.vectora-toggle:disabled + .toggle-track::after { background: var(--menu-disabled); }
 .toggle-row.is-disabled { cursor: not-allowed; }.is-disabled .toggle-caption, .is-disabled .slider-label { color: var(--color-muted); }
 .control-token-line { margin: var(--space-24) 0 var(--space-8); padding-top: var(--space-16); border-top: var(--border-width) solid var(--color-line); color: var(--color-muted); font-size: var(--text-xs); line-height: 20px; }
 @media (prefers-reduced-motion: no-preference) { .toggle-track, .toggle-track::after { transition: background-color 120ms ease, transform 120ms ease; } }
-@media (forced-colors: active) { .vectora-slider { appearance: auto; -webkit-appearance: auto; }.vectora-slider::-webkit-slider-thumb { appearance: auto; -webkit-appearance: auto; }.toggle-track { border: 2px solid ButtonText; background: Canvas; box-shadow: none; }.toggle-track::after { background: ButtonText; }.vectora-toggle:checked + .toggle-track { background: Highlight; }.vectora-toggle:checked + .toggle-track::after { background: HighlightText; } }
+@media (forced-colors: active) { .vectora-slider { appearance: auto; -webkit-appearance: auto; }.vectora-slider::-webkit-slider-thumb { appearance: auto; -webkit-appearance: auto; }.toggle-track { border: 2px solid ButtonText; background: Canvas; box-shadow: none; }.toggle-track::after { background: ButtonText; }.vectora-toggle:checked + .toggle-track { background: Highlight; }.vectora-toggle:checked + .toggle-track::after { background: HighlightText; }.vectora-toggle:hover:not(:disabled):checked + .toggle-track { box-shadow:none; }.vectora-toggle:disabled + .toggle-track { background:Canvas; border-color:GrayText; box-shadow:none; }.vectora-toggle:disabled + .toggle-track::after { background:GrayText; } }
 
 /* Colour fill uses the shared charcoal pop-out and field styles. */
 .fill-tools { position:relative; --fill-icon-colour:var(--fill-colour,#FF0000); }
@@ -506,11 +514,11 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .number-grid { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--input-row-gap); margin-top: var(--space-24); align-items: start; }
 .number-field { min-width: 0; }
 .number-label { display: block; margin-bottom: var(--input-label-gap); color: var(--color-muted); font-family: var(--font-sans); font-size: var(--text-xs); line-height: 16px; font-weight: 500; }
-.number-shell { display: flex; align-items: center; gap: 0; height: var(--input-height); padding: 0; overflow: hidden; border: var(--border-width) solid var(--input-border-color); border-radius: var(--input-radius); background: var(--color-surface); }
+.number-shell { display: flex; align-items: center; gap: 0; height: var(--input-height); padding: 0; overflow: hidden; border: var(--border-width) solid var(--input-border-color); border-radius: var(--input-radius); background: var(--input-background); }
 .number-shell:hover { border-color: var(--input-border-color); }
-.number-shell:focus-within { border-color: var(--color-toolbar); outline:2px solid var(--chrome-accent); outline-offset:-2px; }
-.number-input { flex: 1; width: 100%; min-width: 0; height: 100%; padding: 0 var(--input-padding); margin: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: var(--color-text); font-family: var(--font-mono); font-size:13px; line-height: 20px; font-variant-numeric: tabular-nums; color-scheme: light; }
-.number-unit { margin-right: var(--input-padding); flex-shrink: 0; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); line-height: 16px; user-select: none; }
+.number-shell:focus-within { border-color: var(--chrome-accent); outline:2px solid var(--chrome-accent); outline-offset:-2px; }
+.number-input { flex: 1; width: 100%; min-width: 0; height: 100%; padding: 0 var(--input-padding); margin: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: var(--color-text); font-family: var(--font-sans); font-size:var(--text-control); line-height: 20px; font-variant-numeric: tabular-nums; color-scheme: light; }
+.number-unit { margin-right: var(--input-padding); flex-shrink: 0; color: var(--color-muted); font-family: var(--font-sans); font-size: var(--text-xs); line-height: 16px; user-select: none; }
 .number-input::-webkit-inner-spin-button { opacity: 0; }
 .number-shell:hover .number-input::-webkit-inner-spin-button, .number-shell:focus-within .number-input::-webkit-inner-spin-button { opacity: 1; }
 .number-field.is-disabled .number-shell { background: var(--color-canvas); border-color: var(--input-border-color); cursor: not-allowed; }
@@ -583,7 +591,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .prefs-reset { flex-shrink: 0; }
 
 .preferences-dialog { position: fixed; inset: 0; margin: auto; width: var(--preferences-width); height: var(--preferences-height); max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); padding: 0; border: 0; border-radius:var(--radius-sm); background: var(--color-surface); overflow: hidden; }
-.preferences-dialog::backdrop { background: #24242466; backdrop-filter: blur(4px); }
+.preferences-dialog::backdrop { background:var(--modal-backdrop); backdrop-filter: blur(4px); }
 .preferences-dialog .preferences-shell { height: 100%; max-height: 100%; box-shadow: none; }
 @media (max-width: 700px) { .preferences-preview { padding: var(--space-12); }.preferences-shell { --preferences-sidebar-width: 144px; --preferences-content-padding: 16px; }.preferences-sidebar { padding: var(--space-16) var(--space-8); }.prefs-tab { padding: var(--space-10) var(--space-8); font-size: var(--text-xs); }.prefs-tab svg { display: none; }.prefs-toggle { gap: var(--space-12); }.preferences-footer { flex-wrap: wrap; flex-basis: auto; }.prefs-save-status { flex: 1; min-width: 120px; } }
 @media (max-width: 480px) { .preferences-shell { --preferences-sidebar-width: 104px; --preferences-content-padding: 12px; }.prefs-nav-label { padding: 0 var(--space-4); }.prefs-tab { padding: var(--space-8) var(--space-4); }.prefs-toggle { align-items: flex-start; flex-direction: column; gap: var(--space-8); }.preferences-header { padding: var(--space-12); }.preferences-footer { gap: var(--space-8); }.prefs-open { margin-left: 0; } }
@@ -621,7 +629,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 @media (forced-colors: active) { .button { border-color: ButtonText; } }
 
 /* Attached field labels are part of the input, not separate action buttons. */
-.number-prefix { display: flex; align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0; min-width: var(--input-prefix-width); padding: 0 var(--space-12); margin: 0; background: var(--input-prefix-background); color: var(--input-prefix-foreground); font-family: var(--font-mono); font-size:12px; line-height: 20px; font-weight: 600; cursor: text; user-select: none; }
+.number-prefix { display: flex; align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0; min-width: var(--input-prefix-width); padding: 0 var(--space-12); margin: 0; background: var(--input-prefix-background); color: var(--input-prefix-foreground); font-family: var(--font-sans); font-size:var(--text-xs); line-height: 20px; font-weight: 600; cursor: text; user-select: none; }
 .number-shell.is-invalid .number-prefix { background: var(--color-danger); color: var(--color-text); }
 .number-field.is-disabled .number-prefix { background: var(--color-muted); color: var(--color-surface); cursor: not-allowed; }
 @media (forced-colors: active) { .number-prefix { background: ButtonText; color: ButtonFace; } }
@@ -636,9 +644,10 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
   --color-canvas: var(--menu-hover);
   --color-toolbar: var(--menu-selected);
   --color-on-toolbar-muted: var(--menu-muted);
-  --color-focus: var(--menu-foreground);
+  --color-focus: var(--chrome-accent);
   --input-border-color: var(--menu-border);
   --input-icon-color: var(--menu-foreground);
+  --input-background: var(--menu-hover);
   --input-prefix-background: var(--menu-hover);
   --input-prefix-foreground: var(--menu-foreground);
   --button-background: var(--menu-selected);
@@ -656,9 +665,7 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .layer-row.is-selected .panel-icon:hover { background:var(--menu-hover); }
 .layer-row.is-selected button:focus-visible { outline-color:var(--chrome-accent); }
 .layer-object[aria-pressed="true"]:focus-visible { outline-color:var(--chrome-accent); }
-.preferences-shell .vectora-toggle:hover:not(:disabled):checked + .toggle-track { background:var(--menu-hover); }
-.preferences-shell .vectora-slider:hover:not(:disabled) { --range-fill: #EAEAE7; }
-:is(.delete-dialog-icon, .number-error svg, .number-shell.is-invalid .number-prefix) { color: #242424; }
+:is(.delete-dialog-icon, .number-error svg, .number-shell.is-invalid .number-prefix) { color:var(--button-danger-foreground); }
 
 
 
@@ -674,17 +681,17 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 :is(.object-creation,.object-properties) { display:grid; gap:12px; margin:0; padding:8px 0 12px; }
 :is(.object-creation,.object-properties)[hidden] { display:none; }
 :is(.object-creation,.object-properties) h3 { margin:0; font-size:16px; line-height:22px; color:var(--menu-foreground); }
-:is(.object-creation,.object-properties) .subtext { margin:0; font-size:12px; line-height:18px; }
+:is(.object-creation,.object-properties) .subtext { margin:0; font-size:var(--text-xs); line-height:18px; }
 :is(.object-creation .creation-fields,.object-properties .number-grid) { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px 8px; margin:0; }
 .creation-field { min-width:0; }
 .creation-full-width { grid-column:1 / -1; }
-.creation-label { display:block; margin:0 0 4px; color:var(--menu-muted); font-size:12px; line-height:18px; }
+.creation-label { display:block; margin:0 0 4px; color:var(--menu-muted); font-size:var(--text-xs); line-height:18px; }
 .creation-field .number-shell { width:100%; min-width:0; }
-.creation-field .number-input { min-width:0; width:100%; padding:0 6px; font-size:12px; }
+.creation-field .number-input { min-width:0; width:100%; padding:0 6px; font-size:var(--text-control); }
 .creation-field .number-prefix { min-width:24px; padding-left:5px; padding-right:5px; }
 .creation-field .number-unit { margin-right:0; padding-left:2px; padding-right:6px; font-size:10px; }
-.creation-measurement .number-input,.creation-label > select { display:block; width:100%; height:36px; margin-top:4px; border:1px solid var(--menu-border); color:var(--menu-foreground); background:var(--menu-background); }
-.creation-error { margin:0; color:var(--color-danger); font-size:12px; line-height:18px; }
+.creation-measurement .number-input,.creation-label > select { display:block; width:100%; height:36px; margin-top:4px; border:1px solid var(--menu-border); color:var(--menu-foreground); background:var(--input-background); }
+.creation-error { margin:0; color:var(--color-danger); font-size:var(--text-xs); line-height:18px; }
 .creation-submit { width:100%; }
 .creation-specimen { position:relative; inset:auto; width:min(300px,100%); height:auto; margin-top:16px; background:var(--menu-background); color:var(--menu-foreground); border:1px solid var(--menu-border); }
 .creation-specimen .creation-demo-body { min-height:0; overflow:auto; }
@@ -718,9 +725,9 @@ footer { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--color-
 .object-properties .property-precise-fields { display:grid; gap:12px; }
 .object-properties .property-precise-fields[hidden] { display:none; }
 .object-properties details { min-width:0; margin:0; padding:8px 0 0; border:0; border-top:1px solid var(--menu-border); border-radius:0; background:transparent; }
-.object-properties summary { cursor:pointer; color:var(--menu-foreground); font-size:12px; line-height:20px; }
+.object-properties summary { cursor:pointer; color:var(--menu-foreground); font-size:var(--text-xs); line-height:20px; }
 .object-properties details .number-grid { margin-top:8px; }
-.object-properties .arc-actions .button { flex:1; min-width:0; font-size:12px; }
+.object-properties .arc-actions .button { flex:1; min-width:0; font-size:var(--text-xs); }
 .object-properties .text-properties { margin:0; }
 
 /* No-selection message inside the shared charcoal Properties panel. */
@@ -777,41 +784,41 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .pattern-dialog::backdrop { background:transparent; }
 .pattern-dialog h2 { margin:0 0 16px; font-size:18px; line-height:26px; }
 .pattern-tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--menu-hover); }
-.pattern-tabs button { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 4px; border:0; background:transparent; color:var(--menu-foreground); font:inherit; font-size:12px; cursor:pointer; }
+.pattern-tabs button { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 4px; border:0; background:transparent; color:var(--menu-foreground); font:inherit; font-size:var(--text-xs); cursor:pointer; }
 .pattern-tabs button[aria-selected="true"] { background:var(--chrome-selected); color:var(--chrome-accent); font-weight:600; }
 .pattern-tabs svg { width:16px; height:16px; flex-shrink:0; }
 .pattern-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; }
-.pattern-field { display:flex; flex-direction:column; gap:6px; font-size:12px; }
+.pattern-field { display:flex; flex-direction:column; gap:6px; font-size:var(--text-xs); }
 .pattern-field .number-shell { height:36px; min-height:36px; border-width:1px; }
-.pattern-field .number-input { padding:0 8px; font-size:13px; }
+.pattern-field .number-input { padding:0 8px; font-size:var(--text-control); }
 .pattern-field .number-unit { margin:0; padding-right:8px; font-size:11px; }
-.pattern-pick { width:100%; margin-top:14px; min-height:34px; padding:6px 8px; font-size:12px; }
+.pattern-pick { width:100%; margin-top:14px; min-height:34px; padding:6px 8px; font-size:var(--text-xs); }
 .pattern-pick svg { width:16px; height:16px; }
-.pattern-rotate { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13px; }
+.pattern-rotate { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:var(--text-control); }
 .pattern-rotate input { margin:0; accent-color:var(--chrome-accent); }
-.pattern-hint,.pattern-feedback { font-size:12px; line-height:18px; margin:12px 0; color:var(--menu-muted); }
+.pattern-hint,.pattern-feedback { font-size:var(--text-xs); line-height:18px; margin:12px 0; color:var(--menu-muted); }
 .pattern-feedback { padding-top:12px; border-top:1px solid var(--menu-border); color:var(--menu-foreground); }
 .pattern-feedback.is-error { color:var(--color-danger); }
 .pattern-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
-.pattern-actions .button,.pattern-pick-status .button { min-height:34px; padding:6px 14px; font-size:12px; }
+.pattern-actions .button,.pattern-pick-status .button { min-height:34px; padding:6px 14px; font-size:var(--text-xs); }
 .pattern-dialog :is(button,input):focus-visible,.pattern-pick-status button:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
-.pattern-pick-status { position:fixed; z-index:var(--menu-z-index); left:50%; bottom:72px; transform:translateX(-50%); display:flex; align-items:center; gap:12px; max-width:calc(100vw - 32px); padding:8px 12px; border:1px solid var(--menu-border); box-shadow:var(--menu-shadow); font-size:12px; }
+.pattern-pick-status { position:fixed; z-index:var(--menu-z-index); left:50%; bottom:72px; transform:translateX(-50%); display:flex; align-items:center; gap:12px; max-width:calc(100vw - 32px); padding:8px 12px; border:1px solid var(--menu-border); box-shadow:var(--menu-shadow); font-size:var(--text-xs); }
 .pattern-pick-status[hidden] { display:none; }
 @media(max-width:500px) { .pattern-dialog { right:16px; bottom:48px; padding:16px; }.pattern-pick-status { width:calc(100vw - 32px); bottom:48px; } }
 
 .corner-dialog { position:fixed; inset:auto 24px 64px auto; width:320px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 80px); margin:0; padding:20px; overflow:auto; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); }
 .corner-dialog::backdrop { background:transparent; }
 .corner-dialog h2 { margin:0; font-size:18px; line-height:26px; }
-.corner-count { color:var(--menu-muted); font-size:12px; margin:6px 0 16px; }
-.corner-field { display:flex; flex-direction:column; gap:8px; font-size:13px; }
+.corner-count { color:var(--menu-muted); font-size:var(--text-xs); margin:6px 0 16px; }
+.corner-field { display:flex; flex-direction:column; gap:8px; font-size:var(--text-control); }
 .corner-field .number-shell { height:40px; min-height:40px; border-width:1px; }
-.corner-field .number-input { padding:0 12px; font-size:14px; }
-.corner-field .number-unit { padding-right:12px; font-size:12px; }
+.corner-field .number-input { padding:0 12px; font-size:var(--text-control); }
+.corner-field .number-unit { padding-right:12px; font-size:var(--text-xs); }
 .corner-field input[aria-invalid="true"] { outline:1px solid var(--color-danger); outline-offset:-1px; }
-.corner-feedback,.corner-hint { font-size:12px; line-height:18px; margin:12px 0; color:var(--menu-muted); }
+.corner-feedback,.corner-hint { font-size:var(--text-xs); line-height:18px; margin:12px 0; color:var(--menu-muted); }
 .corner-feedback.is-error { color:var(--color-danger); }
 .corner-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
-.corner-actions .button { min-height:34px; padding:6px 14px; font-size:12px; }
+.corner-actions .button { min-height:34px; padding:6px 14px; font-size:var(--text-xs); }
 .corner-dialog :is(button,input):focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 @media(max-width:500px) { .corner-dialog { right:16px; bottom:48px; padding:16px; } }
 
@@ -832,7 +839,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .generator-menu { width:248px; min-height:96px; outline:none; }
 .raster-dialog { position:fixed; inset:0; margin:auto; padding:0; width:1080px; max-width:calc(100vw - 48px); max-height:calc(100dvh - 48px); border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-sm); box-shadow:var(--menu-shadow); overflow:hidden; }
 .raster-dialog[open] { display:flex; flex-direction:column; }
-.raster-dialog::backdrop { background:#24242466; backdrop-filter:blur(4px); }
+.raster-dialog::backdrop { background:var(--modal-backdrop); backdrop-filter:blur(4px); }
 .raster-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px; border-bottom:var(--border-width) solid var(--menu-border); flex-shrink:0; }
 .raster-header h2 { font-size:var(--text-xl); line-height:32px; }
 .raster-header p { margin-top:4px; font-size:var(--text-xs); color:var(--menu-muted); overflow-wrap:anywhere; }
@@ -855,7 +862,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .raster-input-surface:has(.raster-empty:not([hidden])) { background:var(--color-grid-background); box-shadow:inset 0 0 0 1px var(--menu-border); }
 .raster-input-surface:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .raster-vector-surface { background-color:var(--color-grid-background); background-image:linear-gradient(var(--color-grid-minor) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid-minor) 1px,transparent 1px); background-size:24px 24px; }
-#raster-vector-empty { color:#666666; font-size:var(--text-sm); }
+#raster-vector-empty { color:var(--menu-muted); font-size:var(--text-sm); }
 .raster-empty { display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:12px; color:var(--menu-muted); }
 .raster-empty > svg { width:36px; height:36px; }
 .raster-empty-title { font-size:var(--text-lg); font-weight:700; color:var(--menu-foreground); }
@@ -865,7 +872,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .raster-slider .slider-label label { font-size:var(--text-xs); }
 .raster-slider .vectora-slider { height:24px; }
 .raster-invert { display:flex; align-items:center; gap:8px; font-size:var(--text-xs); cursor:pointer; }
-.raster-invert input { width:16px; height:16px; accent-color:var(--menu-selected); }
+.raster-invert input { width:16px; height:16px; accent-color:var(--chrome-accent); }
 .raster-help, #raster-size { font-size:var(--text-xs); line-height:18px; color:var(--menu-muted); }
 #raster-size { margin-top:8px; }
 .raster-footer { margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-shrink:0; border-top:var(--border-width) solid var(--menu-border); padding:16px 24px; }
@@ -875,22 +882,21 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .raster-actions { display:flex; gap:8px; flex-shrink:0; }
 .raster-cancel { background:var(--menu-hover); color:var(--menu-foreground); }
 .raster-cancel:hover { background:var(--menu-border); }
-.raster-dialog .button:disabled { background:var(--menu-hover); color:#AAAAAA; cursor:not-allowed; }
 @media(max-width:800px) { .raster-dialog { max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); }.raster-column { padding:16px; }.raster-preview-surface { height:220px; }.raster-pane-heading { align-content:start; min-height:76px; } }
 @media(max-width:600px) { .raster-body { grid-template-columns:1fr; }.raster-column + .raster-column { border-left:0; border-top:var(--border-width) solid var(--menu-border); }.raster-pane-heading { min-height:40px; }.raster-header { padding:16px; flex-wrap:wrap; }.raster-header-actions { gap:8px; }.raster-footer { padding:16px; flex-wrap:wrap; }.raster-actions { margin-left:auto; } }
 
 
-@media(max-width:480px) { .application-header { grid-template-columns:80px minmax(0,1fr) 80px; padding:0 12px; }.application-header .brand-wordmark { display:none; }.document-name { font-size:12px; }.top-toolbar { padding-left:4px; } }
+@media(max-width:480px) { .application-header { grid-template-columns:80px minmax(0,1fr) 80px; padding:0 12px; }.application-header .brand-wordmark { display:none; }.document-name { font-size:var(--text-xs); }.top-toolbar { padding-left:4px; } }
 
 .toolbar .tool:focus-visible,.floating-menu button:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 /* Compact desktop chrome: existing actions, blue active states, quiet separators. */
 :is(.shape-option[aria-checked="true"],.prefs-tab[aria-selected="true"],.layer-row.is-selected,.layer-object[aria-pressed="true"]) svg { color:var(--chrome-accent); }
 .number-prefix { font-weight:500; }
-.layers-panel .button { font-size:13px; font-weight:500; }
+.layers-panel .button { font-size:var(--text-control); font-weight:500; }
 .layers-panel .panel-title { letter-spacing:0; }
 .layer-name { font-weight:400; }.layer-meta { font-size:11px; line-height:16px; }
-.menu-title { font-size:12px; font-weight:500; letter-spacing:.5px; }
-.shape-option,.dropdown-option { font-size:13px; font-weight:400; }
+.menu-title { font-size:var(--text-xs); font-weight:500; letter-spacing:.5px; }
+.shape-option,.dropdown-option { font-size:var(--text-control); font-weight:400; }
 
 /* Raise the owning stacking context so flyouts clear other rails and docked panels. */
 .toolbar:has(.file-dropdown:not([hidden]),.shapes-menu:not([hidden])),
@@ -911,10 +917,11 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
   --color-selection:#087DA8; --color-object-snap:#087DA8; --color-selection-area:#087DA822;
   --color-grid-background:#FAFBFC; --color-grid-minor:#E6EAF0; --color-grid-major:#C8D1DD;
   --preview-foreground:var(--menu-foreground); --preview-muted:var(--menu-muted);
-  --preview-border:var(--color-grid-major); --preview-grid-minor:var(--color-grid-minor);
+  --preview-border:var(--menu-border); --preview-grid-major:var(--color-grid-major); --preview-grid-minor:var(--color-grid-minor);
   --preview-hover:var(--menu-hover);
-  --color-focus:#087DA8; --input-border-color:#CDD2D9; --input-icon-color:#585F6B;
+  --color-focus:var(--chrome-accent); --input-border-color:#CDD2D9; --input-icon-color:#585F6B;
   --menu-button-hover:#D5DFEA; --menu-disabled:#7C838D;
+  --toggle-active-thumb:#FFFFFF;
   --button-background:#E2EAF2; --button-foreground:#243B50; --button-hover-background:#D5DFEA;
   --input-prefix-background:#EAEDF1; --input-prefix-foreground:#282B31;
 }
@@ -928,7 +935,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
   --color-selection:#005FCC; --color-object-snap:#005FCC; --color-selection-area:#005FCC22;
   --color-grid-background:#FFFFFF; --color-grid-minor:#909090; --color-grid-major:#555555;
   --preview-border:var(--menu-border); --preview-grid-major:var(--color-grid-major); --preview-grid-minor:var(--color-grid-minor);
-  --color-focus:#005FCC; --input-border-color:#000000; --input-icon-color:#000000;
+  --color-focus:var(--chrome-accent); --input-border-color:#000000; --input-icon-color:#000000;
   --menu-button-hover:#D5D5D5; --menu-disabled:#595959;
   --button-background:#FFFFFF; --button-foreground:#000000; --button-hover-background:#ECECEC;
   --button-disabled-background:#ECECEC; --button-disabled-foreground:#595959;
@@ -940,9 +947,10 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 /* Preserve inset focus rings and composite field/label focus handling. */
 :root[data-theme="high-contrast"] :is(:focus-visible,.number-shell:focus-within,.search-shell:focus-within,
  .theme-option:has(input:focus-visible),.raster-segments label:has(input:focus-visible),
- .vectora-toggle:focus-visible + .toggle-track,.prefs-segments input:focus-visible + span) {
+ .prefs-segments input:focus-visible + span) {
   outline-width:3px; outline-offset:-3px;
 }
+:root[data-theme="high-contrast"] .vectora-toggle:focus-visible + .toggle-track { outline-width:3px; }
 /* Some shared dark-theme states use surface colours as foregrounds; restore contrast here. */
 :root[data-theme="high-contrast"] .prefs-tab:hover { background:var(--menu-hover); }
 :root[data-theme="high-contrast"] .dropdown-option:focus-visible,
@@ -950,7 +958,6 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 :root[data-theme="high-contrast"] .drag-handle:is(:hover,:focus-visible),
 :root[data-theme="high-contrast"] .floating-menu.is-dragging .drag-handle,
 :root[data-theme="high-contrast"] :is(pre,.icon-specimen) { color:var(--menu-foreground); }
-:root[data-theme="high-contrast"] :is(.delete-dialog-icon,.number-error svg,.number-shell.is-invalid .number-prefix) { color:#FFFFFF; }
 :root[data-theme="high-contrast"] .document-name:focus-visible { outline:3px solid var(--chrome-accent); outline-offset:-3px; }
 .grid-type-select { font-family:var(--font-sans); }
 .grid-demo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; color:var(--color-grid-minor); }
@@ -967,11 +974,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .theme-swatch-light { background:#FAFBFC; border-color:#CDD2D9; }
 .theme-swatch-high-contrast { background:#FFFFFF; border-color:#000000; }
 :root:is([data-theme="light"],[data-theme="high-contrast"]) .toolbar { color:var(--menu-foreground); }
-:root:is([data-theme="light"],[data-theme="high-contrast"]) .vectora-slider:not(:disabled) { --range-fill:var(--chrome-accent); }
-:root:is([data-theme="light"],[data-theme="high-contrast"]) .vectora-toggle:checked + .toggle-track { background:var(--chrome-accent); }
-:root:is([data-theme="light"],[data-theme="high-contrast"]) .vectora-toggle:checked + .toggle-track::after { background:#FFFFFF; }
 
-:root:is([data-theme="light"],[data-theme="high-contrast"]) .preferences-shell .vectora-slider:hover:not(:disabled) { --range-fill:var(--chrome-accent); }
 
 .selection-context-menu { position:fixed; z-index:var(--menu-z-index); width:200px; padding:var(--space-8); border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); overflow:auto; }
 .selection-context-menu .node-action { min-height:36px; }
@@ -980,7 +983,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 
 /* Tool search: shared command palette for all appearance themes. */
 .tool-search-dialog { width:min(480px,calc(100vw - 24px)); max-width:none; max-height:calc(100dvh - 48px); margin: min(112px,12vh) auto 0; padding:0; border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-menu); background:var(--menu-background); color:var(--menu-foreground); box-shadow:var(--menu-shadow); overflow:hidden; }
-.tool-search-dialog::backdrop { background:#20222666; }
+.tool-search-dialog::backdrop { background:var(--modal-backdrop); }
 .tool-search-header { display:flex; align-items:center; gap:var(--space-8); padding:var(--space-12); border-bottom:var(--border-width) solid var(--menu-border); }
 .tool-search-header .search-shell { flex:1; min-width:0; height:40px; background:var(--menu-background); border-color:var(--menu-border); }
 .tool-search-header .search-shell:focus-within { outline-color:var(--chrome-accent); }
@@ -1012,29 +1015,29 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 /* Help: a large read-only guide with a searchable side index. */
 .help-dialog { position:fixed; inset:0; margin:auto; width:1120px; height:780px; max-width:calc(100vw - 40px); max-height:calc(100dvh - 40px); padding:0; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); overflow:hidden; }
 .help-dialog[open] { display:flex; flex-direction:column; }
-.help-dialog::backdrop { background:#14161a99; backdrop-filter:blur(4px); }
+.help-dialog::backdrop { background:var(--modal-backdrop); backdrop-filter:blur(4px); }
 .help-header { display:flex; align-items:center; gap:24px; padding:20px 24px; border-bottom:1px solid var(--menu-border); flex-shrink:0; }
 .help-header > div { flex:1; min-width:0; }
 .help-header h2 { font-size:22px; line-height:30px; margin:0; }
 .help-eyebrow { display:block; font-size:10px; line-height:18px; letter-spacing:1.2px; font-weight:600; color:var(--menu-muted); }
 .help-search { width:330px; max-width:100%; height:36px; min-height:36px; }
-.help-search .search-input { font-size:12px; min-width:0; }
+.help-search .search-input { font-size:var(--text-xs); min-width:0; }
 .help-search svg { width:16px; height:16px; }
 .help-close { flex-shrink:0; }
 .help-body { display:grid; grid-template-columns:224px minmax(0,1fr); flex:1; min-height:0; }
 .help-sidebar { padding:20px 10px; border-right:1px solid var(--menu-border); overflow-y:auto; overscroll-behavior:contain; }
 .help-index-label { padding:0 10px 12px; font-size:10px; letter-spacing:1.2px; color:var(--menu-muted); }
-.help-tab { display:flex; align-items:center; gap:10px; width:100%; padding:10px; min-height:40px; border:0; background:transparent; color:var(--menu-muted); text-align:left; font-size:12px; line-height:18px; }
+.help-tab { display:flex; align-items:center; gap:10px; width:100%; padding:10px; min-height:40px; border:0; background:transparent; color:var(--menu-muted); text-align:left; font-size:var(--text-xs); line-height:18px; }
 .help-tab svg { width:18px; height:18px; flex-shrink:0; }
 .help-tab:hover { background:var(--menu-hover); color:var(--menu-foreground); }
 .help-tab[aria-selected="true"] { background:var(--chrome-selected); color:var(--chrome-accent); font-weight:600; }
 .help-tab:focus-visible,.help-link:focus-visible,.help-dialog .tool:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .help-content { min-width:0; overflow-y:auto; overscroll-behavior:contain; padding:28px 32px; }
-.help-page { max-width:800px; margin:0 auto; color:var(--menu-foreground); font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
+.help-page { max-width:800px; margin:0 auto; color:var(--menu-foreground); font-size:var(--text-control); line-height:1.7; overflow-wrap:anywhere; }
 .help-page:focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .help-page-heading { margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--menu-border); }
 .help-page-heading h2 { margin:6px 0; font-size:24px; line-height:32px; }
-.help-page-heading p { font-size:14px; }
+.help-page-heading p { font-size:var(--text-sm); }
 .help-page p { margin:0 0 12px; color:var(--menu-muted); }
 .help-page h3 { margin:24px 0 10px; font-size:15px; line-height:22px; font-weight:600; }
 .help-page-heading p:last-child,.help-note p:last-child { margin-bottom:0; }
@@ -1051,9 +1054,9 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .help-steps { margin:12px 0 20px; padding-left:24px; }
 .help-steps li { padding-left:4px; margin-bottom:10px; color:var(--menu-muted); }
 .help-steps li::marker { color:var(--chrome-accent); font-weight:600; }
-.help-page kbd { display:inline-block; padding:1px 5px; border:1px solid var(--menu-border); background:var(--menu-hover); color:var(--menu-foreground); font-family:var(--font-mono); font-size:11px; line-height:18px; white-space:nowrap; }
+.help-page kbd { display:inline-block; padding:1px 5px; border:1px solid var(--menu-border); background:var(--menu-hover); color:var(--menu-foreground); font-family:var(--font-sans); font-size:11px; line-height:18px; white-space:nowrap; }
 .help-table-wrap { max-width:100%; margin:12px 0 20px; }
-.help-page table { width:100%; border-collapse:collapse; text-align:left; font-size:12px; line-height:1.65; }
+.help-page table { width:100%; border-collapse:collapse; text-align:left; font-size:var(--text-xs); line-height:1.65; }
 .help-page th { font-weight:600; color:var(--menu-foreground); background:var(--menu-hover); }
 .help-page th,.help-page td { padding:10px 12px; border-bottom:1px solid var(--menu-border); vertical-align:top; }
 .help-page td { color:var(--menu-muted); }
@@ -1065,10 +1068,10 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .help-empty { padding:64px 12px; text-align:center; }
 .help-empty > svg { width:32px; height:32px; color:var(--menu-muted); }
 .help-empty h3 { margin:16px 0 8px; }
-.help-empty p { margin-bottom:20px; font-size:13px; color:var(--menu-muted); }
+.help-empty p { margin-bottom:20px; font-size:var(--text-control); color:var(--menu-muted); }
 .help-footer { margin:0; display:flex; justify-content:space-between; gap:16px; padding:12px 24px; border-top:1px solid var(--menu-border); color:var(--menu-muted); font-size:11px; line-height:16px; flex-shrink:0; }
 @media(max-width:850px) { .help-body { grid-template-columns:190px minmax(0,1fr); }.help-content { padding:24px; }.help-cards { grid-template-columns:1fr; }.help-recipes { grid-template-columns:1fr; }.help-search { width:270px; } }
-@media(max-width:600px) { .help-dialog { max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }.help-header { flex-wrap:wrap; gap:12px; padding:14px; }.help-header h2 { font-size:20px; }.help-search { order:3; width:100%; }.help-body { grid-template-columns:118px minmax(0,1fr); }.help-sidebar { padding:12px 4px; }.help-index-label { padding:0 6px 8px; }.help-tab { padding:8px 6px; font-size:11px; line-height:16px; gap:0; }.help-tab svg { display:none; }.help-content { padding:16px 12px; }.help-page-heading h2 { font-size:20px; line-height:27px; }.help-page { font-size:12px; }.help-page-heading p { font-size:12px; }.help-intro { padding:12px; }.help-intro h3 { font-size:18px; line-height:25px; }.help-page th,.help-page td { padding:8px 5px; font-size:11px; }.help-page td:first-child { width:40%; }.help-page kbd { font-size:10px; padding:0 3px; }.help-footer { padding:10px 14px; }.help-footer > span:last-child { display:none; } }
+@media(max-width:600px) { .help-dialog { max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }.help-header { flex-wrap:wrap; gap:12px; padding:14px; }.help-header h2 { font-size:20px; }.help-search { order:3; width:100%; }.help-body { grid-template-columns:118px minmax(0,1fr); }.help-sidebar { padding:12px 4px; }.help-index-label { padding:0 6px 8px; }.help-tab { padding:8px 6px; font-size:11px; line-height:16px; gap:0; }.help-tab svg { display:none; }.help-content { padding:16px 12px; }.help-page-heading h2 { font-size:20px; line-height:27px; }.help-page { font-size:var(--text-xs); }.help-page-heading p { font-size:var(--text-xs); }.help-intro { padding:12px; }.help-intro h3 { font-size:18px; line-height:25px; }.help-page th,.help-page td { padding:8px 5px; font-size:11px; }.help-page td:first-child { width:40%; }.help-page kbd { font-size:10px; padding:0 3px; }.help-footer { padding:10px 14px; }.help-footer > span:last-child { display:none; } }
 
 
 /* Mechanical, structural and decorative generators: shared live 2D profile workbench. */
@@ -1077,12 +1080,12 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .generator-category:not(:first-child) { margin-top:8px; border-top:1px solid var(--menu-border); }
 .generator-dialog { position:fixed; inset:0; margin:auto; width:1080px; height:740px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); padding:0; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); overflow:hidden; }
 .generator-dialog[open] { display:flex; flex-direction:column; }
-.generator-dialog::backdrop { background:#14161a99; backdrop-filter:blur(4px); }
+.generator-dialog::backdrop { background:var(--modal-backdrop); backdrop-filter:blur(4px); }
 .generator-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--menu-border); flex-shrink:0; }
 .generator-header h2 { margin:0; font-size:20px; line-height:28px; }
 .generator-body { display:grid; grid-template-columns:minmax(0,1fr) 320px; flex:1; min-height:0; }
 .generator-preview { margin:0; display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--color-grid-background); color:var(--menu-foreground); }
-.generator-preview-heading { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; font-size:12px; color:var(--menu-muted); }
+.generator-preview-heading { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; font-size:var(--text-xs); color:var(--menu-muted); }
 .generator-preview-heading label { display:flex; align-items:center; gap:6px; cursor:pointer; }
 .generator-preview-heading input { accent-color:var(--chrome-accent); }
 .generator-svg { display:block; flex:1; width:100%; min-height:0; overflow:hidden; }
@@ -1097,18 +1100,18 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .generator-legend[hidden] { display:none; }
 .generator-fold-key { color:var(--chrome-accent); }
 .generator-svg.is-pending { opacity:.25; }
-.generator-size { padding:14px 16px; text-align:center; font:12px var(--font-mono); color:var(--menu-muted); min-height:46px; box-sizing:border-box; }
-.generator-controls { margin:0; padding:20px; border-left:1px solid var(--menu-border); overflow-y:auto; overscroll-behavior:contain; min-width:0; font-size:12px; }
-.generator-field { display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--menu-foreground); min-width:0; }
-.generator-field select { display:block; width:100%; height:36px; padding:0 8px; background:var(--menu-background); color:var(--menu-foreground); border:1px solid var(--menu-border); border-radius:0; font:inherit; }
+.generator-size { padding:14px 16px; text-align:center; font:12px var(--font-sans); color:var(--menu-muted); min-height:46px; box-sizing:border-box; }
+.generator-controls { margin:0; padding:20px; border-left:1px solid var(--menu-border); overflow-y:auto; overscroll-behavior:contain; min-width:0; font-size:var(--text-xs); }
+.generator-field { display:flex; flex-direction:column; gap:6px; font-size:var(--text-xs); color:var(--menu-foreground); min-width:0; }
+.generator-field select { display:block; width:100%; height:36px; padding:0 8px; background:var(--input-background); color:var(--menu-foreground); border:1px solid var(--menu-border); border-radius:0; font:inherit;  font-size:var(--text-control); }
 .generator-description,.generator-notes { color:var(--menu-muted); line-height:1.6; }
 .generator-description { margin:12px 0 20px; }
 .generator-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px 12px; margin-bottom:18px; }
 .generator-fields .number-shell { height:36px; min-height:36px; border-width:1px; }
-.generator-fields .number-input { min-width:0; padding:0 8px; font-size:13px; }
+.generator-fields .number-input { min-width:0; padding:0 8px; font-size:var(--text-control); }
 .generator-fields .number-unit { margin:0; padding:0 8px 0 0; font-size:11px; }
 .generator-fields input[aria-invalid="true"] { outline:1px solid var(--color-danger); outline-offset:-1px; }
-.generator-dialog .button { min-height:34px; padding:6px 12px; font-size:12px; }
+.generator-dialog .button { min-height:34px; padding:6px 12px; font-size:var(--text-xs); }
 
 .generator-image { margin:0 0 18px; }
 .generator-image[hidden],.generator-dialog [data-new-seed][hidden] { display:none; }
@@ -1130,7 +1133,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .generator-metrics dd { margin:0; text-align:right; }
 .generator-notes p { margin:12px 0 0; }
 .generator-footer { margin:0; display:flex; align-items:center; justify-content:space-between; gap:16px; border-top:1px solid var(--menu-border); padding:12px 20px; flex-shrink:0; }
-.generator-feedback { font-size:12px; color:var(--menu-muted); }
+.generator-feedback { font-size:var(--text-xs); color:var(--menu-muted); }
 .generator-feedback.is-error { color:var(--color-danger); }
 .generator-actions { display:flex; gap:8px; flex-shrink:0; }
 .generator-dialog :is(button,select,input):focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
@@ -1155,54 +1158,53 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .offset-dialog { position:fixed; inset:auto; width:300px; margin:0; padding:16px; overflow:auto; border:1px solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); }
 .offset-dialog::backdrop { background:transparent; }
 .offset-dialog h2 { margin:0 0 12px; font-size:16px; line-height:22px; }
-.offset-source { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; color:var(--menu-muted); font-size:12px; }
+.offset-source { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; color:var(--menu-muted); font-size:var(--text-xs); }
 .offset-source .button { flex:none; min-height:32px; padding:7px 10px; white-space:nowrap; }
 .offset-dialog .pattern-actions { position:sticky; bottom:-16px; margin-bottom:-16px; padding:12px 0 16px; background:var(--menu-background); }
 .offset-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
-.offset-dialog select { width:100%; min-width:0; height:36px; padding:0 8px; border:1px solid var(--menu-border); border-radius:var(--radius-sm); background:var(--menu-background); color:var(--menu-foreground); font:inherit; font-size:13px; }
+.offset-dialog select { width:100%; min-width:0; height:36px; padding:0 8px; border:1px solid var(--menu-border); border-radius:var(--radius-sm); background:var(--input-background); color:var(--menu-foreground); font:inherit; font-size:var(--text-control); }
 .offset-dialog :is(button,select):focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .offset-specimen { position:relative; inset:auto; max-width:100%; box-sizing:border-box; }
 
 /* Unified export: shared modal, format navigation and compact settings. */
 .export-dialog { width:min(960px,calc(100vw - 32px)); max-width:none; max-height:calc(100dvh - 32px); padding:0; border:1px solid var(--menu-border); color:var(--menu-foreground); background:var(--menu-background); }
 .export-dialog[open] { display:flex; flex-direction:column; }
-.export-dialog::backdrop { background:rgb(0 0 0 / .55); }
+.export-dialog::backdrop { background:var(--modal-backdrop); }
 .export-header { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px; border-bottom:1px solid var(--menu-border); }
 .export-header h2 { margin:0; font-size:22px; }
-.export-header p { margin:6px 0 0; color:var(--menu-muted); font-size:13px; }
+.export-header p { margin:6px 0 0; color:var(--menu-muted); font-size:var(--text-control); }
 .export-header svg,.export-formats svg { width:20px; height:20px; flex:none; }
 .export-body { display:grid; grid-template-columns:184px minmax(0,1fr); min-height:0; overflow:hidden; }
 .export-formats { padding:12px 0; border-right:1px solid var(--menu-border); overflow:auto; }
-.export-formats button { display:flex; align-items:center; gap:10px; width:100%; border:0; padding:14px 16px; text-align:left; color:var(--menu-muted); background:transparent; font:inherit; font-size:13px; cursor:pointer; }
+.export-formats button { display:flex; align-items:center; gap:10px; width:100%; border:0; padding:14px 16px; text-align:left; color:var(--menu-muted); background:transparent; font:inherit; font-size:var(--text-control); cursor:pointer; }
 .export-formats button:hover { background:var(--menu-hover); color:var(--menu-foreground); }
 .export-formats button[aria-selected="true"] { background:var(--menu-selected); color:var(--menu-selected-foreground); }
 .export-main { padding:20px 24px; min-width:0; overflow:auto; overscroll-behavior:contain; }
 .export-preview { height:200px; padding:18px; display:grid; place-items:center; overflow:hidden; background-color:#fff; background-image:conic-gradient(#e8e8e8 25%,#fff 0 50%,#e8e8e8 0 75%,#fff 0); background-size:16px 16px; border:1px solid var(--menu-border); }
 .export-preview img { display:block; width:100%; height:100%; min-height:0; object-fit:contain; }
 .export-preview [hidden] { display:none; }
-.export-preview p { color:#383838; font-size:13px; }
-.export-size { margin:10px 0 20px; min-height:18px; font-size:12px; text-align:center; color:var(--menu-muted); }
+.export-preview p { color:#383838; font-size:var(--text-control); }
+.export-size { margin:10px 0 20px; min-height:18px; font-size:var(--text-xs); text-align:center; color:var(--menu-muted); }
 .export-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
-.export-fields label { display:flex; flex-direction:column; gap:7px; font-size:12px; color:var(--menu-muted); min-width:0; }
-.export-options .number-input { width:100%; box-sizing:border-box; min-width:0; height:38px; padding:7px 10px; border:1px solid var(--menu-border); background:var(--menu-hover); color:var(--menu-foreground); font-family:inherit; font-size:14px; }
+.export-fields label { display:flex; flex-direction:column; gap:7px; font-size:var(--text-xs); color:var(--menu-muted); min-width:0; }
+.export-options .number-input { width:100%; box-sizing:border-box; min-width:0; height:38px; padding:7px 10px; border:1px solid var(--menu-border); background:var(--input-background); color:var(--menu-foreground); font-family:inherit; font-size:var(--text-control); }
 .export-options input[type="color"] { width:100%; height:38px; padding:3px; background:var(--menu-hover); border:1px solid var(--menu-border); cursor:pointer; }
 .export-options :focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
-.export-format-hint { font-size:12px; line-height:18px; color:var(--menu-muted); margin:18px 0; }
+.export-format-hint { font-size:var(--text-xs); line-height:18px; color:var(--menu-muted); margin:18px 0; }
 .export-advanced { margin:20px 0 0; padding:0; border:0; border-top:1px solid var(--menu-border); border-radius:0; background:transparent; color:var(--menu-foreground); }
-.export-advanced summary { padding:16px 0; cursor:pointer; font-size:14px; font-weight:600; }
+.export-advanced summary { padding:16px 0; cursor:pointer; font-size:var(--text-sm); font-weight:600; }
 .export-layers { border:0; border-top:1px solid var(--menu-border); margin:18px 0 0; padding:16px 0 0; }
-.export-layers legend { font-size:13px; padding:0 8px 0 0; }
-.export-layers p,.export-wide { font-size:12px; line-height:18px; color:var(--menu-muted); }
+.export-layers legend { font-size:var(--text-control); padding:0 8px 0 0; }
+.export-layers p,.export-wide { font-size:var(--text-xs); line-height:18px; color:var(--menu-muted); }
 .export-wide { grid-column:1 / -1; margin:0; }
 .export-layers [data-export-layers] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.export-options .export-check { display:flex; flex-direction:row; align-items:center; gap:8px; font-size:13px; color:var(--menu-foreground); }
+.export-options .export-check { display:flex; flex-direction:row; align-items:center; gap:8px; font-size:var(--text-control); color:var(--menu-foreground); }
 .export-check input { flex:none; }
-.export-error { font-size:13px; line-height:20px; color:var(--menu-foreground); padding:12px; border-left:3px solid #ee9999; background:var(--menu-hover); }
+.export-error { font-size:var(--text-control); line-height:20px; color:var(--menu-foreground); padding:12px; border-left:3px solid var(--color-danger); background:var(--menu-hover); }
 .export-footer { margin:0; flex-direction:row; justify-content:flex-end; flex-shrink:0; display:flex; gap:12px; align-items:center; padding:16px 24px; border-top:1px solid var(--menu-border); }
-.export-footer>span { margin-right:auto; color:var(--menu-muted); font-size:12px; }
-.export-footer .button { min-height:38px; padding:8px 14px; font-size:13px; }
+.export-footer>span { margin-right:auto; color:var(--menu-muted); font-size:var(--text-xs); }
+.export-footer .button { min-height:38px; padding:8px 14px; font-size:var(--text-control); }
 .export-footer [data-export-submit] { background:var(--menu-selected); color:var(--menu-selected-foreground); }
-.export-dialog button:disabled { opacity:.45; cursor:default; }
 @media(max-width:620px) { .export-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px); } .export-body { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); overflow:hidden; } .export-formats { display:flex; overflow:auto; border-right:0; border-bottom:1px solid var(--menu-border); padding:0; flex-shrink:0; } .export-formats button { width:auto; flex:none; padding:12px; } .export-formats svg { display:none; } .export-main { overflow:auto; padding:16px; } .export-preview { height:150px; } .export-header,.export-footer { padding:12px 16px; } .export-footer { flex-wrap:wrap; } .export-footer>span { width:100%; } .export-fields { gap:12px; } }
 
 /* Document tabs stay within the drawing frame; overflowing tabs scroll horizontally. */
@@ -1211,7 +1213,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .document-tab-list::-webkit-scrollbar { display:none; }
 .document-tab { display:flex; flex:none; min-width:112px; max-width:230px; align-items:center; border-right:1px solid var(--menu-border); }
 .document-tab.is-active { background:var(--menu-background); color:var(--menu-foreground); }
-.document-tab-select { display:flex; align-items:center; gap:8px; flex:1; min-width:0; height:100%; padding:0 10px; border:0; background:transparent; color:inherit; font:inherit; font-size:12px; cursor:pointer; }
+.document-tab-select { display:flex; align-items:center; gap:8px; flex:1; min-width:0; height:100%; padding:0 10px; border:0; background:transparent; color:inherit; font:inherit; font-size:var(--text-xs); cursor:pointer; }
 .document-tab-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .document-tab-dirty { width:5px; height:5px; flex:none; border-radius:50%; background:currentColor; }
 .document-tab-dirty[hidden] { display:none; }
@@ -1232,12 +1234,12 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .colour-panel .layers-header { flex-basis:48px; padding-bottom:8px; margin-bottom:8px; }
 .colour-panel .panel-title { font-size:16px; line-height:22px; }
 .colour-panel .panel-icon svg { width:14px; height:14px; }
-.colour-panel-body { display:flex; flex-direction:column; gap:8px; font-size:12px; min-height:0; overflow:auto; overscroll-behavior:contain; padding:2px 0 12px; }
+.colour-panel-body { display:flex; flex-direction:column; gap:8px; font-size:var(--text-xs); min-height:0; overflow:auto; overscroll-behavior:contain; padding:2px 0 12px; }
 .colour-plane { position:relative; flex:none; aspect-ratio:1.25; margin:4px 8px; background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent),var(--picker-hue,#f00); cursor:crosshair; touch-action:none; outline:1px solid var(--menu-border); }
 .colour-cursor { position:absolute; left:var(--picker-x,100%); top:var(--picker-y,0%); width:12px; height:12px; border:2px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #0008; transform:translate(-50%,-50%); pointer-events:none; }
 .colour-track-field { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; }
 .colour-track-field output { color:var(--menu-muted); }
-.colour-panel input { min-width:0; box-sizing:border-box; font:inherit; color:var(--menu-foreground); background:var(--menu-hover); border:1px solid var(--menu-border); border-radius:0; }
+.colour-panel input { min-width:0; box-sizing:border-box; font:inherit; color:var(--menu-foreground); background:var(--input-background); border:1px solid var(--menu-border); border-radius:0;  font-size:var(--text-control); }
 .colour-panel input[type="range"] { appearance:none; -webkit-appearance:none; flex:none; width:calc(100% - 12px); height:10px; margin:0 6px 6px; border:0; cursor:pointer; touch-action:pan-y; }
 .colour-panel input.colour-hue { background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
 .colour-panel input.colour-alpha { background:linear-gradient(to right,transparent,var(--picker-colour)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/10px 10px; }
@@ -1248,7 +1250,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .colour-percent { display:flex; align-items:center; gap:4px; color:var(--menu-muted); }
 .colour-percent input { width:52px; padding:2px; text-align:right; }
 .colour-hex-row { display:flex; align-items:center; gap:6px; padding-top:6px; border-top:1px solid var(--menu-border); }
-.colour-hex-row input { flex:1; min-width:0; width:100%; height:30px; padding:6px; font:11px var(--font-mono,monospace); text-transform:uppercase; }
+.colour-hex-row input { flex:1; min-width:0; width:100%; height:30px; padding:6px; font:11px var(--font-sans); text-transform:uppercase; }
 .colour-hex-row .panel-icon { flex:none; }
 .colour-hex-row .panel-icon:is(:hover,:focus-visible) { background:var(--menu-hover); color:var(--menu-foreground); }
 .colour-hex-row .panel-icon[aria-pressed="true"] { background:var(--menu-foreground); color:var(--menu-background); }
@@ -1263,7 +1265,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .colour-rgb input { width:100%; padding:5px; font-size:11px; }
 .colour-swatches { display:grid; grid-template-columns:repeat(auto-fill,var(--colour-swatch-size)); gap:8px; padding:6px; }
 .colour-swatch { aspect-ratio:1; width:100%; min-width:0; padding:0; cursor:pointer; border:1px solid var(--menu-muted); background:var(--swatch); border-radius:0; }
-.colour-none { background:linear-gradient(135deg,transparent calc(50% - .5px),#ef6060 calc(50% - .5px) calc(50% + .5px),transparent calc(50% + .5px)),var(--menu-hover); }
+.colour-none { background:linear-gradient(135deg,transparent calc(50% - .5px),var(--color-danger) calc(50% - .5px) calc(50% + .5px),transparent calc(50% + .5px)),var(--menu-hover); }
 .colour-swatch:hover { outline:1px solid var(--menu-foreground); outline-offset:2px; }
 .colour-panel :is(input,button,.colour-plane):focus-visible { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .colour-panel .colour-rgb input:focus-visible { outline-offset:-2px; }
@@ -1285,19 +1287,19 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 
 /* Fill & appearance: shared tabs with independently scrolling paint controls. */
 .appearance-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); flex:none; margin:0 0 10px; border-bottom:1px solid var(--menu-border); }
-.appearance-tabs button { min-width:0; height:32px; padding:0 6px; border:0; background:transparent; color:var(--menu-muted); font:inherit; font-size:12px; cursor:pointer; }
+.appearance-tabs button { min-width:0; height:32px; padding:0 6px; border:0; background:transparent; color:var(--menu-muted); font:inherit; font-size:var(--text-xs); cursor:pointer; }
 .appearance-tabs button:hover { background:var(--menu-hover); color:var(--menu-foreground); }
 .appearance-tabs button[aria-selected="true"] { background:var(--menu-hover); color:var(--chrome-accent); box-shadow:inset 0 -2px var(--chrome-accent); }
 .appearance-page { flex:1; min-height:0; overflow:hidden; }
 .appearance-page[hidden] { display:none; }
 .appearance-page > .colour-panel-body { height:100%; box-sizing:border-box; }
-.paint-controls { display:flex; flex-direction:column; gap:10px; height:100%; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; padding:4px 6px 12px; font-size:12px; }
+.paint-controls { display:flex; flex-direction:column; gap:10px; height:100%; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; padding:4px 6px 12px; font-size:var(--text-xs); }
 .paint-controls > * { flex-shrink:0; }
 .paint-preview { height:132px; overflow:hidden; border:1px solid var(--menu-border); background:repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/12px 12px; }
 .paint-preview svg { display:block; width:100%; height:100%; stroke:none; }
 .paint-field { display:flex; flex-direction:column; gap:5px; min-width:0; font-size:11px; color:var(--menu-muted); }
 .paint-field-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-.paint-controls input:not([type="checkbox"]),.paint-controls select { width:100%; height:30px; min-width:0; padding:4px 6px; border:1px solid var(--menu-border); background:var(--menu-hover); color:var(--menu-foreground); border-radius:0; font:inherit; font-size:12px; box-sizing:border-box; }
+.paint-controls input:not([type="checkbox"]),.paint-controls select { width:100%; height:30px; min-width:0; padding:4px 6px; border:1px solid var(--menu-border); background:var(--input-background); color:var(--menu-foreground); border-radius:0; font:inherit; font-size:var(--text-control); box-sizing:border-box; }
 .paint-controls :is(input,select):disabled { opacity:.45; }
 .paint-colour-field { display:flex; align-items:center; gap:6px; }
 .paint-stop-chip { width:28px; height:28px; flex:none; box-sizing:border-box; border:1px solid var(--menu-border); }
@@ -1308,7 +1310,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .gradient-stop { display:grid; grid-template-columns:28px minmax(0,1fr) 24px; gap:6px; align-items:center; padding:8px; border:1px solid var(--menu-border); }
 .gradient-stop-fields { grid-column:1 / -1; }
 .gradient-stop-fields label { display:flex; flex-direction:column; gap:4px; min-width:0; font-size:10px; color:var(--menu-muted); }
-.paint-none { min-height:30px; font-size:12px; }
+.paint-none { min-height:30px; font-size:var(--text-xs); }
 .paint-none[aria-pressed="true"] { outline:2px solid var(--chrome-accent); outline-offset:-2px; }
 .paint-error { margin:0; color:var(--menu-foreground); font-size:11px; line-height:1.4; }
 
@@ -1323,7 +1325,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .colour-popover .layer-heading { flex:1; min-width:0; }
 .colour-popover.is-dragging .layers-header { cursor:grabbing; }
 .colour-popover .layers-header button { cursor:pointer; }
-.colour-popover .panel-title { font-size:14px; }
+.colour-popover .panel-title { font-size:var(--text-sm); }
 .colour-popover .colour-plane { aspect-ratio:1.5; }
 .colour-popover-solid .colour-track-field:has(label[for$="-opacity"]),.colour-popover-solid .colour-alpha { display:none; }
 
@@ -1335,9 +1337,9 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .canvas-setup-body { display:grid; grid-template-columns:minmax(0,1fr) 280px; flex:1; min-height:0; overflow:hidden; }
 .canvas-presets,.canvas-details { margin:0; padding:20px 24px; min-width:0; overflow:auto; overscroll-behavior:contain; }
 .canvas-details { border-left:1px solid var(--menu-border); background:var(--menu-hover); }
-.canvas-setup-body h3 { font-size:14px; margin:0 0 16px; }
+.canvas-setup-body h3 { font-size:var(--text-sm); margin:0 0 16px; }
 .canvas-preset-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-.canvas-preset { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-width:0; min-height:112px; padding:10px 6px; border:1px solid var(--menu-border); background:var(--menu-background); color:var(--menu-foreground); font:inherit; font-size:12px; cursor:pointer; }
+.canvas-preset { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-width:0; min-height:112px; padding:10px 6px; border:1px solid var(--menu-border); background:var(--menu-background); color:var(--menu-foreground); font:inherit; font-size:var(--text-xs); cursor:pointer; }
 .canvas-preset:hover { background:var(--menu-hover); }
 .canvas-preset[aria-pressed="true"] { box-shadow:inset 0 0 0 2px var(--chrome-accent); border-color:var(--chrome-accent); }
 .canvas-preset svg { width:52px; height:40px; fill:none; stroke:currentColor; stroke-width:1.5; }
@@ -1345,13 +1347,13 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .canvas-size-preview { height:76px; display:flex; align-items:center; justify-content:center; background:var(--color-grid-background); border:1px solid var(--menu-border); }
 .canvas-size-preview span { display:block; border:1px solid var(--canvas-boundary); color:var(--menu-muted); font-size:52px; }
 .canvas-size-preview span:not([style]) { border:0; }
-.canvas-size-readout { margin:10px 0 18px; font-size:12px; color:var(--menu-muted); text-align:center; }
+.canvas-size-readout { margin:10px 0 18px; font-size:var(--text-xs); color:var(--menu-muted); text-align:center; }
 .canvas-details fieldset { border:0; padding:0; margin:0; min-width:0; }
-.canvas-details label { display:flex; flex-direction:column; gap:6px; font-size:12px; }
-.canvas-details :is(input,select) { box-sizing:border-box; width:100%; min-width:0; height:34px; border:1px solid var(--menu-border); padding:6px 8px; color:var(--menu-foreground); background:var(--menu-background); font:inherit; }
+.canvas-details label { display:flex; flex-direction:column; gap:6px; font-size:var(--text-xs); }
+.canvas-details :is(input,select) { box-sizing:border-box; width:100%; min-width:0; height:34px; border:1px solid var(--menu-border); padding:6px 8px; color:var(--menu-foreground); background:var(--input-background); font:inherit;  font-size:var(--text-control); }
 .canvas-details fieldset:disabled { opacity:.4; }
 .canvas-dimensions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
-.canvas-orientation { display:flex; align-items:center; gap:8px; font-size:12px; }
+.canvas-orientation { display:flex; align-items:center; gap:8px; font-size:var(--text-xs); }
 .canvas-orientation>span { margin-right:auto; }
 .canvas-orientation .panel-icon { width:34px; height:34px; border:1px solid var(--menu-border); }
 .canvas-orientation svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.5; }
@@ -1359,16 +1361,16 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .canvas-workspace-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .canvas-workspace-options .canvas-preset { min-height:88px; }
 .canvas-preset-tabs { display:flex; border-bottom:1px solid var(--menu-border); margin:20px 0 16px; }
-.canvas-preset-tabs button { flex:1; padding:10px 4px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--menu-muted); font:inherit; font-size:13px; cursor:pointer; }
+.canvas-preset-tabs button { flex:1; padding:10px 4px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--menu-muted); font:inherit; font-size:var(--text-control); cursor:pointer; }
 .canvas-preset-tabs button:hover { background:var(--menu-hover); }
 .canvas-preset-tabs [aria-selected="true"] { color:var(--menu-foreground); border-bottom-color:var(--chrome-accent); }
 .canvas-preset-note,.canvas-grid-help { font-size:11px; line-height:1.5; color:var(--menu-muted); }
 .canvas-preset-note { margin:16px 0 0; }
 .canvas-details .canvas-grid-settings { margin-top:18px; padding-top:16px; border-top:1px solid var(--menu-border); }
-.canvas-grid-settings legend { float:left; width:100%; font-size:14px; font-weight:600; margin:0 0 12px; }
+.canvas-grid-settings legend { float:left; width:100%; font-size:var(--text-sm); font-weight:600; margin:0 0 12px; }
 .canvas-grid-settings>label { clear:both; }
 .canvas-grid-help { margin:8px 0 0; }
-.canvas-details .subtext { font-size:12px; line-height:1.5; margin-top:18px; }
+.canvas-details .subtext { font-size:var(--text-xs); line-height:1.5; margin-top:18px; }
 @media(max-width:700px) {
  .new-document-dialog { width:calc(100vw - 16px); height:calc(100dvh - 16px); max-height:calc(100dvh - 16px); }
  .new-document-dialog .export-header { padding:14px 16px; }
@@ -1389,31 +1391,32 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .preview-camera-bar .panel-icon {width:32px;height:32px;color:var(--preview-foreground);background:var(--menu-background);border:1px solid var(--preview-border)}
 .preview-camera-bar .panel-icon:hover {background:var(--preview-hover)}
 .preview-camera-bar svg {width:20px;height:20px}
-.preview-camera-bar span {margin-left:auto;font-size:12px;color:var(--preview-muted);padding-right:4px}
+.preview-camera-bar span {margin-left:auto;font-size:var(--text-xs);color:var(--preview-muted);padding-right:4px}
 .material-preview-stage {flex:1;min-height:0;position:relative;overflow:hidden}
 .material-preview-stage canvas {display:block;width:100%;height:100%;touch-action:none}
 .material-preview-stage canvas:focus-visible {outline-offset:-3px}
-.material-preview-message {position:absolute;inset:0;z-index:1;display:grid;place-content:center;text-align:center;padding:24px;background:var(--preview-background);color:var(--preview-foreground);font-size:14px;pointer-events:none}
+.material-preview-message {position:absolute;inset:0;z-index:1;display:grid;place-content:center;text-align:center;padding:24px;background:var(--preview-background);color:var(--preview-foreground);font-size:var(--text-sm);pointer-events:none}
 .material-preview-message[hidden] {display:none}
 .material-preview-settings {overflow:auto;min-height:0;padding:16px;border-left:1px solid var(--menu-border);background:var(--menu-background);color:var(--menu-foreground)}
-.material-preview-settings h3 {font-size:14px;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--menu-border)}
+.material-preview-settings h3 {font-size:var(--text-sm);margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--menu-border)}
 .material-preview-settings h3:first-child {margin-top:0;padding-top:0;border:0}
-.preview-field {display:flex;flex-direction:column;gap:6px;font-size:13px;margin:12px 0;color:var(--menu-foreground)}
-.preview-field .number-input {font-size:13px;min-height:32px;padding:6px 8px;min-width:0;width:100%}
+.preview-field {display:flex;flex-direction:column;gap:6px;font-size:var(--text-control);margin:12px 0;color:var(--menu-foreground)}
+.preview-field .number-input {font-size:var(--text-control);min-height:32px;padding:6px 8px;min-width:0;width:100%}
+.preview-field select.number-input {background:var(--input-background);border:1px solid var(--menu-border)}
 .preview-field .number-shell {min-width:0}
-.preview-field .number-unit {font-size:12px}
+.preview-field .number-unit {font-size:var(--text-xs)}
 .preview-field input[aria-invalid="true"] {outline:2px solid var(--color-danger)}
-.material-preview-settings .subtext {font-size:12px;line-height:1.5;margin:10px 0}
-.preview-check {display:flex;gap:8px;align-items:center;font-size:13px}
+.material-preview-settings .subtext {font-size:var(--text-xs);line-height:1.5;margin:10px 0}
+.preview-check {display:flex;gap:8px;align-items:center;font-size:var(--text-control)}
 .preview-check input {accent-color:var(--chrome-accent)}
-.preview-error {font-size:12px;line-height:1.5;color:var(--color-danger)}
-.material-preview-footer {font-size:12px;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.preview-error {font-size:var(--text-xs);line-height:1.5;color:var(--color-danger)}
+.material-preview-footer {font-size:var(--text-xs);gap:8px;flex-wrap:wrap;justify-content:space-between}
 .material-preview-footer span:last-child {color:var(--menu-muted)}
 @media(max-width:650px) {
  .material-preview-dialog {width:calc(100vw - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}
  .material-preview-dialog .export-header {padding:12px}
  .material-preview-dialog .export-header h2 {font-size:18px}
- .material-preview-dialog .export-header p {font-size:12px}
+ .material-preview-dialog .export-header p {font-size:var(--text-xs)}
  .material-preview-body {grid-template-columns:1fr;grid-template-rows:minmax(180px,1.2fr) minmax(0,1fr)}
  .material-preview-settings {border-left:0;border-top:1px solid var(--menu-border)}
  .material-preview-footer {padding:10px 12px}
@@ -1426,7 +1429,7 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .general-fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-top: 12px; }
 .general-setting legend { float: left; width: 100%; padding: 0; }
 .general-setting > .prefs-setting-help { clear: both; }
-.general-setting select.number-input { height: var(--input-height); border: var(--border-width) solid var(--input-border-color); background: var(--color-surface); border-radius: var(--input-radius); }
+.general-setting select.number-input { height: var(--input-height); border: var(--border-width) solid var(--input-border-color); background:var(--input-background); border-radius: var(--input-radius); }
 .general-setting select.number-input:focus-visible { outline: 2px solid var(--chrome-accent); outline-offset: -2px; }
 @media (max-width: 480px) { .general-fields { grid-template-columns: minmax(0,1fr); } }
 
@@ -1434,13 +1437,13 @@ select option:disabled, select optgroup:disabled { color:var(--menu-disabled); }
 .paint-view-tabs { display:flex; gap:4px; padding:12px 16px; border-bottom:1px solid var(--menu-border); flex-shrink:0; }
 .paint-view-tabs button { flex:1; min-height:32px; padding:6px 10px; border:1px solid var(--menu-border); background:var(--menu-background); color:var(--menu-foreground); font:12px var(--font-sans); cursor:pointer; }
 .paint-view-tabs button[aria-selected="true"] { background:var(--menu-selected); color:var(--menu-selected-foreground); }
-.paint-sheet-view { display:flex; align-items:center; justify-content:center; flex:1; min-width:0; min-height:0; padding:16px; overflow:hidden; font-size:12px; color:var(--menu-muted); }
+.paint-sheet-view { display:flex; align-items:center; justify-content:center; flex:1; min-width:0; min-height:0; padding:16px; overflow:hidden; font-size:var(--text-xs); color:var(--menu-muted); }
 .paint-sheet-view > svg { display:block; width:100%; height:100%; min-height:0; stroke:none; fill:none; }
 .paint-sheet-view.is-pending { opacity:.4; }
 .paint-numbers-dialog .generator-toggle { margin:16px 0; }
-.paint-palette-title { margin:16px 0 8px; font-size:12px; }
+.paint-palette-title { margin:16px 0 8px; font-size:var(--text-xs); }
 .paint-number-palette { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
-.paint-number-swatch { display:flex; align-items:center; gap:6px; min-width:0; padding:6px; border:1px solid var(--menu-border); background:var(--menu-background); color:var(--menu-foreground); font:11px var(--font-mono); cursor:pointer; }
+.paint-number-swatch { display:flex; align-items:center; gap:6px; min-width:0; padding:6px; border:1px solid var(--menu-border); background:var(--menu-background); color:var(--menu-foreground); font:11px var(--font-sans); cursor:pointer; }
 .paint-number-chip { display:block; width:22px; height:22px; flex-shrink:0; border:1px solid var(--menu-border); }
 .paint-numbers-dialog .colour-popover { z-index:10; }
 </style></head>
@@ -1694,7 +1697,7 @@ SOFTWARE.
 <p class="subtext">The 28px charcoal status bar spans the full window width at the bottom. Side rails and docked panels end above it. The tool label stays left, the zoom/grid readout stays exactly centred using equal flexible side columns, and the navigation hint stays right (hidden on narrow screens). Click the zoom percentage in the centred footer to reset the view to 100%, or focus it and press Enter or Space. Reset keeps the current canvas centre, artwork and selection, without changing grid spacing or adding an undo step.</p>
 <div class="preview-foot"><span>Generators uses the wand icon after Images on the left toolbar. Its gapless, scrollable pop-out groups Mechanical &amp; hardware and Enclosure &amp; structural generators. It offers Involute gear (Spur, Helical transverse section, Bevel outer-end approximation, Rack &amp; pinion), Sprocket &amp; timing pulley, Thread &amp; fastener, Cam profile, Box &amp; finger joints, Flexure &amp; living hinge, Packaging &amp; die-cut nets, and Truss &amp; framework. Each opens the shared responsive 2D workbench: live fitted preview with optional construction guides, labelled custom profiles, millimetre fields, derived dimensions and inline validation. Insert adds unfilled editable paths to the active visible/unlocked layer at the view centre, selecting all parts in one undo step. Bores remain separate contours within each part; Explode separates them. Preview guides and part labels never enter the drawing. Packaging fold/score paths stay visible as blue dashed lines with a legend and are inserted separately on Engrave Path; the solid cut outline follows the active layer. Both destinations must be visible/unlocked, and one undo removes the entire insertion. Box layouts offer closed/open finger joints, interlocking tab/slot pairs and T-slot nut pockets; dimensions explicitly distinguish outside/inside sizes. Hinge slits remain open; rounded slots and panel borders remain closed. Warren/Pratt/Howe and rectangular frameworks use closed interior cut-outs. Dense patterns are capped and invalid fits blocked. Escape/Cancel leaves the drawing unchanged. Helical/bevel are explicitly labelled 2D views; sprockets, pulleys and fasteners use editable dimensions, not certified standard forms. The reference workbench previews the same geometry with insertion disabled.</span><span>The Help icon sits immediately left of GitHub and opens a large searchable guide with a side index, keyboard commands, controls, illustrated examples and troubleshooting. F1 also opens Help; Escape or Close returns focus to its icon. The guide is read-only, supports keyboard navigation and both themes, and keeps its header and index separate from the scrolling article. The GitHub icon at the top-right opens the Vectora repository in a new tab, preserving the drawing workspace.</span><span>The bottom status bar has equal 16px horizontal padding: the tool label and navigation hint are inset from the workspace edges to clear rounded browser-frame corners. Equal flexible side columns keep the zoom/grid readout exactly centred, including when the right hint is hidden on narrow screens.</span><span>Select (V): drag from empty canvas to enclose multiple shapes; fully enclosed, visible and unlocked shapes are selected. Shift-click toggles a shape; Shift-drag adds enclosed shapes. A blue dashed marquee with a translucent blue fill previews the selection. Each selected shape has a dashed outline, with shared bounds and resize handles. Move, resize, numeric bounds edits and Delete apply to the whole selection in one undo step; Shift preserves proportions. Escape cancels a drag or clears selection. Properties shows the selection count and combined bounds. Properties opens when requested with its toolbar button or when selecting a supported object tool; exporting uses the separate centred Export dialog. Selecting Rectangle, Circle, Ellipse, Polygon, Star, Heart, Line or an arc tool opens Properties with an exact creation form. Canvas drawing remains available. After adding or finishing a drawing, the open panel shows the selected object’s editing fields. Selecting existing objects does not open a closed panel. Menus and floating panels share the toolbar’s #2A2B2E charcoal surface, white text, light-grey secondary labels, subtle grey dividers, and dark selected rows with blue icons. Layer transfers: drag objects from expanded layers onto another visible, unlocked layer. Dropping onto Cut Path applies the shared red stroke without changing geometry, and supports Undo/Redo. Cut paths export without enabling artwork export. Layers: fixed header, layer count, 52px selectable rows, pastel markers, expanders, visibility and lock buttons, plus the standard footer. The editor starts with Cut Path, Engrave Path, Construction Path and Artwork; adding and deleting layers is supported. Visibility affects only the canvas, not DXF export. Footer: independent left and right sections, with zoom/grid status fixed at the exact horizontal centre. Heart is in Shapes after Star. Drag opposite bounding corners to size a symmetric heart; Shift locks equal width and height. Hearts use six editable cubic curves with a sharp central cleft and bottom tip, a closed unfilled outline and the active layer colour. Bounding corners use the configured grid/object snapping; reverse drags keep the heart upright. Clicks without size add nothing. Escape cancels drawing; creation is one Undo step. Normal selection, node editing, fills, outlines, patterns, save/load and export remain available. Heart also appears in tool search and Help. Star (Shift+Y) is in Shapes. Drag from centre to tip; Up/Down sets 3–64 points (default 5), Shift constrains rotation to 15°, and inner radius is 40% of outer radius. Centre/radius snapping preserves symmetry. Stars use closed, unfilled paths on the active layer and support ordinary transforms, node editing, outlines, history, saving and export. Escape cancels unfinished drawing. The empty canvas shows only the grid, with no welcome or starting text. Edge-to-edge grid with no canvas padding; the full-width 48px application header shows the Vectora mark at left and the document name centred. A 40px command strip below it contains the existing File, Undo, Redo, Preview and Settings actions, aligned from the left, and the left/right toolbars run from immediately below the top bar to the bottom edge, with vertically stacked icons aligned at the top. The bars meet without overlap at every viewport size. Footer labels sit inside the side rails. Toolbar controls retain their internal spacing; the footer has its own 24px inset. Grid: dark #202226 background with subtle 1px minor lines and stronger major lines every five cells. Grid preferences offers No grid, Square, Isometric (30° axes), Polar (Radial), Hexagonal, Triangular and Dot (Step). Size means square/dot spacing, triangular/isometric edge length, hexagon side length, or polar ring spacing. Polar angle offers 5°, 10°, 15° (default), 20°, 30°, 45°, 60° and 90°. Snapping uses the nearest displayed-pattern vertex: line intersections, hexagon corners, dots, or ring/spoke crossings plus the polar origin. All grids remain document-aligned; only label/render density changes with zoom. Dense hexagons and dots hide rather than changing their geometry. The editor batches visible dots into one cached, display-resolution grid image so low-zoom panning and drawing do not traverse thousands of individual dot objects. It refreshes on pan, zoom, resize, grid settings or theme changes; dot sizes, document alignment and exact millimetre snapping stay unchanged. Object snaps retain priority, Shift constraints and exact numeric entries remain unchanged. No grid hides the drawing grid and disables grid snapping while preserving its size and angle; object snapping, rulers and geometry are unchanged. Switching back restores grid snapping if configured. Type, size and polar angle are saved per document. Grid preferences sets a fixed interval from 0.1 to 1000 mm, default 10 mm, saved with the active document. Zoom scales the view without changing that interval or snapping. Lines remain aligned to the document origin during pan and zoom. Fine lines hide when less than 2 CSS pixels apart; major lines retain their fixed five-cell interval and hide if also too dense. The footer always shows the configured interval. Artwork rectangles, circles, ellipses and regular polygons use white strokes with no fill, including during drawing. Their interiors remain selectable for moving. Cut Path outlines are also unfilled, with red strokes. The grid never exports. The magnet button stays at the bottom of the left toolbar, immediately above the status bar, with its divider above it; drawing tools remain aligned at the top. The magnet button (S) toggles grid and all configured object snapping together, on by default, preserving individual mode choices. Snap follows the configured grid size; Shift preserves aspect ratio and numeric entries remain exact.</span><span>Pattern &amp; decorative generators use the same live workbench: Voronoi cells, spirographs/cycloids, maze walls and circular labyrinths, jigsaw puzzles with matching tabs/sockets, image halftone/stipple holes, colour-by-numbers sheets, and sine/Perlin wave panels. Jigsaw Cutting layout cuts shared edges once; Individual closed pieces provides editable outlines with optional spacing, straight outside edges and assembled-size metrics. Tab size is relative to the smaller cell dimension; variation adjusts depth and placement. Zero piece spacing duplicates shared boundaries; no kerf compensation is added. Seeded profiles have New seed and reproducible numeric seeds. Image profiles provide a keyboard-accessible local-image picker with thumbnail, contrast and inversion; transparent pixels stay solid. Density and clearance validation disables insertion until resolved. Guides never insert; results are editable paths on the active layer in one undo step. Colour by numbers uses a dedicated local worker-backed image dialog: 2–32 colours, Low/Medium/High detail, small-region cleanup, Off/Light/Heavy smoothing (Heavy by default), label size and physical outline weight, A4/A3/custom pages and an editable numbered palette. Numbered-sheet and coloured-reference tabs preserve true white/black/palette colours in all themes. Preview labels use the same centred bundled glyph outlines as the editable canvas text. Smoothing reuses shared boundaries in both sheets, preserves sharp corners and holes, and checks label clearance and crossings. Numbers can move within their regions to retain safe clearance without reverting thin bands to pixel edges. The input thumbnail uses high-quality resampling and the selected smoothing strength. Insert creates custom Artwork layers containing editable regions, text, page backgrounds and keys in one undo step, selects the numbered sheet, and places the optional reference 20 mm beside it. Use Selection SVG/PDF export for the numbered sheet. The reference offers a working preview with insertion disabled.</span><span>File export includes SVG, PDF, PNG and DXF with matching document icons. PDF is a single vector page fitted to visible artwork at actual mm size, with outlined lettering. Annotation labels use bundled Lato fitted to their original width and alignment; unsupported callout glyphs show an error and recommend PNG/SVG. PNG is transparent at 300 DPI with physical-resolution metadata. Both share SVG layer filtering and black default Artwork; grid and editor overlays never export. Export work runs asynchronously; PDF/PNG actions are disabled until it completes. Oversized output produces a notification rather than scaling or cropping.</span><span>Left & right: click to preview selection</span><span>Hover for tool names · Tab for focus</span><span>File: dropdown · Settings: preferences · other top tools are visual examples</span><span>Scroll the preview on narrow screens</span></div></section>
 <p class="subtext">The drawing canvas uses a dark #202226 background with subtle minor grid lines and stronger major lines. New Artwork strokes, text, dimensions and traced vectors default to white (#FFFFFF), matching the Artwork layer marker. Selection and snapping indicators use bright blue for contrast. Existing saved object colours and chosen regional fills are preserved. All layer colour markers have a 1px white outline within their existing 12px size.</p><section aria-labelledby="palette-heading"><div class="section-heading"><span class="section-number">02</span><h2 id="palette-heading">Colour palette</h2><span class="section-note">Neutrals for tools. Colour for meaning.</span></div><div class="swatches"><div class="swatch"><div class="color" style="background:var(--color-canvas)"></div><div class="swatch-info"><strong>Canvas</strong><code>#F4F4F2</code><small>Page & workspace</small><code class="token">--color-canvas</code></div></div><div class="swatch"><div class="color" style="background:var(--color-surface)"></div><div class="swatch-info"><strong>Surface</strong><code>#FFFFFF</code><small>Selected tool & menus</small><code class="token">--color-surface</code></div></div><div class="swatch"><div class="color" style="background:var(--color-toolbar)"></div><div class="swatch-info"><strong>Toolbar</strong><code>#2A2B2E</code><small>Primary toolbar shell</small><code class="token">--color-toolbar</code></div></div><div class="swatch"><div class="color" style="background:var(--color-hover)"></div><div class="swatch-info"><strong>Hover</strong><code>#4A4A4A</code><small>Hovered tool</small><code class="token">--color-hover</code></div></div><div class="swatch"><div class="color" style="background:var(--color-muted)"></div><div class="swatch-info"><strong>Muted</strong><code>#666666</code><small>Supporting text</small><code class="token">--color-muted</code></div></div><div class="swatch"><div class="color" style="background:var(--color-danger)"></div><div class="swatch-info"><strong>Danger</strong><code>#F2A7A0</code><small>Destructive actions</small><code class="token">--color-danger</code></div></div><div class="swatch"><div class="color" style="background:var(--color-warning)"></div><div class="swatch-info"><strong>Warning</strong><code>#F5C28B</code><small>Attention & caution</small><code class="token">--color-warning</code></div></div><div class="swatch"><div class="color" style="background:var(--color-positive)"></div><div class="swatch-info"><strong>Positive</strong><code>#A8D8B9</code><small>Successful actions</small><code class="token">--color-positive</code></div></div><div class="swatch"><div class="color" style="background:var(--color-information)"></div><div class="swatch-info"><strong>Information</strong><code>#ADD2F0</code><small>Helpful information</small><code class="token">--color-information</code></div></div></div><div class="semantic-examples"><span class="button button--danger"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-delete"/></svg>Delete</span><span class="button button--warning"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg>Review</span><span class="button"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg>Apply</span><p>Static examples: normal actions are charcoal; review actions are pastel orange; destructive confirmations are pastel red.</p></div><div class="layer-palette-heading"><h3>Layer type colours</h3><p class="subtext">Layer markers identify Artwork, Cut Path, Engrave Path, Construction Path and Raster Engrave. Text stays neutral for readability.</p></div><div class="layer-palette"><div class="swatch"><div class="color" style="background:var(--layer-cut)"></div><div class="swatch-info"><strong>Cut Path</strong><code>#FF0000</code><small>Pure red</small><small>Vector cut · full-depth cuts through the material.</small><code class="token">--layer-cut</code></div></div><div class="swatch"><div class="color" style="background:var(--layer-engrave)"></div><div class="swatch-info"><strong>Engrave Path</strong><code>#0000FF</code><small>Pure blue</small><small>Vector score / etch · surface marking without cutting through.</small><code class="token">--layer-engrave</code></div></div><div class="swatch"><div class="color" style="background:var(--layer-construction)"></div><div class="swatch-info"><strong>Construction Path</strong><code>#FF00FF</code><small>Pure magenta</small><small>Reference geometry · excluded from DXF export.</small><code class="token">--layer-construction</code></div></div><div class="swatch"><div class="color" style="background:var(--layer-raster)"></div><div class="swatch-info"><strong>Raster Engrave</strong><code>#000000</code><small>Pure black</small><small>Black surface-engraving artwork and filled regions.</small><code class="token">--layer-raster</code></div></div></div></section>
-<div class="two-cols"><section aria-labelledby="type-heading"><div class="section-heading"><span class="section-number">03</span><h2 id="type-heading">Typography</h2></div><div class="panel"><div class="font-name">System Sans</div><p class="subtext">Native, familiar, and available offline.</p><code class="font-stack">-apple-system, BlinkMacSystemFont,<br>"Segoe UI", Arial, sans-serif</code><div class="subtext" style="margin-bottom:8px">Size / line height in px · weight</div><div class="type-row"><span style="font-size:var(--text-2xl);line-height:40px;font-weight:600">Page title</span><code>32 / 40 · 600</code></div><div class="type-row"><span style="font-size:var(--text-xl);line-height:32px;font-weight:600">Section heading</span><code>24 / 32 · 600</code></div><div class="type-row"><span style="font-size:var(--text-lg);line-height:28px;font-weight:600">Panel heading</span><code>20 / 28 · 600</code></div><div class="type-row"><span style="font-size:var(--text-md);line-height:24px;font-weight:400">Body text</span><code>16 / 24 · 400</code></div><div class="type-row"><span style="font-size:var(--text-sm);line-height:20px;font-weight:500">Tools & menus</span><code>14 / 20 · 500</code></div><div class="type-row"><span style="font-size:var(--text-xs);line-height:16px;font-weight:400">Labels & metadata</span><code>12 / 16 · 400</code></div><p class="subtext" style="margin-top:16px">Use 400 for body copy, 500 for tool labels, and 600 for headings. The specimen title uses 40 / 48px. Monospace is reserved for token values.</p></div></section>
+<div class="two-cols"><section aria-labelledby="type-heading"><div class="section-heading"><span class="section-number">03</span><h2 id="type-heading">Typography</h2></div><div class="panel"><div class="font-name">System Sans</div><p class="subtext">Native, familiar, and available offline.</p><code class="font-stack">-apple-system, BlinkMacSystemFont,<br>"Segoe UI", Arial, sans-serif</code><div class="subtext" style="margin-bottom:8px">Size / line height in px · weight</div><div class="type-row"><span style="font-size:var(--text-2xl);line-height:40px;font-weight:600">Page title</span><code>32 / 40 · 600</code></div><div class="type-row"><span style="font-size:var(--text-xl);line-height:32px;font-weight:600">Section heading</span><code>24 / 32 · 600</code></div><div class="type-row"><span style="font-size:var(--text-lg);line-height:28px;font-weight:600">Panel heading</span><code>20 / 28 · 600</code></div><div class="type-row"><span style="font-size:var(--text-md);line-height:24px;font-weight:400">Body text</span><code>16 / 24 · 400</code></div><div class="type-row"><span style="font-size:var(--text-sm);line-height:20px;font-weight:500">Tools & menus</span><code>14 / 20 · 500</code></div><div class="type-row"><span style="font-size:var(--text-xs);line-height:16px;font-weight:400">Labels & metadata</span><code>12 / 16 · 400</code></div><p class="subtext" style="margin-top:16px">Use the same System Sans family for UI labels, menus, fields, measurements, shortcuts and dialog controls. Keep 400 for body copy, 500 for tool labels and 600 for headings. Compact control values use 13 / 20px with tabular digits; secondary labels use 12 / 16px. Monospace is reserved for reference code and token examples. Artwork text keeps its chosen drawing font.</p></div></section>
 <section aria-labelledby="size-heading"><div class="section-heading"><span class="section-number">04</span><h2 id="size-heading">Sizing & spacing</h2></div><div class="panel"><h3>A 2px base unit</h3><p class="subtext">Use named tokens instead of one-off measurements.</p><div class="spacing"><div class="space-sample"><i style="--sample:2px"></i><span>2</span></div><div class="space-sample"><i style="--sample:4px"></i><span>4</span></div><div class="space-sample"><i style="--sample:6px"></i><span>6</span></div><div class="space-sample"><i style="--sample:8px"></i><span>8</span></div><div class="space-sample"><i style="--sample:10px"></i><span>10</span></div><div class="space-sample"><i style="--sample:12px"></i><span>12</span></div><div class="space-sample"><i style="--sample:16px"></i><span>16</span></div><div class="space-sample"><i style="--sample:24px"></i><span>24</span></div><div class="space-sample"><i style="--sample:32px"></i><span>32</span></div></div><table><thead><tr><th scope="col">Element</th><th scope="col">Size in px</th></tr></thead><tbody><tr><td>Tool button</td><td>36 × 36</td></tr><tr><td>Toolbar padding / gap</td><td>4 / 2</td></tr><tr><td>Side rail width¹</td><td>44</td></tr><tr><td>Action button height</td><td>32</td></tr><tr><td>Icons: small / medium / large</td><td>16 / 20 / 24</td></tr><tr><td>Menu width / padding</td><td>240 / 8</td></tr><tr><td>Wide dropdown width</td><td>280</td></tr><tr><td>Menu row / inset</td><td>36 / 12</td></tr><tr><td>Menu offset / row gap / icon</td><td>8 / 4 / 20</td></tr><tr><td>Corner radius: button / menu</td><td>0 / 0</td></tr><tr><td>Border / icon stroke</td><td>1 / 1.5</td></tr></tbody></table><p class="subtext" style="margin-top:12px">¹ Side rails are 44px wide. The application header is 48px high and the command strip is 40px high. Use 6, 10, 12px for fine spacing; 16, 20, 24, 32, 48px for larger gaps. Menus, dialogs, inputs, buttons and selected/hovered icon backgrounds have square corners. Circular slider and switch controls retain their functional shapes.</p></div></section></div>
 <section aria-labelledby="menus-heading">
 <div class="section-heading"><span class="section-number">05</span><h2 id="menus-heading">Pop-out menus</h2><span class="section-note">Shapes / toolbar flyout</span></div>
@@ -1748,7 +1751,7 @@ SOFTWARE.
 <svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 240" role="img" aria-label="A dashed drag-selection box encloses two unfilled shapes, with a third shape outside"><g fill="none" stroke="var(--color-selection)" stroke-width="2"><rect x="90" y="70" width="100" height="80"/><ellipse cx="330" cy="110" rx="60" ry="44"/><path d="M 500 70 L 560 120 L 520 180 L 460 120 Z"/></g><rect x="60" y="40" width="370" height="150" fill="var(--color-selection-area)" stroke="var(--color-selection)" stroke-dasharray="4 4"/><g fill="none" stroke="var(--color-selection)" stroke-dasharray="4 4"><rect x="90" y="70" width="100" height="80"/><rect x="270" y="66" width="120" height="88"/></g></svg>
 <p class="subtext">Drag from empty canvas to fully enclose shapes. Shift-drag adds to the selection; Shift-click toggles an object. After release, shared handles resize the selection. Drag a selected shape to move all selected objects. Hidden and locked layers are excluded; the marquee never exports.</p></section>
 <section aria-labelledby="snapping-heading"><div class="section-heading"><h2 id="snapping-heading">Object snapping</h2><span class="section-note">Exact geometry · 10px capture radius</span></div><svg class="snap-indicator-specimen" viewBox="0 0 600 120" role="img" aria-label="Intersection snap marker at two crossing lines"><g stroke="var(--color-selection)" stroke-width="1.5"><path d="M180 90L320 30M180 30L320 90"/></g><rect x="245" y="55" width="10" height="10" fill="white" stroke="var(--color-object-snap)" stroke-width="1.5"/><text x="262" y="48" font-size="11" fill="var(--color-object-snap)">Intersection</text></svg><p class="subtext">Open Preferences → Snapping to enable Intersection, Nearest, Centre, Tangent or Perpendicular independently (off by default). Exact document-space geometry takes priority over grid rounding within 10 screen pixels; discrete points take priority over Nearest. Visible locked objects remain valid references; hidden objects and the objects being transformed are excluded. Tangent works on curves from a line’s start point or a polyline’s previous vertex; Perpendicular projects that point onto an existing straight segment. Centres include circular arcs and rotated ellipses. Works for drawing, movement and corner resizing; Shift constraints take priority, freehand and numeric input remain exact. The blue marker and label are temporary and never export.</p></section>
-<section aria-labelledby="images-heading"><div class="section-heading"><h2 id="images-heading">Images menu</h2><span class="section-note">Raster to vector</span></div><p class="subtext">Before an image is loaded, the clickable input placeholder has a dark background, a white heading and muted light icon and supporting text. The input switches to white only after a valid image loads so Original and Binary previews remain clear. Cancelling the chooser keeps the empty state dark. The Images button follows Text in the left toolbar and uses the shared image icon. Its charcoal pop-out contains Raster to vector. Choose this action to open the tracing dialog, then click anywhere in the “Start with an image” input preview to choose a PNG, JPG, WebP, GIF or BMP from the device. The same area replaces the image after loading. It supports Enter and Space when focused; there is no separate Choose image button in the header. The original Vectora workflow is ported into a two-column charcoal dialog. Original/Binary input previews (Binary by default) sit beside the vector preview. Input controls are Threshold (128), Brightness (0), Contrast (0), Noise reduction (8 pixels) and Invert colours (off). Vector controls are Path simplification (1.25px), Curve fitting (0.65) and Corner sensitivity (0.55); the latter two hide for Center line. Changes debounce for 90ms with stale-result protection. Outline traces closed boundaries including holes; Center line traces stroke skeletons; Fill creates solid monochrome shapes with holes. Insertion scale defaults to 0.25 mm per trace pixel, with a live size readout. Insert vectors adds separate editable paths for Outline and Center line, or an even-odd compound for Fill, in Artwork at the viewport centre. The fitted cubic curves are preserved. All inserted objects are selected without opening Properties, with one undo step. Cancel and Escape leave the drawing unchanged. Images stay local; tracing uses up to 1600 pixels on the longest side, matching the original app. The dialog uses the shared charcoal palette, white selected mode, labelled fields and responsive layout. Colour mode creates separate editable filled regions from a 2–32-colour palette (16 by default). Its Smoothing slider provides Off, Light and Heavy (default), using the same shared-boundary engine as Colour by Numbers without number-fitting merges. Threshold and monochrome curve controls hide; brightness, contrast, noise cleanup and inversion remain available. Adjusted input shows colour adjustments; the vector pane shows final smoothed regions. Colour always inserts into the default visible, unlocked Artwork layer in one undo step, retaining source colours through themes, save/load and export. The reference demonstrates monochrome styles with a fixed sample and Colour with the same live engine.</p><p class="subtext">Raster tracing and image-based generators check PNG, JPEG, WebP, GIF and BMP headers before pixel decoding. Inputs are limited to 20 MB and 40 million pixels, including animated-frame dimensions; contradictory or truncated headers are rejected. The decoded pixel count is checked again. Replaced images and closed dialogs cannot start a stale decode or insert stale results.</p><div class="menu-stage" style="min-height:180px"><div class="toolbar vertical" style="position:relative;display:inline-flex"><div class="image-tools"><button type="button" class="tool" aria-label="Images" title="Images" aria-haspopup="menu" aria-expanded="false" aria-controls="specimen-images-menu" data-image-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-image"/></svg></button><div class="shapes-menu image-menu" id="specimen-images-menu" role="menu" aria-labelledby="specimen-images-title" tabindex="-1" hidden><div class="menu-title" id="specimen-images-title">Images</div><button type="button" class="shape-option" role="menuitem" data-raster-open aria-haspopup="dialog" aria-controls="raster-dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-raster-vector"/></svg><span>Raster to vector</span></button></div></div></div></div></section><section aria-labelledby="dimensions-heading"><div class="section-heading"><h2 id="dimensions-heading">Dimensions and callouts</h2><span class="section-note">Aligned dimension · D</span></div><div class="menu-stage" style="min-height:440px"><div class="toolbar vertical" style="position:relative;display:inline-flex"><div class="dimension-tools"><button type="button" class="tool" aria-label="Dimensions and callouts" title="Dimensions and callouts" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="specimen-dimensions-menu" data-dimension-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimensions"/></svg></button><div class="shapes-menu dimension-menu" id="specimen-dimensions-menu" hidden><div class="menu-title" id="specimen-dimensions-title">Dimensions &amp; callouts</div><div class="shape-options" role="menu" aria-labelledby="specimen-dimensions-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-aligned" data-shortcut="d"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-aligned"/></svg><span>Aligned dimension</span><kbd aria-hidden="true">D</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-linear"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-linear"/></svg><span>Linear dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-radial"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-radial"/></svg><span>Radial dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-diameter"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-diameter"/></svg><span>Diameter dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="leader"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-leader"/></svg><span>Leader callout</span></button></div></div></div></div></div><svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 200" role="img" aria-label="50 millimetre dimension and leader callout"><g fill="none" stroke="var(--color-selection)" stroke-width="1"><path d="M60 45V150M260 45V150M60 140H140M180 140H260M69 137L60 140L69 143M251 137L260 140L251 143M360 140L410 85H460M364 132L360 140L368 135"/></g><g fill="var(--color-selection)" font-family="Arial, sans-serif" font-size="12.8"><text x="160" y="136" text-anchor="middle">50 mm</text><text x="464" y="81">Apply vinyl here</text></g></svg><div class="callout-editor menu-surface" style="position:relative;margin:16px 0"><label class="number-label" for="example-callout-text">Callout text</label><div class="number-shell"><input class="number-input" id="example-callout-text" maxlength="120" value="Apply vinyl here"></div><div class="callout-actions"><button type="button" class="button">Cancel</button><button type="button" class="button">Done</button></div></div><p class="subtext">The left toolbar has a dedicated Dimensions &amp; callouts icon before Delete. Its dark pop-out contains Aligned dimension (D), Linear dimension, Radial dimension, Diameter dimension and Leader callout. Dissect delete now uses K; Line delete uses Shift+K.</p><p class="subtext">Aligned and linear: click two reference points, then click to place the dimension line. Aligned follows the point-to-point direction. Linear measures the horizontal or vertical distance; move above/below for horizontal, or to either side for vertical. Radial and diameter: click a circle or circular arc, then position the label. Readouts use R or Ø and real document millimetres, rounded to two decimals. Ellipses have no single radius and are not accepted.</p><p class="subtext">Leader callout: click the arrow tip, elbow and label position, then type up to 120 characters in the matching dark text panel and choose Done. Double-click a completed callout to edit its text. Escape, tool changes or focus loss cancel unfinished placement. Snapping honours the magnet and prioritizes nearby path nodes. Previews never export; each completed annotation is one undo step.</p><p class="subtext">Annotations use charcoal 1px lines, open arrowheads and 3.2mm plain-text labels. They are independent measurements of the chosen reference points, not associative constraints on source objects. Move, rotate, resize or duplicate annotations as objects; labels reflect transformed measurements and remain upright after rotation or flipping. They remain in Artwork and cannot become cut lines, closed-path offsets, joined paths or node-editable geometry. Delete removes the whole annotation. Include artwork exports annotation lines and TEXT on a separate ANNOTATIONS DXF layer; default cut-only exports omit them.</p></section><section aria-labelledby="object-pattern-heading"><div class="section-heading"><h2 id="object-pattern-heading">Rectangular &amp; circular patterns</h2><span class="section-note">Selection → Pattern</span></div><p class="subtext">The icon-only Pattern action opens a compact modal using the shared menu palette in both themes. It repeats the whole selected arrangement while retaining each object's layer, style, editable text, circular arc controls, exact curves and compound contours. Hidden and locked objects, active gestures and unfinished text cannot start a pattern. Tool search includes Rectangular pattern and Circular pattern.</p><div id="pattern-dialog" class="pattern-dialog menu-surface" style="position:relative;inset:auto;max-height:none" role="group" aria-label="Example pattern settings"><h2>Pattern</h2><div class="pattern-tabs" role="tablist" aria-label="Example pattern type"><button type="button" role="tab" aria-selected="true"><svg aria-hidden="true"><use href="#i-pattern-rectangular"/></svg>Rectangular</button><button type="button" role="tab" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-pattern-circular"/></svg>Circular</button></div><div class="pattern-fields"><label class="pattern-field">Columns<span class="number-shell"><input class="number-input" type="number" min="1" max="1000" value="3"></span></label><label class="pattern-field">Rows<span class="number-shell"><input class="number-input" type="number" min="1" max="1000" value="2"></span></label><label class="pattern-field">Column spacing<span class="number-shell"><input class="number-input" type="number" step="any" value="20"><span class="number-unit">mm</span></span></label><label class="pattern-field">Row spacing<span class="number-shell"><input class="number-input" type="number" step="any" value="20"><span class="number-unit">mm</span></span></label></div><p class="pattern-hint">Spacing is the repeat distance. Negative values repeat left or up.</p><p class="pattern-feedback">6 instances · 6 objects · 5 new</p><p class="pattern-hint">Counts include the original. Blue shows new copies; Apply keeps them individually editable.</p><div class="pattern-actions"><button type="button" class="button">Cancel</button><button type="button" class="button">Apply</button></div></div><p class="subtext">Rectangular fields: integer Rows and Columns, signed Column spacing and Row spacing in mm. Spacing is pitch between corresponding positions rather than a clear gap; unused spacing is disabled when that direction has one instance. Circular fields: Instances, Total angle (−360° to 360°, excluding zero), Centre X and Centre Y in mm, Pick centre on canvas and Rotate copies (on by default). Positive angles run clockwise. The original is instance zero. A full turn divides by the instance count so the starting position is not repeated; a partial turn includes both ends. Multiple selected objects rotate as an arrangement, or retain their relative positions and orientation when Rotate copies is off.</p><p class="subtext">Centre picking temporarily hides the dialog and shows a crosshair, dashed radius guide and compact Cancel pick bar. Grid snapping follows the current grid settings; numeric entries remain exact. Escape, Cancel pick or a canvas click returns to settings. Tab cycles between the canvas and Cancel pick. Blue previews are cached outside document geometry, history, saved files and exports. Counts and total geometry budgets are validated before cloning: at most 1,000 objects including originals and 100,000 path nodes across all instances. Invalid values show inline feedback and disable Apply. Apply selects the originals and new independent copies, in their original layers and original front-to-back order within each instance, as one Undo step. Cancel, Escape, tool changes, document replacement and window blur discard preview geometry. Clicking outside the canvas or Cancel pick bar during centre picking cancels the pattern before another editing action runs. The modal scrolls in short windows, contains keyboard focus, and returns focus to the canvas.</p></section>
+<section aria-labelledby="images-heading"><div class="section-heading"><h2 id="images-heading">Images menu</h2><span class="section-note">Raster to vector</span></div><p class="subtext">Before an image is loaded, the clickable input placeholder has a dark background, a white heading and muted light icon and supporting text. The input switches to white only after a valid image loads so Original and Binary previews remain clear. Cancelling the chooser keeps the empty state dark. The Images button follows Text in the left toolbar and uses the shared image icon. Its charcoal pop-out contains Raster to vector. Choose this action to open the tracing dialog, then click anywhere in the “Start with an image” input preview to choose a PNG, JPG, WebP, GIF or BMP from the device. The same area replaces the image after loading. It supports Enter and Space when focused; there is no separate Choose image button in the header. The original Vectora workflow is ported into a two-column charcoal dialog. Original/Binary input previews (Binary by default) sit beside the vector preview. Input controls are Threshold (128), Brightness (0), Contrast (0), Noise reduction (8 pixels) and Invert colours (off). Vector controls are Path simplification (1.25px), Curve fitting (0.65) and Corner sensitivity (0.55); the latter two hide for Center line. Changes debounce for 90ms with stale-result protection. Outline traces closed boundaries including holes; Center line traces stroke skeletons; Fill creates solid monochrome shapes with holes. Insertion scale defaults to 0.25 mm per trace pixel, with a live size readout. Insert vectors adds separate editable paths for Outline and Center line, or an even-odd compound for Fill, in Artwork at the viewport centre. The fitted cubic curves are preserved. All inserted objects are selected without opening Properties, with one undo step. Cancel and Escape leave the drawing unchanged. Images stay local; tracing uses up to 1600 pixels on the longest side, matching the original app. The dialog uses the shared charcoal palette, white selected mode, labelled fields and responsive layout. Colour mode creates separate editable filled regions from a 2–32-colour palette (16 by default). Its Smoothing slider provides Off, Light and Heavy (default), using the same shared-boundary engine as Colour by Numbers without number-fitting merges. Threshold and monochrome curve controls hide; brightness, contrast, noise cleanup and inversion remain available. Adjusted input shows colour adjustments; the vector pane shows final smoothed regions. Colour always inserts into the default visible, unlocked Artwork layer in one undo step, retaining source colours through themes, save/load and export. The reference demonstrates monochrome styles with a fixed sample and Colour with the same live engine. Empty vector-preview helper text uses the theme’s muted foreground token for readable contrast against the preview grid in dark, light and high-contrast modes.</p><p class="subtext">Raster tracing and image-based generators check PNG, JPEG, WebP, GIF and BMP headers before pixel decoding. Inputs are limited to 20 MB and 40 million pixels, including animated-frame dimensions; contradictory or truncated headers are rejected. The decoded pixel count is checked again. Replaced images and closed dialogs cannot start a stale decode or insert stale results.</p><div class="menu-stage" style="min-height:180px"><div class="toolbar vertical" style="position:relative;display:inline-flex"><div class="image-tools"><button type="button" class="tool" aria-label="Images" title="Images" aria-haspopup="menu" aria-expanded="false" aria-controls="specimen-images-menu" data-image-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-image"/></svg></button><div class="shapes-menu image-menu" id="specimen-images-menu" role="menu" aria-labelledby="specimen-images-title" tabindex="-1" hidden><div class="menu-title" id="specimen-images-title">Images</div><button type="button" class="shape-option" role="menuitem" data-raster-open aria-haspopup="dialog" aria-controls="raster-dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-raster-vector"/></svg><span>Raster to vector</span></button></div></div></div></div></section><section aria-labelledby="dimensions-heading"><div class="section-heading"><h2 id="dimensions-heading">Dimensions and callouts</h2><span class="section-note">Aligned dimension · D</span></div><div class="menu-stage" style="min-height:440px"><div class="toolbar vertical" style="position:relative;display:inline-flex"><div class="dimension-tools"><button type="button" class="tool" aria-label="Dimensions and callouts" title="Dimensions and callouts" aria-pressed="false" aria-haspopup="menu" aria-expanded="false" aria-controls="specimen-dimensions-menu" data-dimension-trigger><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimensions"/></svg></button><div class="shapes-menu dimension-menu" id="specimen-dimensions-menu" hidden><div class="menu-title" id="specimen-dimensions-title">Dimensions &amp; callouts</div><div class="shape-options" role="menu" aria-labelledby="specimen-dimensions-title" aria-orientation="vertical"><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-aligned" data-shortcut="d"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-aligned"/></svg><span>Aligned dimension</span><kbd aria-hidden="true">D</kbd></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-linear"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-linear"/></svg><span>Linear dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-radial"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-radial"/></svg><span>Radial dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="dimension-diameter"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-dimension-diameter"/></svg><span>Diameter dimension</span></button><button type="button" class="shape-option" role="menuitemradio" aria-checked="false" data-dimension-tool="leader"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-leader"/></svg><span>Leader callout</span></button></div></div></div></div></div><svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 200" role="img" aria-label="50 millimetre dimension and leader callout"><g fill="none" stroke="var(--color-selection)" stroke-width="1"><path d="M60 45V150M260 45V150M60 140H140M180 140H260M69 137L60 140L69 143M251 137L260 140L251 143M360 140L410 85H460M364 132L360 140L368 135"/></g><g fill="var(--color-selection)" font-family="Arial, sans-serif" font-size="12.8"><text x="160" y="136" text-anchor="middle">50 mm</text><text x="464" y="81">Apply vinyl here</text></g></svg><div class="callout-editor menu-surface" style="position:relative;margin:16px 0"><label class="number-label" for="example-callout-text">Callout text</label><div class="number-shell"><input class="number-input" id="example-callout-text" maxlength="120" value="Apply vinyl here"></div><div class="callout-actions"><button type="button" class="button">Cancel</button><button type="button" class="button">Done</button></div></div><p class="subtext">The left toolbar has a dedicated Dimensions &amp; callouts icon before Delete. Its dark pop-out contains Aligned dimension (D), Linear dimension, Radial dimension, Diameter dimension and Leader callout. Dissect delete now uses K; Line delete uses Shift+K.</p><p class="subtext">Aligned and linear: click two reference points, then click to place the dimension line. Aligned follows the point-to-point direction. Linear measures the horizontal or vertical distance; move above/below for horizontal, or to either side for vertical. Radial and diameter: click a circle or circular arc, then position the label. Readouts use R or Ø and real document millimetres, rounded to two decimals. Ellipses have no single radius and are not accepted.</p><p class="subtext">Leader callout: click the arrow tip, elbow and label position, then type up to 120 characters in the matching dark text panel and choose Done. Double-click a completed callout to edit its text. Escape, tool changes or focus loss cancel unfinished placement. Snapping honours the magnet and prioritizes nearby path nodes. Previews never export; each completed annotation is one undo step.</p><p class="subtext">Annotations use charcoal 1px lines, open arrowheads and 3.2mm plain-text labels. They are independent measurements of the chosen reference points, not associative constraints on source objects. Move, rotate, resize or duplicate annotations as objects; labels reflect transformed measurements and remain upright after rotation or flipping. They remain in Artwork and cannot become cut lines, closed-path offsets, joined paths or node-editable geometry. Delete removes the whole annotation. Include artwork exports annotation lines and TEXT on a separate ANNOTATIONS DXF layer; default cut-only exports omit them.</p></section><section aria-labelledby="object-pattern-heading"><div class="section-heading"><h2 id="object-pattern-heading">Rectangular &amp; circular patterns</h2><span class="section-note">Selection → Pattern</span></div><p class="subtext">The icon-only Pattern action opens a compact modal using the shared menu palette in both themes. It repeats the whole selected arrangement while retaining each object's layer, style, editable text, circular arc controls, exact curves and compound contours. Hidden and locked objects, active gestures and unfinished text cannot start a pattern. Tool search includes Rectangular pattern and Circular pattern.</p><div id="pattern-dialog" class="pattern-dialog menu-surface" style="position:relative;inset:auto;max-height:none" role="group" aria-label="Example pattern settings"><h2>Pattern</h2><div class="pattern-tabs" role="tablist" aria-label="Example pattern type"><button type="button" role="tab" aria-selected="true"><svg aria-hidden="true"><use href="#i-pattern-rectangular"/></svg>Rectangular</button><button type="button" role="tab" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-pattern-circular"/></svg>Circular</button></div><div class="pattern-fields"><label class="pattern-field">Columns<span class="number-shell"><input class="number-input" type="number" min="1" max="1000" value="3"></span></label><label class="pattern-field">Rows<span class="number-shell"><input class="number-input" type="number" min="1" max="1000" value="2"></span></label><label class="pattern-field">Column spacing<span class="number-shell"><input class="number-input" type="number" step="any" value="20"><span class="number-unit">mm</span></span></label><label class="pattern-field">Row spacing<span class="number-shell"><input class="number-input" type="number" step="any" value="20"><span class="number-unit">mm</span></span></label></div><p class="pattern-hint">Spacing is the repeat distance. Negative values repeat left or up.</p><p class="pattern-feedback">6 instances · 6 objects · 5 new</p><p class="pattern-hint">Counts include the original. Blue shows new copies; Apply keeps them individually editable.</p><div class="pattern-actions"><button type="button" class="button">Cancel</button><button type="button" class="button">Apply</button></div></div><p class="subtext">Rectangular fields: integer Rows and Columns, signed Column spacing and Row spacing in mm. Spacing is pitch between corresponding positions rather than a clear gap; unused spacing is disabled when that direction has one instance. Circular fields: Instances, Total angle (−360° to 360°, excluding zero), Centre X and Centre Y in mm, Pick centre on canvas and Rotate copies (on by default). Positive angles run clockwise. The original is instance zero. A full turn divides by the instance count so the starting position is not repeated; a partial turn includes both ends. Multiple selected objects rotate as an arrangement, or retain their relative positions and orientation when Rotate copies is off.</p><p class="subtext">Centre picking temporarily hides the dialog and shows a crosshair, dashed radius guide and compact Cancel pick bar. Grid snapping follows the current grid settings; numeric entries remain exact. Escape, Cancel pick or a canvas click returns to settings. Tab cycles between the canvas and Cancel pick. Blue previews are cached outside document geometry, history, saved files and exports. Counts and total geometry budgets are validated before cloning: at most 1,000 objects including originals and 100,000 path nodes across all instances. Invalid values show inline feedback and disable Apply. Apply selects the originals and new independent copies, in their original layers and original front-to-back order within each instance, as one Undo step. Cancel, Escape, tool changes, document replacement and window blur discard preview geometry. Clicking outside the canvas or Cancel pick bar during centre picking cancels the pattern before another editing action runs. The modal scrolls in short windows, contains keyboard focus, and returns focus to the canvas.</p></section>
 <section aria-labelledby="heart-heading"><div class="section-heading"><h2 id="heart-heading">Heart shape</h2><span class="section-note">Shapes → Heart</span></div><svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 200" role="img" aria-label="Closed, symmetric heart outline"><g transform="translate(240 20) scale(6.5)" fill="none" stroke="var(--color-selection)" stroke-width="0.23"><use href="#i-heart"/></g></svg><p class="subtext">Draw from one bounding corner to the other. Hold Shift for equal width and height. The heart stays upright when dragging in any direction. It has no fill until Colour fill is used, takes the active layer colour, and remains an ordinary closed path with editable nodes and cubic handles.</p></section><section aria-labelledby="node-editing-heading"><div class="section-heading"><h2 id="node-editing-heading">Node editing</h2><span class="section-note">Nodes · N</span></div><svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 200" role="img" aria-label="Curve with square nodes and round tangent handles"><path d="M100 150C160 150 200 60 320 60S480 150 540 150" fill="none" stroke="var(--color-selection)" stroke-width="1.5"/><path d="M200 60H440" stroke="var(--color-selection)"/><g fill="white" stroke="var(--color-selection)"><circle cx="200" cy="60" r="3.5"/><circle cx="440" cy="60" r="3.5"/><rect x="96" y="146" width="8" height="8"/><rect x="536" y="146" width="8" height="8"/></g><rect x="316" y="56" width="8" height="8" fill="var(--color-selection)"/></svg><div class="node-context-menu menu-surface" style="position:relative" role="menu" aria-label="Example node actions"><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-fillet"/></svg>Fillet</button><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chamfer"/></svg>Chamfer</button><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-node-smooth"/></svg>Smooth node</button><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-node-corner"/></svg>Corner node</button><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-node-split"/></svg>Split path</button><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-delete"/></svg>Delete node</button></div><p class="subtext">Node editing sits directly below Select. Click a path to reveal 8px white square nodes; selected nodes use the selection colour. Drag a node to move it locally, using grid snapping when enabled. Active-node tangents use 1px charcoal lines and 7px round handles. Drag a tangent to reshape the curve without moving its node. Smooth nodes keep opposite handles aligned; Alt-drag adjusts one handle independently.</p><p class="subtext">Double-click a stroke to add a node exactly on the curve without changing its geometry. Click a node and press Delete or Backspace to remove it; the neighbouring segments reconnect. If fewer than two nodes remain, remove that contour. Right-click a node for Fillet, Chamfer, Smooth node, Corner node, Split path or Delete node. Smooth adds aligned tangents; Corner removes tangents. Split creates two independent open paths at an interior node, preserving all curves. Splitting a closed outline opens it at the chosen node. Open endpoints cannot be split. Joined contours can be edited independently; untouched contours remain intact.</p><p class="subtext">Text must be converted to paths first. Local edits turn circles, arcs and polygons into ordinary paths, clearing their parametric controls. Preserve layers, unfilled strokes and exact document coordinates. Each completed drag or action is one undo step. Escape or pointer cancellation restores an unfinished drag. Hidden and locked objects cannot be edited. The dark context menu closes outside or with Escape and supports keyboard navigation. Properties does not open automatically.</p><div class="corner-dialog menu-surface" style="position:relative;inset:auto;margin-top:16px" role="group" aria-label="Example fillet settings"><h2>Fillet</h2><p class="corner-count">2 corners selected</p><label class="corner-field">Radius<span class="number-shell"><input class="number-input" type="number" value="3" min="0.001" step="any"><span class="number-unit">mm</span></span></label><p class="corner-feedback">Tangent rounding at the entered radius.</p><p class="corner-hint">Blue shows the new outline. Apply replaces the selected corners.</p><div class="corner-actions"><button class="button" type="button">Cancel</button><button class="button" type="button">Apply</button></div></div><p class="subtext">Fillet and Chamfer: click a sharp node between two straight edges; Shift-click adds/removes corners, including corners on other selected paths. Right-click a selected corner preserves the corner selection. Enter a radius or equal bevel distance along both adjoining edges in mm (0.001–1,000,000). The blue document-space overlay previews the result without changing geometry, exports or history. Shared-edge trims are checked together; overlapping trims and unsupported endpoints, curved or collinear junctions are blocked. Exactly touching trims share one anchor. Apply commits all corners together with one Undo; Cancel, Escape, tool changes and loss of window focus discard the preview. Rounded arcs use tangent cubic curves split at no more than 90°. Original layer, style, winding, contour closure and unrelated geometry are preserved. Other node actions require a single selected node. The compact modal uses shared field/button tokens in both themes, traps keyboard focus, and returns focus to the canvas.</p></section><section aria-labelledby="text-tool-heading"><div class="section-heading"><h2 id="text-tool-heading">Text and separate contour paths</h2><span class="section-note">Text · T</span></div><svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 180" role="img" aria-label="Inline text with the standard blue selection box, eight white square handles and a thin blue caret"><text x="32" y="100" font-family="Vectora Lato" font-size="48" fill="var(--color-selection)">Text</text><rect x="32" y="65" width="92" height="36" fill="none" stroke="var(--color-selection)" stroke-dasharray="4 4"/><g fill="white" stroke="var(--color-selection)"><rect x="28" y="61" width="8" height="8"/><rect x="74" y="61" width="8" height="8"/><rect x="120" y="61" width="8" height="8"/><rect x="120" y="79" width="8" height="8"/><rect x="120" y="97" width="8" height="8"/><rect x="74" y="97" width="8" height="8"/><rect x="28" y="97" width="8" height="8"/><rect x="28" y="79" width="8" height="8"/></g><path d="M128 52V100" fill="none" stroke="var(--color-selection)" stroke-width="1"/></svg><div class="layers-panel" style="position:relative;padding:24px;max-width:360px"><div class="layers-header" style="margin-bottom:16px"><div><span class="panel-eyebrow">Selection</span><h2 class="panel-title">Properties</h2></div></div><div id="example-text-properties" class="text-properties"><h3>Text</h3><p class="subtext">Choose a font and size, or edit text on the canvas.</p><div class="number-shell text-font-field"><label class="number-prefix" for="example-text-font">Font</label><select id="example-text-font" class="number-input"><optgroup label="General"><option value="lato">Lato</option><option value="pt-serif">PT Serif</option><option value="space-mono">Space Mono</option></optgroup><optgroup label="Single-line / engraving"><option value="hershey">Hershey Sans 1-stroke</option><option value="relief-single-line">Relief Single Line</option></optgroup><optgroup label="Technical / CAD"><option value="free-mono">FreeMono</option><option value="inter">Inter</option><option value="jetbrains-mono">JetBrains Mono</option></optgroup><optgroup label="Display"><option value="oswald">Oswald</option><option value="montserrat">Montserrat</option><option value="bebas-neue">Bebas Neue</option></optgroup><optgroup label="Stencil"><option value="allerta-stencil">Allerta Stencil</option><option value="saira-stencil-one">Saira Stencil One</option></optgroup></select><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chevron"/></svg></div><div class="number-shell"><label class="number-prefix" for="example-text-size">Size</label><input id="example-text-size" class="number-input" type="number" min="0.1" max="1000" step="any" value="10"><span class="number-unit">mm</span></div><button type="button" class="button" id="example-edit-text"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-text"/></svg>Edit text</button></div><div class="number-grid"><div class="number-shell"><label class="number-prefix" for="example-text-x">X</label><input id="example-text-x" class="number-input" type="number" value="0" step="any"><span class="number-unit">mm</span></div></div></div><div class="floating-menu" style="position:relative;margin:24px 0;display:inline-flex"><span class="selection-count">1 selected</span><button type="button" class="button floating-action" aria-label="Convert to path" title="Convert text to separate contour paths"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-convert-text"/></svg></button></div><p class="subtext">Text (T): click the canvas and type directly at the insertion point. Editable text displays as plain filled text, with no outline stroke, both while typing and after finishing. Artwork text is white; Cut Path text is red. Convert to path removes the fill and creates unfilled letter outlines in the same layer colour. Enter adds a line. Click outside, Tab or Ctrl/Cmd+Enter finishes; Escape cancels. While typing, the actual glyph bounds use the same 1px blue dashed border and eight white 8px square handles as object selection. The frame updates as text changes; its size matches the committed selection. Empty drafts show a compact insertion box. The blue caret stays 1 CSS pixel wide through zoom and transforms. Transform controls return when typing finishes. Blank new text is discarded. Double-click existing text or choose Edit text in Properties to type in place. The Text section uses the same h3 heading and muted supporting copy as other Properties sections, with 16px between the header divider and the Text heading. Edit text pairs the shared text icon with its label, matching other Properties actions. The Font selector uses the same 44px field shell, shaded prefix label, monospace value, border, radius and focus treatment as Size and the other Properties fields, with the shared dropdown chevron and 16px row spacing. A standard 2px section divider separates Edit text from the position fields, with 20px above the rule and 16px below it. Properties provides Lato, PT Serif, Space Mono, Hershey Sans 1-stroke, Relief Single Line, FreeMono, Inter, JetBrains Mono, Oswald, Montserrat, Bebas Neue, Allerta Stencil and Saira Stencil One, with exact em size in millimetres (0.1–1000, default 10). Fonts and licenses are bundled locally. The picker groups General, Single-line / engraving, Technical / CAD, Display and Stencil fonts. Hershey and Relief stay editable as text; Convert to path uses their original center-line strokes, preserving open endpoints and curves, rather than the display font outlines. The other fonts convert to individual outline contours, retaining stencil gaps. DXF also uses the engraving strokes for unconverted Hershey/Relief text. Existing transforms and cut-layer style remain intact through edits. Properties never opens automatically.</p><svg class="selection-specimen mm-grid-preview" viewBox="0 0 640 180" role="img" aria-label="Converted O has an outer outline and an independently selected inner outline"><ellipse cx="320" cy="90" rx="52" ry="65" fill="none" stroke="var(--color-selection)" stroke-width="1.5"/><ellipse cx="320" cy="90" rx="32" ry="45" fill="none" stroke="var(--color-selection)" stroke-width="1.5"/><rect x="288" y="45" width="64" height="90" fill="none" stroke="var(--color-selection)" stroke-dasharray="4 4"/><g fill="white" stroke="var(--color-selection)"><rect x="284" y="41" width="8" height="8"/><rect x="316" y="41" width="8" height="8"/><rect x="348" y="41" width="8" height="8"/><rect x="348" y="86" width="8" height="8"/><rect x="348" y="131" width="8" height="8"/><rect x="316" y="131" width="8" height="8"/><rect x="284" y="131" width="8" height="8"/><rect x="284" y="86" width="8" height="8"/></g></svg><p class="subtext">Convert to path appears only while editable text is selected. Every contour becomes an independently selectable, unfilled path, preserving its exact position, curves and layer colour. O creates two paths; B creates three; detached dots and accents become separate paths too. Inner contours and disconnected components such as the dot of an i can each be selected, moved or deleted independently. A direct outline click takes priority over an enclosing path’s interior selection area. Spaces and line breaks preserve spacing but create no objects. All resulting contour paths are selected; deselect and click one to edit it separately. Disable ligatures so letters remain separate. Conversion is one undo step; Undo restores the editable text. Convert before Join. DXF exports exact letter contours in document millimetres.</p></section><section aria-labelledby="selection-context-heading"><div class="section-heading"><h2 id="selection-context-heading">Selection context menu</h2><span class="section-note">Copy / paste / layer</span></div>
 <p class="subtext">With Select active, right-click an object or anywhere on the canvas. A selected object keeps the whole selection; an unselected object becomes selected. Copy (⌘/Ctrl+C) stores independent editable copies in this editor. Paste (⌘/Ctrl+V) adds them to the active layer as one undo step. Right-click Paste centres the group at the clicked point, using the current grid snap when enabled. Keyboard Paste offsets each copy by a further 10 mm. Clipboard geometry, curves, text, dimensions and relative spacing are preserved; the destination layer controls its operation colour. Copy is disabled without a selection, and Paste without copied objects. Native text editing keeps its normal clipboard. Layer opens a dropdown of all current document layers with their colour markers. The current layer is checked; current, hidden and locked destinations are disabled. Choosing a destination transfers the selected objects with the same colour rules and one-step undo as the Layers panel. Existing custom layers are included. Markers retain custom layer colours; inherited markers follow Appearance changes. The dropdown scrolls for long lists and the expanded menu stays inside the canvas. Right arrow or Enter opens Layer; Up/Down chooses a destination, Left arrow or Escape returns to the main menu. The compact menu closes on Escape from the main menu, outside click, canvas zoom or a tool change.</p>
 <div class="selection-context-menu selection-context-specimen menu-surface" role="menu" aria-label="Selection actions specimen"><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-copy"/></svg><span>Copy</span><kbd aria-hidden="true">⌘ C</kbd></button><button type="button" class="node-action" role="menuitem"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-paste"/></svg><span>Paste</span><kbd aria-hidden="true">⌘ V</kbd></button><button type="button" class="node-action selection-layer-trigger" role="menuitem" aria-haspopup="menu" aria-expanded="true"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-layers"/></svg><span>Layer</span><svg class="selection-layer-chevron" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chevron"/></svg></button><div class="selection-layer-menu" role="menu" aria-label="Move to layer specimen"><button type="button" class="node-action selection-layer-option" role="menuitemradio" aria-checked="false"><span class="layer-dot" style="--layer-color:var(--color-cutline)" aria-hidden="true"></span><span class="selection-layer-name">Cut Path</span><svg class="selection-layer-check" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg></button><button type="button" class="node-action selection-layer-option" role="menuitemradio" aria-checked="false"><span class="layer-dot" style="--layer-color:var(--color-engrave)" aria-hidden="true"></span><span class="selection-layer-name">Engrave Path</span><svg class="selection-layer-check" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg></button><button type="button" class="node-action selection-layer-option" role="menuitemradio" aria-checked="false"><span class="layer-dot" style="--layer-color:var(--color-construction)" aria-hidden="true"></span><span class="selection-layer-name">Construction Path</span><svg class="selection-layer-check" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg></button><button type="button" class="node-action selection-layer-option" role="menuitemradio" aria-checked="true" disabled><span class="layer-dot" style="--layer-color:var(--layer-artwork)" aria-hidden="true"></span><span class="selection-layer-name">Artwork</span><svg class="selection-layer-check" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg></button></div></div></section>
@@ -1881,19 +1884,19 @@ creation.start(tool);choice.onchange=()=>{tool=choice.value;creation.start(tool)
 <section aria-labelledby="controls-heading">
 <div class="section-heading"><span class="section-number">10</span><h2 id="controls-heading">Sliders & toggles</h2><span class="section-note">Adjust values / switch settings</span></div>
 <div class="two-cols">
- <div class="panel control-panel"><h3>Slider</h3><p class="subtext">A slim grey track with a charcoal thumb and filled portion.</p>
+ <div class="panel control-panel"><h3>Slider</h3><p class="subtext">A slim neutral track with the shared blue accent for the thumb and filled portion. Disabled sliders use the theme’s muted control colour.</p>
   <div class="slider-example"><div class="slider-label"><label for="opacity-slider">Opacity</label><output for="opacity-slider" id="opacity-value" aria-hidden="true">25%</output></div><input class="vectora-slider" id="opacity-slider" type="range" min="0" max="100" step="1" value="25" aria-valuetext="25%" data-range-output="opacity-value" style="--range-progress:25%"><div class="slider-limits" aria-hidden="true"><span>0%</span><span>100%</span></div></div>
   <div class="slider-example is-disabled"><div class="slider-label"><label for="smoothing-slider">Smoothing <span class="control-disabled-label">Disabled</span></label><output for="smoothing-slider" id="smoothing-value" aria-hidden="true">50%</output></div><input class="vectora-slider" id="smoothing-slider" type="range" min="0" max="100" step="1" value="50" disabled aria-valuetext="50%" data-range-output="smoothing-value" style="--range-progress:50%"><div class="slider-limits" aria-hidden="true"><span>0%</span><span>100%</span></div></div>
   <p class="control-token-line">240px width · 4px track · 20px thumb<br>44px interaction height · 2px focus outline</p>
   <p class="subtext">Drag or click the track. Arrow keys adjust the value; Home and End jump to the limits.</p>
  </div>
- <div class="panel control-panel"><h3>Toggle</h3><p class="subtext">Charcoal when on, grey when off, with a white thumb.</p>
+ <div class="panel control-panel"><h3>Toggle</h3><p class="subtext">Blue when on, neutral when off, and muted when disabled. The thumb contrasts with its track in every theme; its position preserves the on/off state. A separated keyboard-focus ring stays visible around enabled controls.</p>
   <div class="toggle-examples">
    <label class="toggle-row" for="snap-toggle"><span class="toggle-caption">Snap to grid<span class="toggle-state" data-toggle-state="snap-toggle" aria-hidden="true">On</span></span><span class="toggle-hit"><input class="vectora-toggle" type="checkbox" role="switch" id="snap-toggle" checked><span class="toggle-track" aria-hidden="true"></span></span></label>
    <label class="toggle-row" for="guides-toggle"><span class="toggle-caption">Show guides<span class="toggle-state" data-toggle-state="guides-toggle" aria-hidden="true">Off</span></span><span class="toggle-hit"><input class="vectora-toggle" type="checkbox" role="switch" id="guides-toggle"><span class="toggle-track" aria-hidden="true"></span></span></label>
    <label class="toggle-row is-disabled" for="proportions-toggle"><span class="toggle-caption">Lock proportions<span class="toggle-state" data-toggle-state="proportions-toggle" aria-hidden="true">On · disabled</span></span><span class="toggle-hit"><input class="vectora-toggle" type="checkbox" role="switch" id="proportions-toggle" checked disabled><span class="toggle-track" aria-hidden="true"></span></span></label>
   </div>
-  <p class="control-token-line">48 × 28px rail · 20px thumb · 4px inset<br>44px interaction height · 2px focus outline</p>
+  <p class="control-token-line">48 × 28px rail · 20px thumb · 4px inset<br>44px interaction height · 2px focus outline (3px in high contrast) · 3px outline offset</p>
   <p class="subtext">Click the control or its label. Tab to focus and press Space to switch.</p>
  </div>
 </div>
@@ -1936,7 +1939,7 @@ creation.start(tool);choice.onchange=()=>{tool=choice.value;creation.start(tool)
  <p class="number-error" id="field-invalid-height-error"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-warning"/></svg><span>Enter a value of 0 mm or more.</span></p>
 </div></div>
  <p class="subtext" style="margin-top:16px">Correct the negative value to clear the validation state. Width and height accept zero or positive values; positions and rotation can be negative.</p>
- <dl class="menu-measurements"><div><dt>Field</dt><dd>36px high · square corners · 1px border</dd></div><div><dt>Padding</dt><dd>12px around values · 16px between fields</dd></div><div><dt>Labels</dt><dd>Attached dark block · 36px minimum width · 12px white text</dd></div><div><dt>Values</dt><dd>14px monospace · 12px unit suffix</dd></div><div><dt>Focus</dt><dd>Grey border and visible focus outline</dd></div></dl>
+ <dl class="menu-measurements"><div><dt>Field</dt><dd>36px high · square corners · 1px border</dd></div><div><dt>Padding</dt><dd>12px around values · 16px between fields</dd></div><div><dt>Labels</dt><dd>Attached dark block · 36px minimum width · 12px white text</dd></div><div><dt>Values</dt><dd>13px System Sans with tabular digits · 12px unit suffix</dd></div><div><dt>Focus</dt><dd>Blue accent border and visible focus outline</dd></div></dl>
  </div>
 </div>
 </section>
@@ -2026,9 +2029,10 @@ creation.start(tool);choice.onchange=()=>{tool=choice.value;creation.start(tool)
   --color-construction: #FF00FF;
   --layer-construction: #FF00FF;
   --layer-raster: #000000;
-  --color-focus: #383838;
+  --color-focus: var(--chrome-accent);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --text-control: 13px;
   --text-xs: 12px;
   --text-sm: 14px;
   --text-md: 16px;
@@ -2058,6 +2062,7 @@ creation.start(tool);choice.onchange=()=>{tool=choice.value;creation.start(tool)
   --input-radius: 0px;
   --input-border-color: #383838;
   --input-icon-color: #383838;
+  --input-background: var(--color-surface);
   --input-prefix-width: 36px;
   --input-prefix-background: var(--color-toolbar);
   --input-prefix-foreground: var(--color-surface);
@@ -2071,6 +2076,7 @@ creation.start(tool);choice.onchange=()=>{tool=choice.value;creation.start(tool)
   --toggle-height: 28px;
   --toggle-thumb-size: 20px;
   --toggle-inset: 4px;
+  --toggle-active-thumb: var(--menu-background);
   --tool-size: 36px;
   --button-height: 32px;
   --button-padding-x: 12px;
@@ -2150,7 +2156,7 @@ creation.start(tool);choice.onchange=()=>{tool=choice.value;creation.start(tool)
 }
 </code></pre></details>
 <footer><span>Vectora · Toolbar foundations</span><span>Self-contained HTML · No external fonts or libraries</span></footer>
-<section class="section" id="material-preview-reference"><h2>Material &amp; process preview</h2><p>The top-toolbar cube opens a lazy-loaded 3D view of finished pieces. Closed Cut contours define parts, nested holes and islands; open cuts form narrow grooves. Engrave and Raster Engrave recess filled regions or path strokes to separate depths, clipped to the remaining material. Overlaps use the deepest operation. Engraving alone gets a fitted blank. Artwork colours can be overlaid without changing the document.</p><p>The viewport background, dimensional grid, camera controls and empty/error states follow Light, Dark or High contrast mode, including theme changes while open. Material appearance is independent of the interface theme. Starts in Top view. Navigation follows Online3DViewer: left-drag rotates with fixed upright axes, middle/right-drag or Shift-drag pans, and wheel or Ctrl/Cmd-drag zooms. One-finger touch rotates; two fingers pan and pinch. Rotation sensitivity stays consistent across viewport sizes. Fit recentres the model while preserving its viewing angle; Reset returns to Top. Camera icons use consistent cubes with highlighted Top, Back, Front, Left and Right faces, an unfilled Isometric cube, a framed cube for Fit and a circular arrow for Reset. View changes use short eased transitions (instant with reduced motion). Arrow keys rotate, +/− zoom, F fits and Home resets. Rendering runs only while the view changes. Camera clipping planes track the nearest and farthest model bounds to preserve depth precision on large, thin sheets; the grid stays behind the material at close zoom. Six materials, a numeric thickness field and engraving controls share the editor’s field, focus and modal styles. Settings stay local to the preview; geometry, history and exports are unchanged. Preview input is preflighted at 10,000 visible objects, 50,000 contours and 120,000 source segments. Curve subdivision enforces a shared 200,000-point limit while producing vertices, before allocating a large mesh input. Excessive complexity reports an error and leaves the document unchanged.</p><button type="button" class="button" data-preview-demo>Open material preview example</button></section>
+<section class="section" id="material-preview-reference"><h2>Material &amp; process preview</h2><p>The top-toolbar cube opens a lazy-loaded 3D view of finished pieces. Closed Cut contours define parts, nested holes and islands; open cuts form narrow grooves. Engrave and Raster Engrave recess filled regions or path strokes to separate depths, clipped to the remaining material. Overlaps use the deepest operation. Engraving alone gets a fitted blank. Artwork colours can be overlaid without changing the document. Camera controls, labels, borders and hover states use the same neutral and accent tokens as the rest of the UI; the model and scene grid retain their own preview colours.</p><p>The viewport background, dimensional grid, camera controls and empty/error states follow Light, Dark or High contrast mode, including theme changes while open. Material appearance is independent of the interface theme. Starts in Top view. Navigation follows Online3DViewer: left-drag rotates with fixed upright axes, middle/right-drag or Shift-drag pans, and wheel or Ctrl/Cmd-drag zooms. One-finger touch rotates; two fingers pan and pinch. Rotation sensitivity stays consistent across viewport sizes. Fit recentres the model while preserving its viewing angle; Reset returns to Top. Camera icons use consistent cubes with highlighted Top, Back, Front, Left and Right faces, an unfilled Isometric cube, a framed cube for Fit and a circular arrow for Reset. View changes use short eased transitions (instant with reduced motion). Arrow keys rotate, +/− zoom, F fits and Home resets. Rendering runs only while the view changes. Camera clipping planes track the nearest and farthest model bounds to preserve depth precision on large, thin sheets; the grid stays behind the material at close zoom. Six materials, a numeric thickness field and engraving controls share the editor’s field, focus and modal styles. Settings stay local to the preview; geometry, history and exports are unchanged. Preview input is preflighted at 10,000 visible objects, 50,000 contours and 120,000 source segments. Curve subdivision enforces a shared 200,000-point limit while producing vertices, before allocating a large mesh input. Excessive complexity reports an error and leaves the document unchanged.</p><button type="button" class="button" data-preview-demo>Open material preview example</button></section>
 </main>
 <dialog class="preferences-dialog" id="preferences-dialog" aria-labelledby="preferences-title" aria-describedby="preferences-status"></dialog>
 

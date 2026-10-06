@@ -28,7 +28,7 @@ for(const theme of [
  const before=await page.evaluate(()=>{const p=(window as any).__previewUnderTest;return {root:p.root.uuid,grid:p.grid.uuid,camera:p.camera.position.toArray(),document:JSON.stringify((window as any).__vectora.snapshot())};});
  await page.evaluate(()=>{document.documentElement.dataset.theme='dark';});
  await expect.poll(colours).toEqual({background:'202226',grid:['30363f','434a54']});
- await expect(dialog.getByRole('button',{name:'Top view',exact:true})).toHaveCSS('color','rgb(238, 241, 245)');
+ await expect(dialog.getByRole('button',{name:'Top view',exact:true})).toHaveCSS('color','rgb(255, 255, 255)');
  const after=await page.evaluate(()=>{const p=(window as any).__previewUnderTest;return {root:p.root.uuid,grid:p.grid.uuid,camera:p.camera.position.toArray(),document:JSON.stringify((window as any).__vectora.snapshot())};});
  expect({root:after.root,grid:after.grid,document:after.document}).toEqual({root:before.root,grid:before.grid,document:before.document});
  after.camera.forEach((value:number,i:number)=>expect(value).toBeCloseTo(before.camera[i],9));
