@@ -78,7 +78,7 @@ test('High contrast is keyboard accessible, keeps artwork and history intact, an
   await page.locator('[name="appearance-theme"][value="dark"]').check();
   expect(await page.evaluate(()=>(window as any).__vectora.objects[0].strokeColor.toCSS(true))).toBe('#ffffff');
   await page.locator('[name="appearance-theme"][value="light"]').check();
-  await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(245, 246, 248)');
+  await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(255, 255, 255)');
 });
 
 test('High contrast works in the reference and production, including compact settings and empty 3D preview',async({page})=>{
@@ -119,16 +119,16 @@ test('Light mode themes the workspace and neutral artwork without changing docum
     return {snapshot:JSON.stringify(e.snapshot()),undo:e.canUndo,redo:e.canRedo};
   });
   await appearance(page);await page.locator('[name="appearance-theme"][value="light"]').check();
-  await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(245, 246, 248)');
-  await expect(page.locator('#preferences-shell')).toHaveCSS('color','rgb(40, 43, 49)');
-  await expect(page.locator('.ruler-bottom')).toHaveCSS('background-color','rgb(245, 246, 248)');
+  await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(255, 255, 255)');
+  await expect(page.locator('#preferences-shell')).toHaveCSS('color','rgb(37, 42, 48)');
+  await expect(page.locator('.ruler-bottom')).toHaveCSS('background-color','rgb(255, 255, 255)');
   await page.screenshot({path:'test-results/light-appearance.png'});
   const after=await page.evaluate(()=>{
     const e=(window as any).__vectora;return {snapshot:JSON.stringify(e.snapshot()),undo:e.canUndo,redo:e.canRedo,stroke:e.objects[0].strokeColor.toCSS(true),fill:e.objects[1].fillColor.toCSS(true),grid:e.grid.layer.children[0].strokeColor.toCSS(true),text:e.objects[2].fillColor.toCSS(true)};
   });
   expect(after.snapshot).toBe(before.snapshot);expect(after.undo).toBe(before.undo);expect(after.redo).toBe(before.redo);
-  expect(after.stroke).toBe('#383838');expect(after.text).toBe('#383838');expect(after.fill).toBe('#ffffff');expect(['#e6eaf0','#c8d1dd']).toContain(after.grid);
-  await page.keyboard.press('Escape');await expect(page.locator('[aria-label="Select"]')).toHaveCSS('background-color','rgb(220, 234, 243)');await page.screenshot({path:'test-results/light-workspace.png'});
+  expect(after.stroke).toBe('#383838');expect(after.text).toBe('#383838');expect(after.fill).toBe('#ffffff');expect(['#e9edf3','#ccd5e1']).toContain(after.grid);
+  await page.keyboard.press('Escape');await expect(page.locator('[aria-label="Select"]')).toHaveCSS('background-color','rgb(237, 242, 255)');await page.screenshot({path:'test-results/light-workspace.png'});
   await page.evaluate(()=>{const e=(window as any).__vectora;e.undo();e.redo();});
   expect(await page.evaluate(()=>(window as any).__vectora.objects[0].strokeColor.toCSS(true))).toBe('#383838');
   await appearance(page);await page.locator('[name="appearance-theme"][value="dark"]').check();
@@ -143,7 +143,7 @@ test('Light mode themes the workspace and neutral artwork without changing docum
 test('Light mode works in the reference, narrow layouts and production build',async({page})=>{
   for(const url of [DEV+'/reference/design-system.html','http://127.0.0.1:4173']){
     await page.goto(url);await appearance(page);await page.locator('[name="appearance-theme"][value="light"]').check();
-    await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(245, 246, 248)');
+    await expect(page.locator('#preferences-shell')).toHaveCSS('background-color','rgb(255, 255, 255)');
     await page.setViewportSize({width:390,height:750});
     expect(await page.locator('#preferences-shell').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     await page.keyboard.press('Escape');await page.setViewportSize({width:1280,height:900});

@@ -1,7 +1,7 @@
 export type Theme = 'dark' | 'light' | 'high-contrast';
 export function currentTheme(): Theme {
   const theme = document.documentElement.dataset.theme;
-  return theme === 'light' || theme === 'high-contrast' ? theme : 'dark';
+  return theme === 'dark' || theme === 'high-contrast' ? theme : 'light';
 }
 export function initializeThemeControls(onChange: () => void = () => {}): void {
   const controls = [...document.querySelectorAll<HTMLInputElement>('[name="appearance-theme"]')];

@@ -2,14 +2,35 @@
 node_modules/
 /dist/
 /.vite/
+/.vite-temp/
 /.cache/
+/.npm/
+/.pnpm-store/
+/.yarn/cache/
+/.yarn/unplugged/
+/.yarn/install-state.gz
 *.tsbuildinfo
 
-# Generated test output; keep tests and their source fixtures in Git
+# Development-only files; not required to build, run or deploy the app
+/tests/
+/playwright.config.ts
+/scripts/
+/reference/
+/docs/
+/README.md
+/DESIGN.md
+/PRODUCT.md
+/public/fonts/sources/
+# Keep font licences, attribution and provenance alongside the runtime fonts.
+
+# Generated test output
 /test-results/
 /playwright-report/
 /blob-report/
 /coverage/
+/.nyc_output/
+/playwright/.cache/
+/test-results-*/
 
 # Local agent instructions and configuration
 AGENTS.md
@@ -19,22 +40,36 @@ agents.md
 /.impeccable/
 /.worktrees/
 /docs/superpowers/
+/.claude/
+/.cursor/
 
 # Local environment files; keep shareable examples
 .env
 .env.*
 !.env.example
 !.env.*.example
+/.aws/
+/.ssh/
+/.npmrc
+/.netrc
 
 # Logs and temporary files
 *.log
 /tmp/
 /temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
 *.swp
 *.swo
 *~
 __pycache__/
 *.pyc
+/.pytest_cache/
+/.venv/
+/venv/
 
 # Local editor and operating-system files
 /.idea/
@@ -44,3 +79,8 @@ __pycache__/
 ._*
 Thumbs.db
 Desktop.ini
+.AppleDouble/
+.LSOverride
+.Spotlight-V100/
+.Trashes/
+$RECYCLE.BIN/

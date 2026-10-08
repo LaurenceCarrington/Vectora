@@ -14,7 +14,8 @@ test('A recovery record with a malformed tab still exposes the valid working doc
 test('Font cleanup during navigation cannot overwrite the captured text draft',async({page})=>{
  let rejectFont:()=>Promise<void>=async()=>{throw new Error('Font was not requested');};
  await page.route('**/fonts/Lato-Regular.ttf',route=>{rejectFont=()=>route.abort();});
- await page.goto('http://127.0.0.1:5174');await page.getByRole('button',{name:'Text',exact:true}).click();await page.mouse.click(500,400);await page.locator('#inline-text').fill('Keep this draft');
+ // Wait for the usable DOM, not the deliberately blocked artwork font.
+ await page.goto('http://127.0.0.1:5174',{waitUntil:'domcontentloaded'});await page.getByRole('button',{name:'Text',exact:true}).click();await page.mouse.click(500,400);await page.locator('#inline-text').fill('Keep this draft');
  await page.evaluate(()=>window.dispatchEvent(new Event('beforeunload')));await rejectFont();await expect(page.locator('#inline-text')).toBeHidden();
  await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
  const draft=await page.evaluate(async()=>{const {DocumentRecovery}=await import('/src/documentRecovery.ts');return(await new DocumentRecovery(()=>{}).read())?.draft?.content;});

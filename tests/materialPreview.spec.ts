@@ -2,7 +2,7 @@ import {test,expect,type Page} from './fixtures';
 const DEV='http://127.0.0.1:5174';
 async function seed(page:Page){await page.goto(DEV);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.setActiveLayer('cutline');e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,100,60]}),'Panel');e.addShape(new p.Path.Circle({insert:false,center:[25,30],radius:10}),'Hole');e.setActiveLayer('engrave');const engraving=new p.Path.Rectangle({insert:false,rectangle:[45,15,30,25],fillColor:'blue'});engraving.data.regionFill=true;e.addShape(engraving,'Engraved area');e.setActiveLayer('artwork');e.addShape(new p.Path.Circle({insert:false,center:[60,30],radius:6}),'Ink');e.setPaint('#FF0000',1,true);});}
 for(const theme of [
- {value:'light',name:'Light',background:'fafbfc',backgroundCSS:'rgb(250, 251, 252)',foregroundCSS:'rgb(40, 43, 49)',grid:['e6eaf0','c8d1dd']},
+ {value:'light',name:'Light',background:'fbfcfe',backgroundCSS:'rgb(251, 252, 254)',foregroundCSS:'rgb(37, 42, 48)',grid:['e9edf3','ccd5e1']},
  {value:'high-contrast',name:'High contrast',background:'ffffff',backgroundCSS:'rgb(255, 255, 255)',foregroundCSS:'rgb(0, 0, 0)',grid:['909090','555555']},
 ]) test(`preview canvas, grid and camera controls follow ${theme.name} mode without rebuilding the model or moving the camera`,async({page})=>{
  await seed(page);
@@ -45,9 +45,9 @@ test('empty preview in Light mode uses a light placeholder with readable control
  await page.getByRole('button',{name:'Preview',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'Material & process preview'});
  await expect(dialog.locator('[data-preview-status]')).toHaveText('No material to preview');
- await expect(dialog.locator('[data-preview-message]')).toHaveCSS('background-color','rgb(250, 251, 252)');
- await expect(dialog.locator('[data-preview-message]')).toHaveCSS('color','rgb(40, 43, 49)');
- await expect(dialog.locator('[data-preview-view]')).toHaveCSS('color','rgb(88, 95, 107)');
+ await expect(dialog.locator('[data-preview-message]')).toHaveCSS('background-color','rgb(251, 252, 254)');
+ await expect(dialog.locator('[data-preview-message]')).toHaveCSS('color','rgb(37, 42, 48)');
+ await expect(dialog.locator('[data-preview-view]')).toHaveCSS('color','rgb(98, 106, 118)');
 });
 test('Preview opens finished pieces with material, thickness, engraving depth and Artwork overlay controls',async({page})=>{
  await seed(page);const button=page.getByRole('button',{name:'Preview',exact:true});await expect(button).toBeVisible();const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;return {document:e.snapshot(),zoom:p.view.zoom,center:p.view.center.toString(),undo:e.canUndo};});await button.click();

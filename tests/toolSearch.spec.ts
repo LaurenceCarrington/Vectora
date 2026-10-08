@@ -51,7 +51,7 @@ test('Search stays within small screens, supports both themes, and does not leak
  const r=(await dialog.boundingBox())!;expect(r.x).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(390);expect(r.y+r.height).toBeLessThanOrEqual(650);
  await input.fill('arc');await page.screenshot({path:'test-results/tool-search-dark.png'});await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Search tools',exact:true})).toBeFocused();
  await page.evaluate(()=>{localStorage.setItem('vectora.theme','light');});await page.reload();await expect(page.locator('#wasm-status')).toHaveText('Outline engine ready');
- const light=await open(page,'dimension');await expect(light.dialog).toHaveCSS('background-color','rgb(245, 246, 248)');await page.screenshot({path:'test-results/tool-search-light.png'});
+ const light=await open(page,'dimension');await expect(light.dialog).toHaveCSS('background-color','rgb(255, 255, 255)');await page.screenshot({path:'test-results/tool-search-light.png'});
  await page.mouse.click(380,630);await expect(light.dialog).toBeHidden();
 });
 

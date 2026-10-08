@@ -5,6 +5,9 @@ export * from '@playwright/test';
 export const test=base.extend({
  context:async({context},use)=>{
   await context.addInitScript(()=>{
+   // Legacy geometry fixtures explicitly use Dark; dedicated theme tests cover
+   // the real Light default and saved user preferences without this override.
+   if(!localStorage.getItem('vectora.theme'))localStorage.setItem('vectora.theme','dark');
    new MutationObserver(()=>{
     const dialog=document.querySelector<HTMLDialogElement>('#new-document-dialog[open]');
     if(!dialog||!['startup','new'].includes(dialog.dataset.mode??''))return;
