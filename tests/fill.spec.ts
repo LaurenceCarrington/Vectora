@@ -38,7 +38,7 @@ test('Fill uses the right Colour panel in production and the reference, without 
     await page.setViewportSize({width:420,height:700});await page.goto(url);
     await page.getByRole('button',{name:'Colour fill',exact:true}).click();
     await expect(page.locator('#primary-fill-menu')).toHaveCount(0);await expect(page.locator('[data-fill-picker],[data-fill-hex],[data-fill-colour]')).toHaveCount(0);
-    const panel=page.getByRole('region',{name:'Fill & appearance',exact:true});await expect(panel).toBeVisible();await expect(panel.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','true');
+    const panel=page.getByRole('region',{name:'Fill & appearance',exact:true});await expect(panel).toBeVisible();await expect(panel.getByRole('button',{name:'No fill',exact:true})).toHaveAttribute('aria-pressed','false');
     await panel.getByRole('textbox',{name:'Hex colour',exact:true}).fill('#FF00FF');await panel.getByRole('textbox',{name:'Hex colour',exact:true}).press('Enter');await expect(page.locator('.fill-tools')).not.toHaveClass(/is-no-fill/);expect(await page.locator('.fill-tools').evaluate(el=>getComputedStyle(el).getPropertyValue('--fill-colour').trim().toUpperCase())).toBe('#FF00FF');
     await panel.getByRole('button',{name:'No fill',exact:true}).click();await expect(page.locator('.fill-tools')).toHaveClass(/is-no-fill/);
   }
@@ -110,4 +110,73 @@ test('No fill preserves locked fills, hidden fills and the full stroke of filled
     e.setFillColor('none');e.fillAt(new p.Point(10,10));
     return {outline:!!outline.strokeColor&&!outline.fillColor&&outline.area===1600,locked:protectedFill.isInserted()&&!!protectedFill.fillColor,hidden:hidden.isInserted()&&!!hidden.fillColor,left:e.objects.filter((x:any)=>!x.locked&&x.visible&&x.fillColor).some((x:any)=>x.contains(new p.Point(10,10))),right:e.objects.filter((x:any)=>!x.locked&&x.visible&&x.fillColor).some((x:any)=>x.contains(new p.Point(30,10)))};
   });expect(result).toEqual({outline:true,locked:true,hidden:true,left:false,right:true});
+});
+
+test('Fill isolates a local region in a 2500-object drawing without processing unrelated outlines',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(async()=>{
+  const p=(window as any).__paper,e=(window as any).__vectora,{regionAt}=await import('/src/regionFill.ts');
+  for(let i=0;i<2500;i++){const shape=new p.Path.Rectangle({insert:false,rectangle:[(i%50)*20,Math.floor(i/50)*20,10,10]});shape.data={uid:crypto.randomUUID(),role:'artwork',name:'Asset'};shape.strokeColor='#383838';e.artwork.addChild(shape);}
+  const paths=e.objects.map((shape:any)=>shape.pathData);e.setFillColor('#FF0000');
+  let calls=0,copies=0;const original=p.Path.prototype.getIntersections,global=p.Item.prototype.localToGlobal;p.Path.prototype.getIntersections=function(...args:any[]){calls++;return original.apply(this,args);};p.Item.prototype.localToGlobal=function(...args:any[]){copies++;return global.apply(this,args);};
+  try{const region=regionAt(e.objects,new p.Point(5,5))!;const work={calls,copies};region.remove();e.fillAt(new p.Point(5,5));const fill=e.selected,first={area:fill.area,neighbour:fill.contains(new p.Point(25,5)),count:e.objects.length,...work};e.setFillColor('#0000FF');e.fillAt(new p.Point(5,5));const second={count:e.objects.length,colour:e.selected.fillColor.toCSS(true)};e.undo();const undo=e.objects.find((shape:any)=>shape.data.regionFill)?.fillColor.toCSS(true);e.redo();return {first,second,undo,redo:e.objects.find((shape:any)=>shape.data.regionFill)?.fillColor.toCSS(true),unchanged:paths.every((data:string,i:number)=>e.objects.filter((shape:any)=>!shape.data.regionFill)[i].pathData===data)};}
+  finally{p.Path.prototype.getIntersections=original;p.Item.prototype.localToGlobal=global;}
+ });
+ expect(result.first).toMatchObject({area:100,neighbour:false,count:2501});expect(result.first.calls).toBeLessThan(20);expect(result.first.copies).toBeLessThan(100);expect(result.second).toEqual({count:2501,colour:'#0000ff'});expect(result.undo).toBe('#ff0000');expect(result.redo).toBe('#0000ff');expect(result.unchanged).toBe(true);
+});
+
+test('Local Fill keeps open-line enclosures and nested holes while ignoring unrelated objects',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(()=>{
+  const p=(window as any).__paper,e=(window as any).__vectora;
+  const add=(shape:any)=>{shape.data={uid:crypto.randomUUID(),role:'artwork',name:'Boundary'};shape.strokeColor='#383838';e.artwork.addChild(shape);};
+  for(let i=0;i<1100;i++)add(new p.Path.Rectangle({insert:false,rectangle:[100+(i%50)*20,100+Math.floor(i/50)*20,10,10]}));
+  for(const [from,to] of [[[0,0],[40,0]],[[40,0],[40,40]],[[40,40],[0,40]],[[0,40],[0,0]]])add(new p.Path.Line({insert:false,from,to}));
+  add(new p.Path.Circle({insert:false,center:[20,20],radius:5}));e.setFillColor('#FF0000');e.fillAt(new p.Point(5,5));
+  return {area:e.selected.area,hole:e.selected.contains(new p.Point(20,20)),clicked:e.selected.contains(new p.Point(5,5)),remote:e.selected.contains(new p.Point(105,105))};
+ });
+ expect(result.area).toBeCloseTo(1600-Math.PI*25,1);expect(result).toMatchObject({hole:false,clicked:true,remote:false});
+});
+
+test('Hidden individual outlines do not divide the visible Fill region',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,40,40]}),'Outer');e.addShape(new p.Path.Line({insert:false,from:[20,0],to:[20,40]}),'Hidden divider');e.selected.visible=false;e.setFillColor('#FF0000');e.fillAt(new p.Point(10,10));return {area:e.selected.area,right:e.selected.contains(new p.Point(30,10))};});
+ expect(result).toEqual({area:1600,right:true});
+});
+
+test('No fill leaves manufacturing-layer geometry and filled engraving intact',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.setActiveLayer('engrave');const engrave=new p.Path.Rectangle({insert:false,rectangle:[0,0,40,40],fillColor:'#0000FF'});engrave.data.rasterTrace={mode:'fill'};e.addShape(engrave,'Filled engraving');const before=engrave.exportJSON();e.setFillColor('none');e.fillAt(new p.Point(10,10));return {inserted:engrave.isInserted(),unchanged:engrave.exportJSON()===before};});
+ expect(result).toEqual({inserted:true,unchanged:true});
+});
+
+test('A fresh Fill tool paints with its initial red colour without requiring a colour change',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(()=>{const p=(window as any).__paper,e=(window as any).__vectora;e.addShape(new p.Path.Rectangle({insert:false,rectangle:[0,0,20,20]}),'Rectangle');e.setTool('fill');e.fillAt(new p.Point(10,10));const fill=e.objects.find((shape:any)=>shape.data.regionFill);return {noFill:e.noFill,colour:fill?.fillColor.toCSS(true),area:fill?.area};});
+ expect(result).toEqual({noFill:false,colour:'#ff0000',area:400});
+});
+
+
+test('Local Fill preserves transformed compound boundaries and their nested holes',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(async()=>{
+  const p=(window as any).__paper,e=(window as any).__vectora,{regionAt}=await import('/src/regionFill.ts');
+  const outer=new p.Path.Rectangle({insert:false,rectangle:[0,0,40,40]}),inner=new p.Path.Circle({insert:false,center:[20,20],radius:5});
+  const expected=(Math.abs(outer.area)-Math.abs(inner.area))*2.25;
+  const compound=new p.CompoundPath({insert:false,children:[outer,inner],fillRule:'evenodd',applyMatrix:false});compound.rotate(33);compound.scale(1.5);compound.translate([250,100]);e.addShape(compound,'Transformed boundaries');
+  const click=outer.localToGlobal(new p.Point(5,5)),hole=inner.localToGlobal(new p.Point(20,20));
+  const before=compound.exportJSON(),region=regionAt(e.objects,click)!;
+  const result={area:region.area,expected,hole:region.contains(hole),clicked:region.contains(click),curved:(region.children??[region]).some((path:any)=>path.segments.some((s:any)=>s.handleIn.length||s.handleOut.length)),unchanged:compound.exportJSON()===before};region.remove();return result;
+ });
+ expect(result.area).toBeCloseTo(result.expected,5);expect(result).toMatchObject({hole:false,clicked:true,curved:true,unchanged:true});
+});
+
+test('A surrounding border does not block local Fill in a large drawing',async({page})=>{
+ await page.goto(DEV);
+ const result=await page.evaluate(async()=>{
+  const p=(window as any).__paper,e=(window as any).__vectora,{regionAt}=await import('/src/regionFill.ts');
+  for(let i=0;i<2500;i++){const shape=new p.Path.Rectangle({insert:false,rectangle:[(i%50)*20,Math.floor(i/50)*20,10,10]});shape.data={uid:crypto.randomUUID(),role:'artwork',name:'Asset'};e.artwork.addChild(shape);}
+  const border=new p.Path.Rectangle({insert:false,rectangle:[-5,-5,1010,1010]});border.data={uid:crypto.randomUUID(),role:'artwork',name:'Border'};e.artwork.addChild(border);
+  const region=regionAt(e.objects,new p.Point(5,5))!;const result={area:region.area,clicked:region.contains(new p.Point(5,5)),neighbour:region.contains(new p.Point(25,5))};region.remove();return result;
+ });expect(result).toEqual({area:100,clicked:true,neighbour:false});
 });

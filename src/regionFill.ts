@@ -7,15 +7,58 @@ const EPS=1e-6;
 type Node={id:number;point:paper.Point;edges:Edge[]};
 type Edge={from:Node;to:Node;out:paper.Point;incoming:paper.Point;angle:number;twin:Edge;visited:boolean};
 
+/** Keep disconnected remote outlines out of the expensive face/intersection work.
+ * Bounds connectivity is deliberately conservative: it includes open-line
+ * enclosures, tangent contacts and disconnected holes inside an enclosing area.
+ */
+function localPaths(paths:paper.Path[],point:paper.Point):paper.Path[] {
+  let entries=paths.map((path,index)=>{
+    const bounds=path.bounds,parent=path.parent;
+    // Path bounds include its own matrix but are in the parent's coordinates.
+    // Transform the four corners conservatively before pruning compound paths.
+    const corners=[bounds.topLeft,bounds.topRight,bounds.bottomLeft,bounds.bottomRight]
+      .map(corner=>parent?parent.globalMatrix.transform(corner):corner);
+    const xs=corners.map(corner=>corner.x),ys=corners.map(corner=>corner.y);
+    return {path,index,bounds:new paper.Rectangle(new paper.Point(Math.min(...xs),Math.min(...ys)),new paper.Point(Math.max(...xs),Math.max(...ys)))};
+  });
+  const overlaps=(a:paper.Rectangle,b:paper.Rectangle):boolean=>a.left<=b.right+EPS&&b.left<=a.right+EPS&&a.top<=b.bottom+EPS&&b.top<=a.bottom+EPS;
+  // The result is clipped inside every closed contour containing the click.
+  // Its smallest enclosing bounds therefore safely exclude remote geometry,
+  // even when a large border otherwise connects the entire drawing's bounds.
+  let window:paper.Rectangle|null=null;
+  for(const entry of entries){
+    if(!entry.path.closed||!entry.bounds.contains(point))continue;
+    const local=entry.path.parent?entry.path.parent.globalToLocal(point):point;
+    if(local&&entry.path.contains(local)&&(!window||entry.bounds.area<window.area))window=entry.bounds;
+  }
+  if(window)entries=entries.filter(entry=>overlaps(entry.bounds,window!));
+  const parents=paths.map((_,index)=>index);
+  const root=(index:number):number=>{while(parents[index]!==index){parents[index]=parents[parents[index]];index=parents[index];}return index;};
+  const ordered=[...entries].sort((a,b)=>a.bounds.left-b.bounds.left);
+  let active:typeof entries=[];
+  for(const entry of ordered){
+    active=active.filter(other=>other.bounds.right+EPS>=entry.bounds.left);
+    for(const other of active)if(overlaps(entry.bounds,other.bounds))parents[root(entry.index)]=root(other.index);
+    active.push(entry);
+  }
+  const components=new Map<number,paper.Rectangle>();
+  for(const entry of entries){const id=root(entry.index),bounds=components.get(id);components.set(id,bounds?bounds.unite(entry.bounds):entry.bounds.clone());}
+  const enclosing=[...components.values()].filter(bounds=>bounds.contains(point));
+  if(!enclosing.length)return [];
+  return entries.filter(entry=>enclosing.some(bounds=>overlaps(bounds,components.get(root(entry.index))!))).map(entry=>entry.path);
+}
+
 /** Trace bounded faces of the visible Bézier outline network, preserving curves. */
 export function regionAt(objects:readonly Shape[],point:paper.Point):Shape|null {
-  const paths=objects.filter(item=>item.layer.visible&&!item.data.dimension).flatMap(pathsOf).map(documentPath);
+  const sources=objects.filter(item=>item.visible&&item.layer.visible&&!item.data.dimension).flatMap(pathsOf).filter(path=>path.visible);
+  const paths:paper.Path[]=[];
   const faces:paper.Path[]=[];
   try {
+    for(const source of localPaths(sources,point))paths.push(documentPath(source));
     // A point on an outline is ambiguous: never paint both sides of it.
     if(paths.some(path=>path.curves.length&&path.getNearestPoint(point).getDistance(point)<EPS))return null;
     const curves=paths.flatMap(path=>path.curves);
-    if(curves.length>4000)throw new Error('This drawing has too many curves to fill at once. Hide unrelated layers and try again.');
+    if(curves.length>4000)throw new Error('This connected area has too many curves to fill at once. Simplify it or hide unrelated layers and try again.');
     const cuts=new Map(curves.map(curve=>[curve,[0,1]]));
     const add=(location:paper.CurveLocation|null)=>{if(location)cuts.get(location.curve)?.push(location.time);};
     for(let i=0;i<paths.length;i++)for(let j=i;j<paths.length;j++){

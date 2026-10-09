@@ -91,7 +91,7 @@ export class CADEditor {
   fillColor='#FF0000';
   fillOpacity=1;
   fillPaint:FillPaint={kind:'colour',colour:'#FF0000',opacity:1};
-  noFill=true;
+  noFill=false;
   snappingEnabled=true;
   snapToGridEnabled=true;
   get gridSnappingActive():boolean {return this.snappingEnabled&&this.snapToGridEnabled&&this.grid.type!=='none';}
@@ -450,7 +450,7 @@ export class CADEditor {
     const plans:{item:Shape;remainder:Shape|null}[]=[];
     try{
       for(const item of this.objects){
-        if(!this.isEditable(item)||item.locked||!item.visible||!item.fillColor||item.data.text||item.data.dimension||!item.contains(point))continue;
+        if(layerRole(item.layer)!=='artwork'||!this.isEditable(item)||item.locked||!item.visible||!item.fillColor||item.data.text||item.data.dimension||!item.contains(point))continue;
         const contours=pathsOf(item).map(documentPath);
         const source:Shape=contours.length===1?contours[0]:new paper.CompoundPath({insert:false,children:contours});
         source.fillRule=item.fillRule;
