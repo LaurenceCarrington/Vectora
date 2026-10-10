@@ -7,6 +7,103 @@ async function openShape(page:Page){
  return page.getByRole('menu',{name:'Selection actions',exact:true});
 }
 
+test('Smooth pop-out changes selected geometry live, preserves corners and endpoints and groups slider history',async({page})=>{
+ await ready(page);
+ await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;const path=new p.Path({insert:false,segments:[[40,40],[43,40.6],[46,39.4],[49,40.6],[52,40],[60,40],[60,60]],strokeColor:'#123456'});e.addShape(path,'Jagged');e.setLineWeight(.8);e.setLineDesign('dashed');e.setTool('select');});
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ const menu=await openShape(page);await menu.getByRole('menuitem',{name:'Smooth',exact:true}).click();
+ const popout=page.getByRole('dialog',{name:'Smooth selected objects',exact:true});await expect(popout).toBeVisible();
+ expect(await popout.evaluate(el=>el.tagName)).toBe('DIV');expect(await popout.getAttribute('aria-modal')).not.toBe('true');
+ const strength=popout.getByRole('slider',{name:'Smoothing strength'}),detail=popout.getByRole('slider',{name:'Detail reduction'});
+ await expect(detail).toBeVisible();await expect(strength).toHaveValue('0');
+ await strength.evaluate((el:HTMLInputElement)=>{el.value='100';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ const live=await page.evaluate(()=>{const e=(window as any).__vectora,s=e.selected;return {json:s.exportJSON({asString:true}),first:[s.firstSegment.point.x,s.firstSegment.point.y],last:[s.lastSegment.point.x,s.lastSegment.point.y],corners:s.segments.filter((v:any)=>v.point.equals([60,40])).map((v:any)=>[v.handleIn.length,v.handleOut.length]),closed:s.closed,dash:s.dashArray,weight:s.strokeWidth};});
+ expect(live.first).toEqual([40,40]);expect(live.last).toEqual([60,60]);expect(live.corners).toHaveLength(1);expect(live.closed).toBe(false);expect(live.dash.length).toBeGreaterThan(0);expect(live.weight).toBe(.8);
+ expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).not.toEqual(before);
+ await strength.evaluate((el:HTMLInputElement)=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ await strength.evaluate((el:HTMLInputElement)=>{el.value='100';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ const after=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ await popout.getByRole('button',{name:'Close Smooth'}).click();await expect(popout).toBeHidden();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after);
+ await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ await page.keyboard.press('Control+Shift+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(after);
+});
+
+test('Smooth Escape cancels only an unfinished adjustment and Undo works from its sliders',async({page})=>{
+ await ready(page);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path({insert:false,segments:[[40,40],[45,41],[50,39],[55,41],[60,40]]}),'Jagged');e.setTool('select');});
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();
+ const panel=page.getByRole('dialog',{name:'Smooth selected objects',exact:true}),strength=panel.getByRole('slider',{name:'Smoothing strength'});
+ await strength.evaluate((el:HTMLInputElement)=>{el.value='60';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ const completed=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ await strength.evaluate((el:HTMLInputElement)=>{el.value='100';el.dispatchEvent(new Event('input',{bubbles:true}));});await page.keyboard.press('Escape');
+ await expect(panel).toBeHidden();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(completed);
+ await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();await page.keyboard.press('Control+z');
+ await expect(panel).toBeHidden();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+});
+
+test('Smooth preserves transformed compound holes and styles, leaves unrelated objects alone and restores the baseline',async({page})=>{
+ await ready(page);
+ const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;
+  const outer=new p.Path({insert:false,closed:true,segments:[[40,30],[45,30.4],[50,29.5],[55,30.4],[60,30],[70,30],[70,65],[40,65]]});
+  const hole=new p.Path.Circle({insert:false,center:[55,48],radius:6});hole.reverse();const shape=new p.CompoundPath({insert:false,children:[outer,hole],fillColor:'#64aab5',fillRule:'evenodd',opacity:.4});
+  shape.applyMatrix=false;shape.rotate(24);shape.scale(1.3,.8);e.addShape(shape,'Compound');e.moveSelectionToLayer('cutline');const selected=e.selected;e.setLineWeight(.7);e.setLineDesign('dotted');e.addShape(new p.Path.Rectangle({rectangle:[100,35,20,20],insert:false}),'Unrelated');e.select(selected);e.setTool('select');
+  const s=e.selected;return {snapshot:e.snapshot(),hole:s.children[1].exportJSON({asString:true}),other:e.objects.find((v:any)=>v.data.name==='Unrelated').exportJSON({asString:true}),style:JSON.stringify({stroke:s.strokeColor?.toCSS(true),fill:s.fillColor?.toCSS(true),weight:s.strokeWidth,scale:s.strokeScaling,dash:s.dashArray,cap:s.strokeCap,rule:s.fillRule,opacity:s.opacity,matrix:s.matrix.values}),data:JSON.stringify(s.data),first:s.children[0].localToGlobal(s.children[0].firstSegment.point).toString(),last:s.children[0].closed};});
+ await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();
+ const panel=page.getByRole('dialog',{name:'Smooth selected objects',exact:true});
+ await panel.getByRole('slider',{name:'Smoothing strength'}).evaluate((el:HTMLInputElement)=>{el.value='80';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ const after=await page.evaluate(()=>{const e=(window as any).__vectora,s=e.selected;return {snapshot:e.snapshot(),hole:s.children[1].exportJSON({asString:true}),other:e.objects.find((v:any)=>v.data.name==='Unrelated').exportJSON({asString:true}),style:JSON.stringify({stroke:s.strokeColor?.toCSS(true),fill:s.fillColor?.toCSS(true),weight:s.strokeWidth,scale:s.strokeScaling,dash:s.dashArray,cap:s.strokeCap,rule:s.fillRule,opacity:s.opacity,matrix:s.matrix.values}),data:JSON.stringify(s.data),closed:s.children.map((p:any)=>p.closed)};});
+ expect(after.snapshot).not.toEqual(before.snapshot);expect(after.hole).toBe(before.hole);expect(after.other).toBe(before.other);expect(after.style).toBe(before.style);expect(after.data).toBe(before.data);expect(after.closed).toEqual([true,true]);
+ await panel.getByRole('slider',{name:'Smoothing strength'}).evaluate((el:HTMLInputElement)=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before.snapshot);
+});
+
+test('Smooth detail reduction removes noise, fits themes and narrow windows, and locked paths cannot be edited',async({page})=>{
+ await ready(page);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path({insert:false,segments:Array.from({length:41},(_,i)=>[40+i,40+Math.sin(i)*.3])}),'Noise');e.setTool('select');});
+ await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();const panel=page.getByRole('dialog',{name:'Smooth selected objects',exact:true});
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());
+ const detail=panel.getByRole('slider',{name:'Detail reduction'});await detail.fill('0.5');await detail.dispatchEvent('input');await detail.dispatchEvent('change');
+ expect(await page.evaluate(()=>(window as any).__vectora.selected.segments.length)).toBeLessThan(15);
+ await detail.fill('0');await detail.dispatchEvent('input');await detail.dispatchEvent('change');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ for(const [theme,width] of [['light',1280],['dark',1280],['high-contrast',420]] as const){
+  await page.setViewportSize({width,height:700});await page.evaluate(theme=>{document.documentElement.dataset.theme=theme;(window as any).__vectora.refreshTheme();},theme);await expect(panel).toBeVisible();const box=(await panel.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);expect(box.y+box.height).toBeLessThanOrEqual(700);await page.screenshot({path:`test-results/smooth-${theme}.png`});
+ }
+ await page.evaluate(()=>(window as any).__vectora.setLayerState('artwork','locked',true));await expect(panel).toBeHidden();await page.mouse.click(250,300,{button:'right'});await expect(page.getByRole('menuitem',{name:'Smooth',exact:true})).toBeDisabled();
+});
+
+test('Smooth keeps polygon corners, exact circular arcs and compound hole nesting',async({page})=>{
+ await ready(page);
+ const original=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;
+  const outer=new p.Path({insert:false,closed:true,segments:Array.from({length:16},(_,i)=>{const radius=20+.12*Math.sin(i*3);return [50+radius*Math.cos(i*Math.PI/8),40+radius*Math.sin(i*Math.PI/8)];})});
+  const hole=new p.Path.Circle({insert:false,center:[50,40],radius:19.2});hole.reverse();e.addShape(new p.CompoundPath({insert:false,children:[outer,hole],fillColor:'#123456',fillRule:'evenodd'}),'Ring');const ring=e.selected;
+  const polygon=new p.Path.RegularPolygon({insert:false,center:[110,40],sides:8,radius:20});polygon.data.sides=8;e.addShape(polygon,'Polygon');const selected=e.selected;
+  e.addShape(new p.Path.Arc({insert:false,from:[140,40],through:[150,30],to:[160,40]}),'Arc');e.selected.data.arc={cx:150,cy:40,radius:10,start:180,sweep:180};e.select(ring,true);e.select(selected,true);e.setTool('select');
+  return {polygon:selected.exportJSON({asString:true}),arc:e.objects.find((s:any)=>s.data.name==='Arc').exportJSON({asString:true}),holes:[ring.contains([50,55]),ring.contains([50,59.6])],self:outer.getIntersections(outer).length};});
+ await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();const panel=page.getByRole('dialog',{name:'Smooth selected objects',exact:true});
+ await panel.getByRole('slider',{name:'Smoothing strength'}).evaluate((el:HTMLInputElement)=>{el.value='100';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ const result=await page.evaluate(()=>{const e=(window as any).__vectora,ring=e.objects.find((s:any)=>s.data.name==='Ring');return {polygon:e.objects.find((s:any)=>s.data.name==='Polygon').exportJSON({asString:true}),arc:e.objects.find((s:any)=>s.data.name==='Arc').exportJSON({asString:true}),holes:[ring.contains([50,55]),ring.contains([50,59.6])],self:ring.children[0].getIntersections(ring.children[0]).length};});
+ expect(result.polygon).toBe(original.polygon);expect(result.arc).toBe(original.arc);expect(result.holes).toEqual(original.holes);expect(result.self).toBe(original.self);
+});
+
+test('Smooth preserves joined metadata-free circular arcs and saved small circles',async({page})=>{
+ await ready(page);
+ const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper,arc=new p.Path.Arc({insert:false,from:[40,40],through:[50,30],to:[60,40]}),circle=new p.Path.Circle({insert:false,center:[100.123456789123,70.123456789123],radius:.01});
+  const saved=p.project.importJSON(circle.exportJSON({asString:true,precision:12}));saved.remove();circle.remove();e.addShape(new p.CompoundPath({insert:false,children:[arc,saved]}),'Precise contours');e.setTool('select');return e.snapshot();});
+ await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();const panel=page.getByRole('dialog',{name:'Smooth selected objects',exact:true});
+ for(const name of ['Smoothing strength','Detail reduction'])await panel.getByRole('slider',{name}).evaluate((el:HTMLInputElement)=>{el.value=el.max;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+});
+
+test('Smooth keeps a large joined object responsive without allocating every contour pair',async({page})=>{
+ await ready(page);
+ const timing=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;
+  const circles=Array.from({length:3000},(_,i)=>new p.Path.Circle({insert:false,center:[40+(i%60)*2,40+Math.floor(i/60)*2],radius:.4}));
+  const noise=new p.Path({insert:false,segments:Array.from({length:41},(_,i)=>[40+i,35+Math.sin(i)*.3])});e.addShape(new p.CompoundPath({insert:false,children:[...circles,noise]}),'Large joined object');e.setTool('select');
+  const start=performance.now();e.smoothing.open({x:300,y:250});const open=performance.now()-start,topologySize=e.smoothing.sources[0].topology.length;
+  const slider=document.querySelector('#smooth-strength') as HTMLInputElement;const updateStart=performance.now();slider.value='100';slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));return {open,update:performance.now()-updateStart,topologySize};});
+ expect(timing.topologySize).toBeLessThan(150000);expect(timing.open).toBeLessThan(1500);expect(timing.update).toBeLessThan(1500);
+});
+
 test('Context layer markers keep custom colours and follow appearance changes',async({page})=>{
  await ready(page);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path.Rectangle({rectangle:[40,30,30,25],insert:false}),'First');const first=e.selected,layer=e.addDocumentLayer('artwork',true);e.renameDocumentLayer(layer.data.documentId,'Custom ink');e.setDocumentLayerColour(layer.data.documentId,'#123456');e.select(first);});
  const menu=await openShape(page);await menu.getByRole('menuitem',{name:'Layer',exact:true}).click();const layers=menu.getByRole('menu',{name:'Move to layer'});

@@ -1566,3 +1566,14 @@ input[type="color"]::-moz-color-swatch { border-radius:0; }
 @media(max-width:700px) {
  :root :is(.preferences-header,.export-header,.raster-header,.help-header,.generator-header) h2 { font-size:var(--text-lg); }
 }
+
+/* Live selection smoothing: compact, nonmodal controls beside the canvas. */
+.smooth-popover { position:fixed; z-index:var(--menu-z-index); width:280px; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow:auto; padding:16px; border:var(--border-width) solid var(--menu-border); border-radius:var(--radius-menu); box-shadow:var(--menu-shadow); }
+.smooth-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:12px; margin-bottom:16px; border-bottom:1px solid var(--menu-border); }
+.smooth-header h2 { margin:0; font-size:var(--text-md); line-height:24px; font-weight:500; }
+.smooth-header .panel-icon { width:28px; height:28px; min-width:28px; }
+.smooth-controls .slider-label { font-size:var(--text-xs); }
+.smooth-controls .slider-label output { color:var(--menu-muted); font-variant-numeric:tabular-nums; }
+.smooth-controls .vectora-slider { height:32px; margin:4px 0 12px; }
+.smooth-hint { margin:4px 0 0; color:var(--menu-muted); font-size:var(--text-xs); line-height:18px; }
+.smooth-specimen { position:relative; inset:auto; }

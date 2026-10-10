@@ -8,6 +8,7 @@ export class SelectionContextMenu {
   private point:paper.Point|null=null;
   private copy:HTMLButtonElement;
   private paste:HTMLButtonElement;
+  private smooth=document.createElement('button');
   private layer=document.createElement('button');
   private layerMenu=document.createElement('div');
   private layerSignature='';
@@ -22,6 +23,9 @@ export class SelectionContextMenu {
       el.onclick=()=>this.run(action,this.point??undefined);this.menu.append(el);return el;
     };
     this.copy=button('copy','Copy','C');this.paste=button('paste','Paste','V');
+    this.smooth.type='button';this.smooth.className='node-action';this.smooth.setAttribute('role','menuitem');this.smooth.setAttribute('aria-haspopup','dialog');
+    this.smooth.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-node-smooth"/></svg><span>Smooth</span>';
+    this.smooth.onclick=()=>{const anchor={...this.anchor};this.close();editor.smoothing.open(anchor);};this.menu.append(this.smooth);
     this.layer.type='button';this.layer.className='node-action selection-layer-trigger';this.layer.setAttribute('role','menuitem');this.layer.setAttribute('aria-haspopup','menu');this.layer.setAttribute('aria-expanded','false');this.layer.setAttribute('aria-controls','selection-layer-menu');
     this.layer.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-layers"/></svg><span>Layer</span><svg class="selection-layer-chevron" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chevron"/></svg>';
     this.layerMenu.id='selection-layer-menu';this.layerMenu.className='selection-layer-menu';this.layerMenu.hidden=true;this.layerMenu.setAttribute('role','menu');this.layerMenu.setAttribute('aria-label','Move to layer');
@@ -37,7 +41,7 @@ export class SelectionContextMenu {
       }
       if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
         event.preventDefault();event.stopPropagation();
-        const buttons=nested?[...this.layerMenu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]:[this.copy,this.paste,this.layer].filter(button=>!button.disabled);
+        const buttons=nested?[...this.layerMenu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]:[this.copy,this.paste,this.smooth,this.layer].filter(button=>!button.disabled);
         const index=buttons.indexOf(document.activeElement as HTMLButtonElement);
         buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();
       }
@@ -106,6 +110,8 @@ export class SelectionContextMenu {
     this.close();this.editor.canvas.focus({preventScroll:true});
   }
   refresh():void {
+    this.editor.smoothing.refresh();this.smooth.disabled=!this.editor.smoothing.eligible;
+    this.smooth.title=this.smooth.disabled?'Select editable paths with at least three points. Convert text to paths first.':'Smooth selected objects';
     if(this.editor.tool!=='select'||this.editor.textEditing)this.close();
     this.copy.disabled=!this.editor.canCopySelection;this.paste.disabled=!this.editor.canPaste;this.layer.disabled=!this.editor.canCopySelection;
     if(!this.layerMenu.hidden){this.renderLayers();if(!this.menu.hidden)this.position();}

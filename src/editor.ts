@@ -13,6 +13,7 @@ import {regionAt} from './regionFill';
 import {LAYER_TYPES,layerType,layerId,layerRole,layerColour,isCustomLayer,validateLayerName,validateLayerColour,type LayerSnapshot} from './documentLayers';
 import { createHeart } from './heart';
 import { PathOffsets } from './pathOffsets';
+import { SelectionSmoothing } from './selectionSmoothing';
 import { ObjectPatterns } from './objectPatterns';
 import { arrangementOffsets, type ArrangementAction } from './arrangement';
 import { buildShapeOperation, eligibleForShapeOperation, type ShapeOperation } from './shapeOperationGeometry';
@@ -42,6 +43,7 @@ export class CADEditor {
   readonly dimensions:DimensionTools;
   readonly patterns:ObjectPatterns;
   readonly offsets:PathOffsets;
+  readonly smoothing:SelectionSmoothing;
   readonly artwork:paper.Layer;
   readonly cutlines:paper.Layer;
   private extraLayers:paper.Layer[]=[];
@@ -153,6 +155,7 @@ export class CADEditor {
     this.createDocumentLayer('construction','Construction Path','construction');
     this.createDocumentLayer('raster','Raster Engrave','raster');
     this.artwork.activate();
+    this.smoothing=new SelectionSmoothing(this,{changed:()=>this.changed(),commit:before=>this.commit(before)});
     this.nodes=new NodeEditing(this,{changed:()=>this.changed(),commit:before=>this.commit(before),restore:before=>this.restore(before),snap:(point,spacing)=>this.snapPoint(point,spacing,undefined,false)});
     this.dimensions=new DimensionTools(this,{changed:()=>this.changed(),snap:point=>this.snapPoint(point,this.gridSnappingActive?this.grid.spacingMM:null)});
     this.patterns=new ObjectPatterns(this,{changed:()=>this.changed(),snap:point=>this.snapPoint(point,this.gridSnappingActive?this.grid.spacingMM:null,undefined,false),apply:copies=>{
@@ -1217,6 +1220,7 @@ export class CADEditor {
     this.updateCursor();if(!committed)this.changed();
   };
   cancel():void {
+    this.smoothing?.close();
     this.finishLayerColourEdit();
     this.offsets?.cancel();this.patterns?.cancel();this.dimensions.cancel();this.nodes.cancel();
     this.activeObjectSnap=null;this.clearDeletePreview();
