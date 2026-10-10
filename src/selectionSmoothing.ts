@@ -3,6 +3,7 @@ import type {CADEditor} from './editor';
 import {documentPath} from './deletion';
 import {pathsOf} from './geometry';
 import {smoothPath,contourTopology,validSmoothedContours} from './smoothGeometry';
+import {MovablePopover} from './movablePopover';
 import type {DocumentSnapshot,Shape} from './types';
 
 /** Nonmodal live editing, derived from the opening geometry rather than previous ticks. */
@@ -15,10 +16,12 @@ export class SelectionSmoothing {
  private strength:HTMLInputElement;
  private detail:HTMLInputElement;
  private updating=false;
+ private mover:MovablePopover;
  constructor(private editor:CADEditor,private hooks:{changed:()=>void;commit:(before:DocumentSnapshot)=>void}){
   this.panel.className='smooth-popover menu-surface';this.panel.hidden=true;this.panel.setAttribute('role','dialog');this.panel.setAttribute('aria-label','Smooth selected objects');
   this.panel.innerHTML='<div class="smooth-header"><h2>Smooth</h2><button type="button" class="panel-icon" aria-label="Close Smooth" title="Close"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-close"/></svg></button></div><div class="smooth-controls"><div class="slider-label"><label for="smooth-strength">Smoothing strength</label><output for="smooth-strength">0%</output></div><input id="smooth-strength" class="vectora-slider" type="range" min="0" max="100" step="1" value="0"><div class="slider-label"><label for="smooth-detail">Detail reduction</label><output for="smooth-detail">0 mm</output></div><input id="smooth-detail" class="vectora-slider" type="range" min="0" max="2" step="0.05" value="0"><p class="smooth-hint">Preserves sharp corners and endpoints. Undo restores each adjustment.</p></div>';
   this.strength=this.panel.querySelector('#smooth-strength')!;this.detail=this.panel.querySelector('#smooth-detail')!;
+  this.mover=new MovablePopover(this.panel,this.panel.querySelector('.smooth-header h2')!,'Move Smooth menu',()=>this.position());
   editor.canvas.parentElement!.append(this.panel);
   this.panel.querySelector('button')!.onclick=()=>this.close(true);
   for(const slider of [this.strength,this.detail]){
@@ -101,6 +104,7 @@ export class SelectionSmoothing {
  private completed={strength:'0',detail:'0'};
  close(restoreFocus=false):void {
   if(this.panel.hidden)return;
+  this.mover.finish(true);
   this.panel.hidden=true;this.finish();this.sources.forEach(s=>s.paths.forEach(p=>p.base.remove()));this.sources=[];
   if(restoreFocus)this.editor.canvas.focus({preventScroll:true});
  }
@@ -113,7 +117,7 @@ export class SelectionSmoothing {
   const bottom=Math.min(innerHeight,canvas.bottom,document.querySelector('.ruler-bottom')?.getBoundingClientRect().top??innerHeight)-inset;
   this.panel.style.maxWidth=`${Math.max(0,right-left)}px`;this.panel.style.maxHeight=`${Math.max(0,bottom-top)}px`;
   const box=this.panel.getBoundingClientRect();
-  this.panel.style.left=`${Math.max(left,Math.min(this.anchor.x,right-box.width))}px`;
-  this.panel.style.top=`${Math.max(top,Math.min(this.anchor.y,bottom-box.height))}px`;
+  const x=Math.max(left,Math.min(this.mover.placement?.left??this.anchor.x,right-box.width)),y=Math.max(top,Math.min(this.mover.placement?.top??this.anchor.y,bottom-box.height));
+  this.panel.style.left=`${x}px`;this.panel.style.top=`${y}px`;this.mover.constrain(x,y);
  }
 }

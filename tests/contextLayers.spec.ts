@@ -42,6 +42,35 @@ test('Smooth Escape cancels only an unfinished adjustment and Undo works from it
  await expect(panel).toBeHidden();expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
 });
 
+test('Smooth menu can move without changing geometry, retains placement during edits and cancels unfinished drags',async({page})=>{
+ await ready(page);await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;e.addShape(new p.Path({insert:false,segments:[[40,40],[45,41],[50,39],[55,41],[60,40]]}),'Jagged');e.setTool('select');});
+ const before=await page.evaluate(()=>(window as any).__vectora.snapshot());await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();
+ const history=await page.evaluate(()=>(window as any).__vectora.captureSession().undo.length);
+ const panel=page.getByRole('dialog',{name:'Smooth selected objects',exact:true}),handle=panel.getByRole('button',{name:'Move Smooth menu',exact:true}),start=(await panel.boundingBox())!;
+ await expect(handle).toBeVisible();const grip=(await handle.boundingBox())!,x=grip.x+grip.width/2,y=grip.y+grip.height/2;
+ await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+130,y-90,{steps:8});await page.mouse.up();let moved=(await panel.boundingBox())!;
+ expect(moved.x).toBeCloseTo(start.x+130);expect(moved.y).toBeCloseTo(start.y-90);expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+ await handle.focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('Shift+ArrowDown');moved=(await panel.boundingBox())!;expect(moved.x).toBeCloseTo(start.x+132);expect(moved.y).toBeCloseTo(start.y-80);
+ const next=(await handle.boundingBox())!;await page.mouse.move(next.x+20,next.y+10);await page.mouse.down();await page.mouse.move(2,2,{steps:6});await page.keyboard.press('Escape');await page.mouse.up();await expect(panel).toBeVisible();expect((await panel.boundingBox())!.x).toBeCloseTo(moved.x);expect((await panel.boundingBox())!.y).toBeCloseTo(moved.y);
+ for(const event of ['pointercancel','lostpointercapture']){
+  const grip=(await handle.boundingBox())!;await page.mouse.move(grip.x+20,grip.y+10);await page.mouse.down();await page.mouse.move(grip.x+70,grip.y+40,{steps:3});await handle.evaluate((el,event)=>el.parentElement!.dispatchEvent(new PointerEvent(event,{pointerId:1})),event);await page.mouse.up();await expect(panel).toBeVisible();expect((await panel.boundingBox())!.x).toBeCloseTo(moved.x);expect((await panel.boundingBox())!.y).toBeCloseTo(moved.y);
+ }
+ expect(await page.evaluate(()=>(window as any).__vectora.captureSession().undo.length)).toBe(history);
+ await panel.getByRole('slider',{name:'Smoothing strength'}).evaluate((el:HTMLInputElement)=>{el.value='80';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
+ expect((await panel.boundingBox())!.x).toBeCloseTo(moved.x);expect((await panel.boundingBox())!.y).toBeCloseTo(moved.y);const after=await page.evaluate(()=>(window as any).__vectora.snapshot());expect(after).not.toEqual(before);
+ await panel.getByRole('button',{name:'Close Smooth',exact:true}).click();await (await openShape(page)).getByRole('menuitem',{name:'Smooth',exact:true}).click();expect((await panel.boundingBox())!.x).toBeCloseTo(moved.x);expect((await panel.boundingBox())!.y).toBeCloseTo(moved.y);
+ await page.setViewportSize({width:420,height:450});await expect.poll(async()=>{const r=(await panel.boundingBox())!;return r.x>=0&&r.y>=0&&r.x+r.width<=420&&r.y+r.height<=450;}).toBe(true);await panel.getByRole('button',{name:'Close Smooth',exact:true}).click();
+ await page.keyboard.press('Control+z');expect(await page.evaluate(()=>(window as any).__vectora.snapshot())).toEqual(before);
+});
+
+test('Smooth design reference uses the same movable header and keyboard controls',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(DEV+'/reference/design-system.html');
+ const panel=page.getByRole('dialog',{name:'Smooth selected objects specimen',exact:true}),handle=panel.getByRole('button',{name:'Move Smooth menu',exact:true});await handle.scrollIntoViewIfNeeded();const start=(await panel.boundingBox())!,grip=(await handle.boundingBox())!;
+ await page.mouse.move(grip.x+20,grip.y+10);await page.mouse.down();await page.mouse.move(grip.x+120,grip.y-60,{steps:6});await page.mouse.up();await expect(panel).toHaveClass(/is-positioned/);expect((await panel.boundingBox())!.x).toBeCloseTo(start.x+100);
+ const moved=(await panel.boundingBox())!;await handle.focus();await page.keyboard.press('Shift+ArrowLeft');expect((await panel.boundingBox())!.x).toBeCloseTo(moved.x-10);await page.screenshot({path:'test-results/smooth-movable-reference.png'});
+ await panel.getByRole('button',{name:'Close Smooth specimen',exact:true}).click();await expect(panel).toBeHidden();expect(errors).toEqual([]);
+});
+
 test('Smooth preserves transformed compound holes and styles, leaves unrelated objects alone and restores the baseline',async({page})=>{
  await ready(page);
  const before=await page.evaluate(()=>{const e=(window as any).__vectora,p=(window as any).__paper;
